@@ -70,8 +70,14 @@ MINEDUC-2024-00046-A y 2025-00010-A, son columnas informativas, no bloqueos de m
    y ejecutarlo por área — este entorno no puede descargarlos solo.
 2. **Importador PCEI**: dosificación real del Acuerdo 2017-00040-A (PDF EPJA_Completo)
    → reemplazar el mapeo-interno de `track_phase_objectives`.
-3. **Marcos Cambridge e IB** (estructura en el informe del proyecto): nuevos `frameworks`
-   + primeras `alignments` a mano para STEM de 8.º EGB–3.º BGU.
+3. ~~Marcos Cambridge e IB~~ **HECHO (semilla)**: `InternationalFrameworksSeeder`
+   (CAIE-LSEC, CAIE-IGCSE, CAIE-ASA, IB-MYP, IB-DP desde
+   `database/data/marcos-internacionales.json`) + `CrosswalkSeeder` (11 conceptos,
+   ~50 aristas STEM ancladas en las 8 destrezas MINEDEC verificadas, todas fuera de
+   producción hasta que un docente las revise).
+   **Falta**: enunciados cotejados contra los framework/syllabus oficiales
+   (hoy son paráfrasis, `is_verified=false`), Lengua/Sociales, y el flujo de revisión
+   docente que ponga `reviewed_by`/`reviewed_at`.
 4. ~~Motor de práctica~~ **HECHO (núcleo)**: `practice_items`/`practice_attempts`,
    semilla determinista sha256(item:user:intento), verificación en servidor con
    tolerancia (`App\Services\Practice\*`), endpoints next/attempts y 5 ítems de
