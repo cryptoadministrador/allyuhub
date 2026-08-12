@@ -17,7 +17,20 @@ Desde https://educacion.gob.ec/curriculo/ (o sección Documentos):
 | ECA_COMPLETO.pdf | Educación Cultural y Artística |
 | EF_COMPLETO.pdf | Educación Física |
 | Curriculo-integrador-preparatoria.pdf | 1.º EGB (ámbitos) |
-| EPJA_Completo_Adaptaciones-Curriculares.pdf | Dosificación PCEI (Acuerdo 2017-00040-A) |
+
+## Para el importador PCEI (roadmap §2) — fuentes ACTUALIZADAS 2025
+
+OJO: el Acuerdo 2017-00040-A fue **derogado** por el MINEDUC-2025-00034-A
+(RO 2.º Supl. Nº 121, 10-sep-2025). Descargar:
+
+| Archivo | URL | Cubre |
+|---|---|---|
+| curriculo-alfabetizacion-priorizado.pdf | educacion.gob.ec/wp-content/uploads/downloads/2025/09/ | ALFA (mód. 1-2) + POST (mód. 3-6), 100 días/módulo — Acuerdo 2025-00034-A |
+| EPJA_Completo_Adaptaciones-Curriculares.pdf | educacion.gob.ec/wp-content/uploads/downloads/2017/05/ | Referencia histórica: adaptaciones Básica Superior + Bachillerato (2017, derogado) |
+| MINEDUC-MINEDUC-2025-00034-A (RO Nº 121) | esacc.corteconstitucional.gob.ec (buscar en registroficial.gob.ec) | Texto del acuerdo que expide el currículo EPJA por competencias |
+
+Trampa del parser EPJA: las destrezas conservan los códigos del currículo 2016 pero
+AGRUPADAS: `LL.4.1. (1, 2)` = LL.4.1.1 + LL.4.1.2. Expandir antes de buscar en el grafo.
 
 También sirven los PDF del Currículo Priorizado con énfasis en competencias (2023)
 — impórtalos como versión nueva del framework, no encima de la 2016.

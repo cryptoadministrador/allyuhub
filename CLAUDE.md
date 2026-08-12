@@ -56,11 +56,32 @@ php artisan test                  # SQLite en memoria, no toca tu BD
 - Tests de API en `tests/Feature/` con datos mínimos por test (no el seeder completo).
 - Antes de dar por terminada una tarea: `php artisan test` en verde.
 
-## Reglas duras pendientes de validación (¡no las conviertas en constraints!)
+## Reglas PCEI — VALIDADAS contra los Registros Oficiales (2026-08-12)
 
-Las edades PCEI (15/18), rezago ≥3 años y módulos de 100/200 días vienen de fuentes
-oficiales secundarias. Hasta validar contra el texto íntegro de los Acuerdos
-MINEDUC-2024-00046-A y 2025-00010-A, son columnas informativas, no bloqueos de matrícula.
+Cotejadas contra el RO Nº 9 (31-mar-2025, texto del Acuerdo 2025-00010-A que reforma al
+2024-00046-A) y el RO 2.º Supl. Nº 121 (10-sep-2025, Acuerdo 2025-00034-A), vía
+esacc.corteconstitucional.gob.ec:
+
+- Edades mínimas: 15 años (alfabetización, post-alfabetización, básica superior
+  intensiva) y 18 (bachillerato intensivo). ✔
+- Rezago escolar: ≥3 años dentro o fuera del sistema (base Art. 231 RGLOEI). ✔
+- Ciclos: intensivo = 100 días pedagógicos consecutivos por módulo/grado (hasta 2 por
+  año); no intensivo = 200 días (1 por año). Distancia-virtual: 5 meses por grado. ✔
+- Fase propedéutica OBLIGATORIA para quien ingresa por primera vez, ADICIONAL al ciclo:
+  5 días hábiles en semipresencial, 10 en distancia (virtual o asistida). ✔
+- Duraciones operativas (portal Juntos): ALFA 10 meses, POST 20, BSI 11, BI 15. ✔
+
+Siguen siendo columnas informativas, no bloqueos de matrícula, pero ya se pueden usar
+para validaciones suaves. OJO: la numeración de artículos citada arriba salió de lectura
+automatizada de los RO; verificar contra el PDF antes de citarla en un documento formal.
+
+**Cambio normativo clave (2025-08/09):** el Acuerdo **MINEDUC-2025-00034-A** deroga
+íntegramente al 2017-00040-A (y a su reforma 2017-00067-A) y expide el currículo EPJA
+actualizado por competencias, incluido el Currículo Integrado de Alfabetización y
+Post-alfabetización **Priorizado**: 6 módulos (ALFA = módulos 1-2, POST = 3-6), 20
+períodos semanales, 100 días por módulo. Además: 2025-00032-A reexpide la normativa de
+modalidades y 2025-00031-A regula el Bachillerato Técnico EPJA (100 días/ciclo, 18 meses,
+8 semanas de nivelación técnica).
 
 ## Roadmap inmediato (en orden)
 
@@ -68,8 +89,14 @@ MINEDUC-2024-00046-A y 2025-00010-A, son columnas informativas, no bloqueos de m
    (parser de códigos + replicación por subnivel + trazabilidad sha256 + tests).
    **Falta**: descargar los PDF oficiales (lista en `storage/curriculo/README.md`)
    y ejecutarlo por área — este entorno no puede descargarlos solo.
-2. **Importador PCEI**: dosificación real del Acuerdo 2017-00040-A (PDF EPJA_Completo)
-   → reemplazar el mapeo-interno de `track_phase_objectives`.
+2. **Importador PCEI**: dosificación real → reemplazar el mapeo-interno de
+   `track_phase_objectives`. La fuente ya NO es el 2017-00040-A (derogado): es el
+   **Acuerdo 2025-00034-A** (currículo EPJA por competencias + alfabetización priorizada;
+   anexo en `educacion.gob.ec/.../2025/09/curriculo-alfabetizacion-priorizado.pdf`) con el
+   EPJA_Completo de 2017 solo como referencia histórica de las adaptaciones. Trampa del
+   parser: las destrezas EPJA conservan los códigos del currículo 2016 pero AGRUPADAS con
+   la notación `LL.4.1. (1, 2)` = LL.4.1.1 + LL.4.1.2 — hay que expandirla.
+   Bloqueo: los PDF hay que descargarlos a `storage/curriculo/` a mano (robots.txt).
 3. ~~Marcos Cambridge e IB~~ **HECHO (semilla)**: `InternationalFrameworksSeeder`
    (CAIE-LSEC, CAIE-IGCSE, CAIE-ASA, IB-MYP, IB-DP desde
    `database/data/marcos-internacionales.json`) + `CrosswalkSeeder` (13 conceptos,
