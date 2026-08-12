@@ -45,6 +45,14 @@ class ImportMineducTest extends TestCase
         }
     }
 
+    protected function tearDown(): void
+    {
+        // El fixture no debe quedar como residuo en storage/framework.
+        @unlink(storage_path('framework/test-import.txt'));
+
+        parent::tearDown();
+    }
+
     private function fixture(string $content): string
     {
         $path = storage_path('framework/test-import.txt');
