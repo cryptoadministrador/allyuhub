@@ -116,7 +116,9 @@ class CurriculumSeeder extends Seeder
                 ]);
             }
 
-            // PCEI/EPJA — duraciones del portal Juntos; VALIDAR contra los acuerdos (§riesgos).
+            // PCEI/EPJA — duraciones, edades, rezago y módulos VALIDADOS (2026-08) contra
+            // los RO Nº 9 y Nº 121; ver CLAUDE.md §Reglas PCEI. Los códigos de módulo del
+            // Acuerdo 2025-00034-A: ALFA = módulos 1-2, POST = módulos 3-6.
             $pcei = [
                 ['PCEI-ALFA', 'Alfabetización', 10, 15, ['g2', 'g3']],
                 ['PCEI-POST', 'Post-alfabetización', 20, 15, ['g4', 'g5', 'g6', 'g7']],
@@ -129,12 +131,14 @@ class CurriculumSeeder extends Seeder
                     'modality' => 'semipresencial', 'min_age' => $minAge,
                     'min_gap_years' => 3, 'module_days' => 100,
                     'attrs' => ['normativa' => ['MINEDUC-2024-00046-A', 'MINEDUC-2025-00010-A',
-                                                'MINEDUC-2017-00040-A']],
+                                                'MINEDUC-2025-00032-A', 'MINEDUC-2025-00034-A']],
                 ]);
-                // Fase 0: propedéutica obligatoria (reforma 2025-00010-A).
+                // Fase 0: propedéutica obligatoria para quien ingresa por primera vez,
+                // ADICIONAL al ciclo: 5 días hábiles en semipresencial, 10 a distancia
+                // (Art. 14 reformado por 2025-00010-A).
                 TrackPhase::create([
                     'track_id' => $track->id, 'seq' => 0,
-                    'label' => ['es' => 'Fase propedéutica — diagnóstico y nivelación'],
+                    'label' => ['es' => 'Fase propedéutica — diagnóstico y nivelación (5 días hábiles)'],
                     'is_propedeutic' => true,
                 ]);
                 $per = $months / count($grades);
@@ -146,7 +150,8 @@ class CurriculumSeeder extends Seeder
                         'grade_node_id' => $gradeNodes[$gid]->id,
                     ]);
                     // Dosificación semilla: todos los objetivos del grado equivalente.
-                    // El importador del Acuerdo 2017-00040-A la sustituirá con la dosificación real.
+                    // El importador del Acuerdo 2025-00034-A (que derogó al 2017-00040-A)
+                    // la sustituirá con la dosificación real por módulos.
                     $ids = LearningObjective::query()
                         ->whereIn('node_id', CurNode::query()->descendantsOf($gradeNodes[$gid])->pluck('id'))
                         ->pluck('id');
