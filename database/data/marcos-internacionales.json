@@ -1,8 +1,10 @@
 {
   "_meta": {
     "proposito": "Semilla de los marcos internacionales (Cambridge International e IB) para el grafo curricular de AllyuHub. Roadmap CLAUDE.md §3.",
-    "alcance": "STEM de 8.o EGB a 3.o BGU: Matematica y Ciencias. Ingles y Humanidades quedan para una tanda posterior.",
-    "advertencia": "La ESTRUCTURA (programas, etapas, asignaturas, strands, topics y codigos) sigue la organizacion publica de cada marco. Los ENUNCIADOS son parafrasis de trabajo, no citas literales de los documentos con copyright de Cambridge Assessment International Education ni de la International Baccalaureate Organization. Por eso todos entran con is_verified=false. Un docente con acceso al curriculum framework o al syllabus oficial debe cotejarlos antes de marcarlos como verificados.",
+    "alcance": "STEM de 8.o EGB a 3.o BGU: Matematica y Ciencias. Lengua y Sociales quedan para una tanda posterior.",
+    "codigos": "Los codigos nativos y los titulos de topicos/sub-strands estan cotejados contra los documentos oficiales vigentes en agosto de 2026 (ver source_url de cada nodo). No inventes codigos: si un objetivo no existe en la fuente, no va.",
+    "advertencia": "Los ENUNCIADOS son parafrasis de trabajo, no citas literales de los documentos con copyright de Cambridge Assessment International Education ni de la International Baccalaureate Organization. Por eso todos entran con is_verified=false. Un docente con acceso al framework o syllabus oficial debe cotejarlos antes de marcarlos como verificados.",
+    "versiones": "Cambridge publica cada syllabus con su propio ciclo de vigencia (0580 va por 2025-2027 mientras 0625/0620/0610 van por 2026-2028) y el IB cambia cada guia por separado. framework_versions es una sola fila por marco, asi que la etiqueta de version es una FOTO fechada y la vigencia real de cada syllabus/guia viaja en attrs.vigencia del nodo correspondiente.",
     "objetivos_formato": "[codigo_nativo, enunciado_en, enunciado_es] o [codigo, en, es, {atributos}]"
   },
 
@@ -17,8 +19,8 @@
         "en": "Cambridge Lower Secondary Curriculum Framework"
       },
       "version": {
-        "label": "2018",
-        "valid_from": "2018-09-01",
+        "label": "2020",
+        "valid_from": "2020-09-01",
         "source_url": "https://www.cambridgeinternational.org/programmes-and-qualifications/cambridge-lower-secondary/curriculum/"
       },
       "nodes": [
@@ -37,7 +39,22 @@
               "native_code": "0862",
               "title_es": "Matematica",
               "title_en": "Mathematics",
-              "attrs": { "curriculum_code": "0862" },
+              "attrs": {
+                "curriculum_code": "0862",
+                "vigencia": "framework 2020",
+                "source_url": "https://www.cambridgeinternational.org/programmes-and-qualifications/cambridge-lower-secondary/curriculum/mathematics/",
+                "sub_strands": {
+                  "Ni": "Integers, powers and roots",
+                  "Np": "Place value, ordering and rounding",
+                  "Nf": "Fractions, decimals, percentages, ratio and proportion",
+                  "Ae": "Expressions, equations and formulae",
+                  "As": "Sequences, functions and graphs",
+                  "Gg": "Geometrical reasoning, shapes and measurements",
+                  "Gp": "Position and transformation",
+                  "Ss": "Statistics",
+                  "Sp": "Probability"
+                }
+              },
               "children": [
                 {
                   "node_type": "stage",
@@ -51,47 +68,53 @@
                   "children": [
                     {
                       "node_type": "strand",
-                      "path": "lsec.math.s7.number",
-                      "title_es": "Numero",
-                      "title_en": "Number",
+                      "path": "lsec.math.s7.ni",
+                      "native_code": "Ni",
+                      "title_es": "Numero: enteros, potencias y raices",
+                      "title_en": "Number: integers, powers and roots",
                       "objectives": [
                         ["7Ni.01", "Estimate, add and subtract integers, recognising generalisations.", "Estimar, sumar y restar numeros enteros reconociendo generalizaciones."],
-                        ["7Ni.03", "Estimate, multiply and divide integers including where one integer is negative.", "Estimar, multiplicar y dividir numeros enteros, incluidos casos con un entero negativo."],
-                        ["7Np.01", "Use knowledge of powers of 10 to multiply and divide whole numbers and decimals.", "Usar las potencias de 10 para multiplicar y dividir numeros naturales y decimales."],
-                        ["7Nf.02", "Estimate and add and subtract fractions with different denominators.", "Estimar, sumar y restar fracciones de distinto denominador."]
+                        ["7Ni.02", "Understand that brackets, positive indices and operations follow a particular order.", "Comprender que los parentesis, los indices positivos y las operaciones siguen un orden determinado."],
+                        ["7Ni.03", "Estimate, multiply and divide integers including where one integer is negative.", "Estimar, multiplicar y dividir enteros, incluidos los casos con un entero negativo."],
+                        ["7Ni.06", "Understand the relationship between squares and square roots, and cubes and cube roots.", "Comprender la relacion entre cuadrados y raices cuadradas, y entre cubos y raices cubicas."]
                       ]
                     },
                     {
                       "node_type": "strand",
-                      "path": "lsec.math.s7.algebra",
-                      "title_es": "Algebra",
-                      "title_en": "Algebra",
+                      "path": "lsec.math.s7.as",
+                      "native_code": "As",
+                      "title_es": "Algebra: sucesiones, funciones y graficas",
+                      "title_en": "Algebra: sequences, functions and graphs",
                       "objectives": [
-                        ["7Ae.01", "Understand that letters can be used to represent unknown values or variables.", "Comprender que las letras pueden representar valores desconocidos o variables."],
-                        ["7Ae.03", "Understand that a situation can be represented either in words or as an algebraic expression, and move between the two.", "Comprender que una situacion puede representarse en palabras o como expresion algebraica, y traducir entre ambas."],
-                        ["7As.01", "Understand term-to-term rules and generate sequences from them.", "Comprender reglas termino a termino y generar sucesiones a partir de ellas."],
-                        ["7Ag.02", "Understand that a linear relationship can be represented as a graph.", "Comprender que una relacion lineal puede representarse graficamente."]
+                        ["7As.01", "Understand term-to-term rules and generate linear sequences from numerical and spatial patterns.", "Comprender las reglas termino a termino y generar sucesiones lineales a partir de patrones numericos y espaciales."],
+                        ["7As.03", "Understand that a function is a relationship where each input has a single output.", "Comprender que una funcion es una relacion en la que cada entrada tiene una unica salida."],
+                        ["7As.04", "Represent a situation in words or as a linear function of two variables of the form y = x + c or y = mx.", "Representar una situacion en palabras o como funcion lineal de dos variables de la forma y = x + c o y = mx."],
+                        ["7As.05", "Construct tables of values and plot the graphs of linear functions given explicitly in terms of x.", "Construir tablas de valores y trazar las graficas de funciones lineales dadas explicitamente en terminos de x."]
                       ]
                     },
                     {
                       "node_type": "strand",
-                      "path": "lsec.math.s7.geometry",
-                      "title_es": "Geometria y medida",
-                      "title_en": "Geometry and Measure",
+                      "path": "lsec.math.s7.gg",
+                      "native_code": "Gg",
+                      "title_es": "Geometria: razonamiento, formas y medida",
+                      "title_en": "Geometry: reasoning, shapes and measurements",
                       "objectives": [
-                        ["7Gg.05", "Know that the sum of the angles in a triangle is 180 degrees and use this to derive properties of triangles.", "Reconocer que los angulos interiores de un triangulo suman 180 grados y deducir propiedades de los triangulos."],
-                        ["7Gg.09", "Derive and use the formula for the area of a triangle and a parallelogram.", "Deducir y aplicar las formulas del area del triangulo y del paralelogramo."],
-                        ["7Gp.01", "Use knowledge of coordinates to plot points in all four quadrants.", "Ubicar puntos en los cuatro cuadrantes del plano cartesiano."]
+                        ["7Gg.01", "Identify, describe and sketch regular polygons by their sides, angles and symmetry.", "Identificar, describir y bosquejar poligonos regulares por sus lados, angulos y simetria."],
+                        ["7Gg.02", "Understand that congruent 2D shapes have equal corresponding sides and angles.", "Comprender que dos figuras planas congruentes tienen lados y angulos correspondientes iguales."],
+                        ["7Gg.03", "Know the parts of a circle: centre, radius, diameter, circumference, chord and tangent.", "Conocer las partes de la circunferencia: centro, radio, diametro, longitud, cuerda y tangente."],
+                        ["7Gg.05", "Derive and use the formula for the area of a triangle, including in compound shapes.", "Deducir y aplicar la formula del area del triangulo, tambien en figuras compuestas."]
                       ]
                     },
                     {
                       "node_type": "strand",
-                      "path": "lsec.math.s7.statistics",
-                      "title_es": "Estadistica y probabilidad",
-                      "title_en": "Statistics and Probability",
+                      "path": "lsec.math.s7.sp",
+                      "native_code": "Sp",
+                      "title_es": "Probabilidad",
+                      "title_en": "Probability",
                       "objectives": [
-                        ["7Ss.01", "Select and trial data collection and sampling methods to investigate predictions for a set of related statistical questions.", "Seleccionar y ensayar metodos de recoleccion y muestreo para investigar predicciones sobre un conjunto de preguntas estadisticas relacionadas."],
-                        ["7Sp.02", "Understand and explain that probabilities range from 0 to 1 and can be represented as fractions, decimals and percentages.", "Comprender y explicar que las probabilidades van de 0 a 1 y se expresan como fracciones, decimales o porcentajes."]
+                        ["7Sp.02", "Understand and explain that probabilities range from 0 to 1 and can be written as fractions, decimals or percentages.", "Comprender y explicar que las probabilidades van de 0 a 1 y se escriben como fracciones, decimales o porcentajes."],
+                        ["7Sp.03", "Identify all mutually exclusive outcomes of a single event and recognise when they are equally likely.", "Identificar todos los resultados mutuamente excluyentes de un suceso simple y reconocer cuando son equiprobables."],
+                        ["7Sp.04", "Understand how to find the theoretical probabilities of equally likely outcomes.", "Determinar la probabilidad teorica de resultados equiprobables."]
                       ]
                     }
                   ]
@@ -108,44 +131,53 @@
                   "children": [
                     {
                       "node_type": "strand",
-                      "path": "lsec.math.s8.number",
-                      "title_es": "Numero",
-                      "title_en": "Number",
+                      "path": "lsec.math.s8.nf",
+                      "native_code": "Nf",
+                      "title_es": "Numero: fracciones, decimales, porcentajes, razon y proporcion",
+                      "title_en": "Number: fractions, decimals, percentages, ratio and proportion",
                       "objectives": [
-                        ["8Ni.02", "Use knowledge of the laws of arithmetic and order of operations to simplify calculations with integers and fractions.", "Aplicar las leyes de la aritmetica y el orden de operaciones para simplificar calculos con enteros y fracciones."],
-                        ["8Nf.03", "Estimate, multiply and divide fractions, and use the order of operations.", "Estimar, multiplicar y dividir fracciones aplicando el orden de operaciones."],
-                        ["8Nr.01", "Understand the relationship between two quantities in direct proportion.", "Comprender la relacion entre dos cantidades directamente proporcionales."]
+                        ["8Nf.02", "Estimate and subtract mixed numbers, giving the answer as a mixed number in its simplest form.", "Estimar y restar numeros mixtos, dando el resultado como numero mixto en su forma mas simple."],
+                        ["8Nf.03", "Estimate and multiply an integer by a mixed number, and divide an integer by a proper fraction.", "Estimar y multiplicar un entero por un numero mixto, y dividir un entero entre una fraccion propia."],
+                        ["8Nf.04", "Use the laws of arithmetic and order of operations to simplify calculations with decimals or fractions.", "Aplicar las leyes de la aritmetica y el orden de operaciones para simplificar calculos con decimales o fracciones."]
                       ]
                     },
                     {
                       "node_type": "strand",
-                      "path": "lsec.math.s8.algebra",
-                      "title_es": "Algebra",
-                      "title_en": "Algebra",
+                      "path": "lsec.math.s8.ae",
+                      "native_code": "Ae",
+                      "title_es": "Algebra: expresiones, ecuaciones y formulas",
+                      "title_en": "Algebra: expressions, equations and formulae",
                       "objectives": [
-                        ["8Ae.02", "Understand how to manipulate algebraic expressions including expanding a bracket and collecting like terms.", "Manipular expresiones algebraicas: eliminar parentesis y reducir terminos semejantes."],
-                        ["8Ae.05", "Understand that a situation can be represented as a linear equation and solve it.", "Representar una situacion mediante una ecuacion lineal y resolverla."],
-                        ["8Ag.01", "Understand that the gradient and intercept of a straight-line graph relate to y = mx + c.", "Comprender que la pendiente y el intercepto de una recta se relacionan con y = mx + c."]
+                        ["8Ae.02", "Understand that the laws of arithmetic and order of operations apply to algebraic terms and expressions.", "Comprender que las leyes de la aritmetica y el orden de operaciones se aplican a terminos y expresiones algebraicas."],
+                        ["8Ae.03", "Manipulate algebraic expressions: apply the distributive law with a single term and factorise using the highest common factor.", "Manipular expresiones algebraicas: aplicar la propiedad distributiva con un solo termino y factorizar por el maximo comun divisor."],
+                        ["8Ae.05", "Represent a situation in words or as a formula and change the subject using inverse operations.", "Representar una situacion en palabras o como formula y despejar una variable con operaciones inversas."],
+                        ["8Ae.06", "Represent a situation in words or as an equation, move between both and solve it, with the unknown on either or both sides.", "Representar una situacion en palabras o como ecuacion, transitar entre ambas y resolverla, con la incognita en uno o ambos miembros."]
                       ]
                     },
                     {
                       "node_type": "strand",
-                      "path": "lsec.math.s8.geometry",
-                      "title_es": "Geometria y medida",
-                      "title_en": "Geometry and Measure",
+                      "path": "lsec.math.s8.as",
+                      "native_code": "As",
+                      "title_es": "Algebra: sucesiones, funciones y graficas",
+                      "title_en": "Algebra: sequences, functions and graphs",
                       "objectives": [
-                        ["8Gg.06", "Derive and use the formula for the area of a trapezium and a compound shape.", "Deducir y aplicar la formula del area del trapecio y de figuras compuestas."],
-                        ["8Gg.11", "Identify and describe the properties of prisms and calculate their surface area and volume.", "Identificar propiedades de los prismas y calcular su area superficial y su volumen."]
+                        ["8As.02", "Understand and describe nth term rules algebraically in the form an +/- b.", "Comprender y describir reglas del termino n-esimo en la forma an +/- b."],
+                        ["8As.04", "Represent a situation in words or as a linear function of two variables of the form y = mx + c.", "Representar una situacion en palabras o como funcion lineal de dos variables de la forma y = mx + c."],
+                        ["8As.06", "Recognise that y = mx + c gives a straight-line graph where m is the gradient and c the y-intercept.", "Reconocer que y = mx + c corresponde a una recta donde m es la pendiente y c la ordenada al origen."],
+                        ["8As.07", "Read and interpret graphs with more than one component and explain the meaning of their intersections.", "Leer e interpretar graficas con mas de una componente y explicar el significado de sus intersecciones."]
                       ]
                     },
                     {
                       "node_type": "strand",
-                      "path": "lsec.math.s8.statistics",
-                      "title_es": "Estadistica y probabilidad",
-                      "title_en": "Statistics and Probability",
+                      "path": "lsec.math.s8.gg",
+                      "native_code": "Gg",
+                      "title_es": "Geometria: razonamiento, formas y medida",
+                      "title_en": "Geometry: reasoning, shapes and measurements",
                       "objectives": [
-                        ["8Ss.03", "Record, organise and represent categorical, discrete and continuous data, choosing an appropriate representation.", "Registrar, organizar y representar datos categoricos, discretos y continuos eligiendo la representacion adecuada."],
-                        ["8Sp.03", "Understand how to find the theoretical probabilities of equally likely combined events.", "Determinar la probabilidad teorica de sucesos compuestos equiprobables."]
+                        ["8Gg.01", "Identify and describe the hierarchy of quadrilaterals.", "Identificar y describir la jerarquia de los cuadrilateros."],
+                        ["8Gg.02", "Understand pi as the ratio of circumference to diameter and use the formula for the circumference of a circle.", "Comprender pi como la razon entre la longitud de la circunferencia y el diametro, y usar su formula."],
+                        ["8Gg.04", "Derive the formulae for the area of parallelograms and trapezia from rectangles, squares and triangles.", "Deducir las formulas del area del paralelogramo y del trapecio a partir de rectangulos, cuadrados y triangulos."],
+                        ["8Gg.06", "Derive and use the formula for the volume of a triangular prism.", "Deducir y aplicar la formula del volumen del prisma triangular."]
                       ]
                     }
                   ]
@@ -162,42 +194,53 @@
                   "children": [
                     {
                       "node_type": "strand",
-                      "path": "lsec.math.s9.number",
-                      "title_es": "Numero",
-                      "title_en": "Number",
+                      "path": "lsec.math.s9.ae",
+                      "native_code": "Ae",
+                      "title_es": "Algebra: expresiones, ecuaciones y formulas",
+                      "title_en": "Algebra: expressions, equations and formulae",
                       "objectives": [
-                        ["9Ni.01", "Understand the difference between rational and irrational numbers.", "Distinguir entre numeros racionales e irracionales."],
-                        ["9Nr.01", "Use knowledge of ratios and equivalence for a range of contexts, including direct and inverse proportion.", "Aplicar razones y equivalencias en distintos contextos, incluidas la proporcionalidad directa e inversa."]
+                        ["9Ae.02", "Manipulate algebraic expressions: expand the product of two expressions, apply the laws of indices and simplify algebraic fractions.", "Manipular expresiones algebraicas: desarrollar el producto de dos expresiones, aplicar las leyes de los indices y simplificar fracciones algebraicas."],
+                        ["9Ae.04", "Represent a situation as a formula and change the subject using inverse operations, including squares and cubes.", "Representar una situacion como formula y despejar una variable con operaciones inversas, incluidos cuadrados y cubos."],
+                        ["9Ae.05", "Represent a situation as an equation and solve it, including equations with an unknown in the denominator.", "Representar una situacion como ecuacion y resolverla, incluidas las que tienen la incognita en el denominador."],
+                        ["9Ae.06", "Understand that a pair of simultaneous linear equations has a solution that can be found algebraically or graphically.", "Comprender que un sistema de dos ecuaciones lineales tiene una solucion que puede hallarse algebraica o graficamente."],
+                        ["9Ae.07", "Represent a situation as an inequality and solve linear inequalities.", "Representar una situacion como inecuacion y resolver inecuaciones lineales."]
                       ]
                     },
                     {
                       "node_type": "strand",
-                      "path": "lsec.math.s9.algebra",
-                      "title_es": "Algebra",
-                      "title_en": "Algebra",
+                      "path": "lsec.math.s9.as",
+                      "native_code": "As",
+                      "title_es": "Algebra: sucesiones, funciones y graficas",
+                      "title_en": "Algebra: sequences, functions and graphs",
                       "objectives": [
-                        ["9Ae.04", "Understand that a situation can be represented as a pair of simultaneous linear equations and solve them algebraically or graphically.", "Representar una situacion como un sistema de dos ecuaciones lineales y resolverlo algebraica o graficamente."],
-                        ["9Ae.07", "Understand and solve simple inequalities.", "Comprender y resolver inecuaciones sencillas."],
-                        ["9Ag.03", "Read and interpret graphs with more than one component, including distance-time and speed-time graphs.", "Leer e interpretar graficas de mas de una componente, incluidas distancia-tiempo y velocidad-tiempo."]
+                        ["9As.01", "Generate linear and quadratic sequences from numerical patterns or a term-to-term rule.", "Generar sucesiones lineales y cuadraticas a partir de patrones numericos o de una regla termino a termino."],
+                        ["9As.06", "Find the equation of a straight line in the form y = mx + c or implicitly in terms of x.", "Hallar la ecuacion de una recta en la forma y = mx + c o de forma implicita en terminos de x."],
+                        ["9As.07", "Read, draw and interpret graphs and use compound measures to compare them.", "Leer, trazar e interpretar graficas y usar medidas compuestas para compararlas."]
                       ]
                     },
                     {
                       "node_type": "strand",
-                      "path": "lsec.math.s9.geometry",
-                      "title_es": "Geometria y medida",
-                      "title_en": "Geometry and Measure",
+                      "path": "lsec.math.s9.gg",
+                      "native_code": "Gg",
+                      "title_es": "Geometria: razonamiento, formas y medida",
+                      "title_en": "Geometry: reasoning, shapes and measurements",
                       "objectives": [
-                        ["9Gg.07", "Know and use Pythagoras' theorem to solve problems in two dimensions.", "Conocer y aplicar el teorema de Pitagoras para resolver problemas en dos dimensiones."],
-                        ["9Gg.10", "Use the relationships between the sides of a right-angled triangle to solve problems (introductory trigonometry).", "Usar las relaciones entre los lados de un triangulo rectangulo para resolver problemas (trigonometria inicial)."]
+                        ["9Gg.01", "Know and use the formulae for the area and circumference of a circle.", "Conocer y aplicar las formulas del area y la longitud de la circunferencia."],
+                        ["9Gg.04", "Derive and use the formula for the volume of prisms and cylinders.", "Deducir y aplicar la formula del volumen de prismas y cilindros."],
+                        ["9Gg.09", "Use the properties of angles, parallel and intersecting lines, triangles and quadrilaterals to calculate missing angles.", "Usar las propiedades de angulos, rectas paralelas y secantes, triangulos y cuadrilateros para calcular angulos desconocidos."],
+                        ["9Gg.10", "Know and use Pythagoras' theorem.", "Conocer y aplicar el teorema de Pitagoras."]
                       ]
                     },
                     {
                       "node_type": "strand",
-                      "path": "lsec.math.s9.statistics",
-                      "title_es": "Estadistica y probabilidad",
-                      "title_en": "Statistics and Probability",
+                      "path": "lsec.math.s9.ss",
+                      "native_code": "Ss",
+                      "title_es": "Estadistica",
+                      "title_en": "Statistics",
                       "objectives": [
-                        ["9Ss.05", "Interpret data, identifying patterns, trends and relationships within and between data sets, including scatter graphs and lines of best fit.", "Interpretar datos identificando patrones, tendencias y relaciones entre conjuntos, incluidos diagramas de dispersion y rectas de ajuste."]
+                        ["9Ss.01", "Select, trial and justify data collection and sampling methods to investigate predictions for related statistical questions.", "Seleccionar, ensayar y justificar metodos de recoleccion y muestreo para investigar predicciones sobre preguntas estadisticas relacionadas."],
+                        ["9Ss.04", "Use mode, median, mean and range to compare two distributions, including grouped data.", "Usar moda, mediana, media y rango para comparar dos distribuciones, incluidos datos agrupados."],
+                        ["9Ss.05", "Interpret data, identifying patterns, trends and relationships within and between data sets.", "Interpretar datos identificando patrones, tendencias y relaciones dentro de un conjunto y entre conjuntos."]
                       ]
                     }
                   ]
@@ -210,7 +253,21 @@
               "native_code": "0893",
               "title_es": "Ciencias",
               "title_en": "Science",
-              "attrs": { "curriculum_code": "0893" },
+              "attrs": {
+                "curriculum_code": "0893",
+                "vigencia": "framework 2020",
+                "source_url": "https://www.cambridgeinternational.org/programmes-and-qualifications/cambridge-lower-secondary/curriculum/science/",
+                "sub_strands": {
+                  "Pf": "Physics: forces and energy",
+                  "Ps": "Physics: light and sound",
+                  "Pe": "Physics: electricity and magnetism",
+                  "TWSm": "Thinking and Working Scientifically: models and representations",
+                  "TWSp": "Thinking and Working Scientifically: purpose and planning",
+                  "TWSc": "Thinking and Working Scientifically: carrying out enquiry",
+                  "TWSa": "Thinking and Working Scientifically: analysis, evaluation and conclusions"
+                },
+                "nota": "Este marco NO cubre lentes ni la segunda ley de Newton: la fisica de Lower Secondary llega hasta fuerzas equilibradas/no equilibradas, momentos y conservacion cualitativa de la energia. Por eso el crosswalk hacia optica y F=ma solo engancha en IGCSE y superiores."
+              },
               "children": [
                 {
                   "node_type": "stage",
@@ -224,44 +281,15 @@
                   "children": [
                     {
                       "node_type": "strand",
-                      "path": "lsec.sci.s7.physics",
-                      "title_es": "Fisica",
-                      "title_en": "Physics",
+                      "path": "lsec.sci.s7.pf",
+                      "native_code": "Pf",
+                      "title_es": "Fisica: fuerzas y energia",
+                      "title_en": "Physics: forces and energy",
                       "objectives": [
-                        ["7Pf.01", "Describe forces as pushes or pulls, identify the forces acting on an object and represent them with arrows.", "Describir las fuerzas como acciones de empuje o traccion, identificar las fuerzas que actuan sobre un objeto y representarlas con flechas."],
-                        ["7Pf.02", "Describe the effect of balanced and unbalanced forces on the motion of an object.", "Describir el efecto de fuerzas equilibradas y no equilibradas sobre el movimiento de un objeto."],
-                        ["7Pf.04", "Describe energy stores and the transfer of energy between them.", "Describir los almacenes de energia y las transferencias de energia entre ellos."],
-                        ["7Pl.01", "Describe the reflection of light at a plane surface using the law of reflection.", "Describir la reflexion de la luz en una superficie plana aplicando la ley de reflexion."]
-                      ]
-                    },
-                    {
-                      "node_type": "strand",
-                      "path": "lsec.sci.s7.chemistry",
-                      "title_es": "Quimica",
-                      "title_en": "Chemistry",
-                      "objectives": [
-                        ["7Cp.01", "Describe the particle model of solids, liquids and gases and use it to explain changes of state.", "Describir el modelo de particulas de solidos, liquidos y gases y usarlo para explicar los cambios de estado."],
-                        ["7Cm.02", "Distinguish between elements, compounds and mixtures.", "Distinguir entre elementos, compuestos y mezclas."]
-                      ]
-                    },
-                    {
-                      "node_type": "strand",
-                      "path": "lsec.sci.s7.biology",
-                      "title_es": "Biologia",
-                      "title_en": "Biology",
-                      "objectives": [
-                        ["7Bs.01", "Describe the structure of plant and animal cells and the function of their main parts.", "Describir la estructura de las celulas vegetales y animales y la funcion de sus partes principales."],
-                        ["7Be.02", "Describe feeding relationships using food chains and food webs.", "Describir relaciones alimentarias mediante cadenas y redes troficas."]
-                      ]
-                    },
-                    {
-                      "node_type": "strand",
-                      "path": "lsec.sci.s7.tws",
-                      "title_es": "Pensar y trabajar cientificamente",
-                      "title_en": "Thinking and Working Scientifically",
-                      "objectives": [
-                        ["7TWSp.02", "Make predictions of likely outcomes for a scientific enquiry and justify them.", "Formular predicciones sobre los resultados probables de una indagacion cientifica y justificarlas."],
-                        ["7TWSa.03", "Present and interpret results using tables, bar charts and line graphs.", "Presentar e interpretar resultados mediante tablas, graficos de barras y graficos de lineas."]
+                        ["7Pf.01", "Describe the changes in energy that result from an event or a process.", "Describir los cambios de energia que resultan de un suceso o un proceso."],
+                        ["7Pf.02", "Know that energy tends to dissipate and in doing so becomes less useful.", "Saber que la energia tiende a disiparse y al hacerlo se vuelve menos util."],
+                        ["7Pf.03", "Describe gravity as a force of attraction between any two objects, related to their masses.", "Describir la gravedad como fuerza de atraccion entre dos objetos cualesquiera, relacionada con sus masas."],
+                        ["7Pf.04", "Understand that in a vacuum there is no air resistance opposing movement.", "Comprender que en el vacio no hay resistencia del aire que se oponga al movimiento."]
                       ]
                     }
                   ]
@@ -278,34 +306,42 @@
                   "children": [
                     {
                       "node_type": "strand",
-                      "path": "lsec.sci.s8.physics",
-                      "title_es": "Fisica",
-                      "title_en": "Physics",
+                      "path": "lsec.sci.s8.pf",
+                      "native_code": "Pf",
+                      "title_es": "Fisica: fuerzas y energia",
+                      "title_en": "Physics: forces and energy",
                       "objectives": [
-                        ["8Pf.01", "Describe the transfer of energy in a system and use the idea that energy is conserved.", "Describir la transferencia de energia en un sistema y aplicar la idea de que la energia se conserva."],
-                        ["8Pf.02", "Calculate speed from distance and time and interpret distance-time graphs.", "Calcular la rapidez a partir de la distancia y el tiempo, e interpretar graficas distancia-tiempo."],
-                        ["8Pf.04", "Describe the effect of friction on moving objects, including as a force opposing motion.", "Describir el efecto de la friccion sobre los objetos en movimiento como fuerza que se opone al movimiento."],
-                        ["8Pl.02", "Describe the refraction of light at the boundary between two materials.", "Describir la refraccion de la luz en la frontera entre dos materiales."]
+                        ["8Pf.01", "Calculate speed as distance divided by time.", "Calcular la rapidez como distancia dividida entre tiempo."],
+                        ["8Pf.02", "Interpret and draw simple distance-time graphs.", "Interpretar y trazar graficas sencillas de distancia frente a tiempo."],
+                        ["8Pf.03", "Describe the effects of balanced and unbalanced forces on motion.", "Describir los efectos de las fuerzas equilibradas y no equilibradas sobre el movimiento."],
+                        ["8Pf.04", "Identify and calculate turning forces, using moment = force x distance.", "Identificar y calcular fuerzas de giro mediante momento = fuerza x distancia."],
+                        ["8Pf.05", "Explain pressure as a force exerted by a substance over an area.", "Explicar la presion como la fuerza que ejerce una sustancia sobre un area."],
+                        ["8Pf.06", "Use particle theory to explain pressure in gases and liquids, qualitatively.", "Usar la teoria de particulas para explicar la presion en gases y liquidos, de forma cualitativa."]
                       ]
                     },
                     {
                       "node_type": "strand",
-                      "path": "lsec.sci.s8.chemistry",
-                      "title_es": "Quimica",
-                      "title_en": "Chemistry",
+                      "path": "lsec.sci.s8.ps",
+                      "native_code": "Ps",
+                      "title_es": "Fisica: luz y sonido",
+                      "title_en": "Physics: light and sound",
                       "objectives": [
-                        ["8Cc.01", "Describe chemical reactions using word equations and the idea of conservation of mass.", "Describir reacciones quimicas mediante ecuaciones en palabras y la conservacion de la masa."],
-                        ["8Cm.03", "Describe the arrangement of elements in the Periodic Table by group and period.", "Describir la organizacion de los elementos en la tabla periodica por grupos y periodos."]
+                        ["8Ps.01", "Describe reflection at a plane surface and use the law of reflection.", "Describir la reflexion en una superficie plana y aplicar la ley de reflexion."],
+                        ["8Ps.02", "Describe the refraction of light at the boundary between air and glass or air and water, in terms of a change of speed.", "Describir la refraccion de la luz en la frontera aire-vidrio o aire-agua en terminos de cambio de rapidez."],
+                        ["8Ps.03", "Know that white light is made of many colours, shown by dispersion through a prism.", "Saber que la luz blanca esta compuesta de muchos colores, evidenciado por la dispersion en un prisma."],
+                        ["8Ps.04", "Describe how colours of light can be added, subtracted, absorbed and reflected.", "Describir como los colores de la luz se suman, restan, absorben y reflejan."]
                       ]
                     },
                     {
                       "node_type": "strand",
-                      "path": "lsec.sci.s8.biology",
-                      "title_es": "Biologia",
-                      "title_en": "Biology",
+                      "path": "lsec.sci.s8.tws",
+                      "native_code": "TWS",
+                      "title_es": "Pensar y trabajar cientificamente",
+                      "title_en": "Thinking and Working Scientifically",
                       "objectives": [
-                        ["8Bp.02", "Describe photosynthesis as the process by which plants make their own food.", "Describir la fotosintesis como el proceso por el cual las plantas producen su propio alimento."],
-                        ["8Bs.01", "Describe the structure and function of the human respiratory and circulatory systems.", "Describir la estructura y funcion de los sistemas respiratorio y circulatorio humanos."]
+                        ["8TWSm.01", "Describe what an analogy is and how it can be used as a model.", "Describir que es una analogia y como puede usarse como modelo."],
+                        ["8TWSp.04", "Plan a range of investigations of different types, considering variables appropriately and recognising that not every investigation is a fair test.", "Planificar investigaciones de distinto tipo considerando las variables adecuadamente y reconociendo que no toda investigacion es una prueba justa."],
+                        ["8TWSc.05", "Carry out practical work safely, supported by risk assessments where appropriate.", "Realizar el trabajo practico de forma segura, con evaluacion de riesgos cuando corresponda."]
                       ]
                     }
                   ]
@@ -322,34 +358,27 @@
                   "children": [
                     {
                       "node_type": "strand",
-                      "path": "lsec.sci.s9.physics",
-                      "title_es": "Fisica",
-                      "title_en": "Physics",
+                      "path": "lsec.sci.s9.pf",
+                      "native_code": "Pf",
+                      "title_es": "Fisica: fuerzas y energia",
+                      "title_en": "Physics: forces and energy",
                       "objectives": [
-                        ["9Pf.01", "Describe the relationship between force, mass and acceleration and use it to explain motion.", "Describir la relacion entre fuerza, masa y aceleracion y usarla para explicar el movimiento."],
-                        ["9Pf.02", "Calculate the moment of a force and apply the principle of moments to a balanced system.", "Calcular el momento de una fuerza y aplicar el principio de los momentos a un sistema en equilibrio."],
-                        ["9Pf.05", "Describe energy transfers in terms of work done and calculate work done by a force.", "Describir transferencias de energia en terminos de trabajo y calcular el trabajo realizado por una fuerza."],
-                        ["9Pl.01", "Describe how lenses refract light to form images and identify converging and diverging lenses.", "Describir como las lentes refractan la luz para formar imagenes e identificar lentes convergentes y divergentes."]
+                        ["9Pf.01", "Use density to explain why objects float or sink in water.", "Usar la densidad para explicar por que los objetos flotan o se hunden en el agua."],
+                        ["9Pf.02", "Describe the difference between heat and temperature.", "Describir la diferencia entre calor y temperatura."],
+                        ["9Pf.03", "Know that energy is conserved: it cannot be created or destroyed.", "Saber que la energia se conserva: no puede crearse ni destruirse."],
+                        ["9Pf.04", "Know that thermal energy always transfers from hotter to colder regions.", "Saber que la energia termica siempre se transfiere de las regiones mas calientes a las mas frias."],
+                        ["9Pf.05", "Describe thermal transfer by conduction, convection and radiation.", "Describir la transferencia termica por conduccion, conveccion y radiacion."]
                       ]
                     },
                     {
                       "node_type": "strand",
-                      "path": "lsec.sci.s9.chemistry",
-                      "title_es": "Quimica",
-                      "title_en": "Chemistry",
+                      "path": "lsec.sci.s9.ps",
+                      "native_code": "Ps",
+                      "title_es": "Fisica: luz y sonido",
+                      "title_en": "Physics: light and sound",
                       "objectives": [
-                        ["9Cc.02", "Describe exothermic and endothermic changes in terms of energy transfer.", "Describir cambios exotermicos y endotermicos en terminos de transferencia de energia."],
-                        ["9Cr.01", "Describe the reactivity series and use it to predict displacement reactions.", "Describir la serie de reactividad y usarla para predecir reacciones de desplazamiento."]
-                      ]
-                    },
-                    {
-                      "node_type": "strand",
-                      "path": "lsec.sci.s9.biology",
-                      "title_es": "Biologia",
-                      "title_en": "Biology",
-                      "objectives": [
-                        ["9Bv.01", "Describe variation within a species and distinguish inherited from environmental variation.", "Describir la variacion dentro de una especie y distinguir la variacion heredada de la ambiental."],
-                        ["9Be.03", "Explain the effects of human activity on ecosystems and biodiversity.", "Explicar los efectos de la actividad humana sobre los ecosistemas y la biodiversidad."]
+                        ["9Ps.01", "Draw and interpret waveforms, linking loudness to amplitude and pitch to frequency.", "Trazar e interpretar formas de onda, relacionando la sonoridad con la amplitud y el tono con la frecuencia."],
+                        ["9Ps.02", "Use waveforms to show how sound waves reinforce or cancel each other.", "Usar formas de onda para mostrar como las ondas sonoras se refuerzan o se cancelan."]
                       ]
                     }
                   ]
@@ -371,9 +400,8 @@
         "en": "Cambridge IGCSE Syllabuses"
       },
       "version": {
-        "label": "2023-2025",
-        "valid_from": "2023-01-01",
-        "valid_to": "2025-12-31",
+        "label": "foto-2026-08",
+        "valid_from": "2025-01-01",
         "source_url": "https://www.cambridgeinternational.org/programmes-and-qualifications/cambridge-upper-secondary/cambridge-igcse/"
       },
       "nodes": [
@@ -392,7 +420,12 @@
               "native_code": "0580",
               "title_es": "Matematica 0580",
               "title_en": "Mathematics 0580",
-              "attrs": { "tiers": ["Core", "Extended"] },
+              "attrs": {
+                "tiers": ["Core", "Extended"],
+                "vigencia": "2025-2027",
+                "source_url": "https://www.cambridgeinternational.org/Images/662466-2025-2027-syllabus.pdf",
+                "nota": "El codigo lleva el tier delante del numero de topico: C1.1 es la version Core y E1.1 la Extended del mismo apartado."
+              },
               "children": [
                 {
                   "node_type": "topic",
@@ -401,9 +434,10 @@
                   "title_es": "Numero",
                   "title_en": "Number",
                   "objectives": [
-                    ["0580.C1.1", "Identify and use natural numbers, integers, primes, squares, cubes, rational and irrational numbers.", "Identificar y usar numeros naturales, enteros, primos, cuadrados, cubos, racionales e irracionales.", { "tier": "Core" }],
-                    ["0580.C1.11", "Use ratio and proportion, including direct and inverse proportion, to solve problems.", "Usar razones y proporciones, directa e inversa, para resolver problemas.", { "tier": "Core" }],
-                    ["0580.E1.9", "Use the standard form A x 10^n where n is an integer.", "Usar la notacion cientifica A x 10^n con n entero.", { "tier": "Extended" }]
+                    ["0580.C1.1", "Types of number: identify and use natural numbers, integers, primes, squares, cubes, rational and irrational numbers.", "Tipos de numero: identificar y usar naturales, enteros, primos, cuadrados, cubos, racionales e irracionales.", { "tier": "Core" }],
+                    ["0580.C1.8", "Standard form: use the form A x 10^n where n is an integer.", "Notacion cientifica: usar la forma A x 10^n con n entero.", { "tier": "Core" }],
+                    ["0580.C1.11", "Ratio and proportion: use ratio, direct and inverse proportion to solve problems.", "Razon y proporcion: usar razones y proporcionalidad directa e inversa para resolver problemas.", { "tier": "Core" }],
+                    ["0580.E1.18", "Surds: simplify and rationalise expressions containing surds.", "Radicales: simplificar y racionalizar expresiones con radicales.", { "tier": "Extended" }]
                   ]
                 },
                 {
@@ -413,10 +447,12 @@
                   "title_es": "Algebra y graficas",
                   "title_en": "Algebra and graphs",
                   "objectives": [
-                    ["0580.C2.2", "Expand brackets, factorise expressions and simplify algebraic fractions.", "Desarrollar parentesis, factorizar expresiones y simplificar fracciones algebraicas.", { "tier": "Core" }],
-                    ["0580.C2.5", "Construct and solve linear equations and simultaneous linear equations in two unknowns.", "Plantear y resolver ecuaciones lineales y sistemas lineales de dos incognitas.", { "tier": "Core" }],
-                    ["0580.E2.11", "Interpret and use graphs in practical situations, including distance-time and speed-time graphs, and find the gradient.", "Interpretar y usar graficas en situaciones practicas, incluidas distancia-tiempo y velocidad-tiempo, y hallar la pendiente.", { "tier": "Extended" }],
-                    ["0580.E2.13", "Solve quadratic equations by factorisation, completing the square and by use of the formula.", "Resolver ecuaciones cuadraticas por factorizacion, completando el cuadrado y con la formula general.", { "tier": "Extended" }]
+                    ["0580.C2.2", "Algebraic manipulation: expand brackets and factorise expressions.", "Manipulacion algebraica: desarrollar parentesis y factorizar expresiones.", { "tier": "Core" }],
+                    ["0580.C2.5", "Equations: construct and solve linear equations and simultaneous linear equations in two unknowns.", "Ecuaciones: plantear y resolver ecuaciones lineales y sistemas lineales de dos incognitas.", { "tier": "Core" }],
+                    ["0580.C2.6", "Inequalities: represent and solve linear inequalities.", "Inecuaciones: representar y resolver inecuaciones lineales.", { "tier": "Core" }],
+                    ["0580.C2.9", "Graphs in practical situations: interpret and use graphs including distance-time and speed-time, and find the gradient.", "Graficas en situaciones practicas: interpretar y usar graficas, incluidas distancia-tiempo y velocidad-tiempo, y hallar la pendiente.", { "tier": "Core" }],
+                    ["0580.E2.12", "Differentiation: find and use the derivative of simple polynomial functions, including turning points.", "Derivacion: hallar y usar la derivada de funciones polinomicas sencillas, incluidos los puntos de inflexion horizontal.", { "tier": "Extended" }],
+                    ["0580.E2.13", "Functions: use function notation, find inverse and composite functions.", "Funciones: usar la notacion funcional y hallar funciones inversas y compuestas.", { "tier": "Extended" }]
                   ]
                 },
                 {
@@ -426,7 +462,8 @@
                   "title_es": "Geometria",
                   "title_en": "Geometry",
                   "objectives": [
-                    ["0580.C4.6", "Calculate the area and perimeter of compound shapes and the surface area and volume of solids.", "Calcular area y perimetro de figuras compuestas y area superficial y volumen de solidos.", { "tier": "Core" }]
+                    ["0580.C4.4", "Similarity: calculate lengths of similar figures.", "Semejanza: calcular longitudes en figuras semejantes.", { "tier": "Core" }],
+                    ["0580.C4.6", "Angles: calculate unknown angles using the geometrical properties of lines, triangles and polygons.", "Angulos: calcular angulos desconocidos usando las propiedades geometricas de rectas, triangulos y poligonos.", { "tier": "Core" }]
                   ]
                 },
                 {
@@ -436,8 +473,10 @@
                   "title_es": "Trigonometria",
                   "title_en": "Trigonometry",
                   "objectives": [
-                    ["0580.C6.2", "Apply Pythagoras' theorem and the sine, cosine and tangent ratios to right-angled triangles.", "Aplicar el teorema de Pitagoras y las razones seno, coseno y tangente a triangulos rectangulos.", { "tier": "Core" }],
-                    ["0580.E6.4", "Use the sine rule, the cosine rule and the formula for the area of a triangle in any triangle.", "Usar el teorema del seno, el del coseno y la formula del area en triangulos cualesquiera.", { "tier": "Extended" }]
+                    ["0580.C6.1", "Pythagoras' theorem: apply it to find unknown sides in right-angled triangles.", "Teorema de Pitagoras: aplicarlo para hallar lados desconocidos en triangulos rectangulos.", { "tier": "Core" }],
+                    ["0580.C6.2", "Right-angled triangles: apply the sine, cosine and tangent ratios to find sides and angles.", "Triangulos rectangulos: aplicar las razones seno, coseno y tangente para hallar lados y angulos.", { "tier": "Core" }],
+                    ["0580.E6.4", "Trigonometric functions: recognise and sketch the graphs of sine, cosine and tangent.", "Funciones trigonometricas: reconocer y bosquejar las graficas de seno, coseno y tangente.", { "tier": "Extended" }],
+                    ["0580.E6.5", "Non-right-angled triangles: use the sine rule, the cosine rule and the formula for the area of a triangle.", "Triangulos no rectangulos: usar el teorema del seno, el del coseno y la formula del area del triangulo.", { "tier": "Extended" }]
                   ]
                 },
                 {
@@ -447,8 +486,9 @@
                   "title_es": "Estadistica",
                   "title_en": "Statistics",
                   "objectives": [
-                    ["0580.C9.4", "Calculate the mean, median, mode and range for individual and discrete data and distinguish their purposes.", "Calcular media, mediana, moda y rango para datos individuales y discretos y distinguir su uso.", { "tier": "Core" }],
-                    ["0580.E9.6", "Draw and interpret scatter diagrams, describe correlation and draw a line of best fit.", "Construir e interpretar diagramas de dispersion, describir la correlacion y trazar la recta de mejor ajuste.", { "tier": "Extended" }]
+                    ["0580.C9.3", "Averages and range: calculate the mean, median, mode and range for individual and discrete data.", "Medidas de centralizacion y rango: calcular media, mediana, moda y rango para datos individuales y discretos.", { "tier": "Core" }],
+                    ["0580.C9.5", "Scatter diagrams: draw and interpret them, describe correlation and draw a line of best fit.", "Diagramas de dispersion: construirlos e interpretarlos, describir la correlacion y trazar la recta de mejor ajuste.", { "tier": "Core" }],
+                    ["0580.E9.6", "Cumulative frequency diagrams: construct and use them to estimate median and quartiles.", "Diagramas de frecuencia acumulada: construirlos y usarlos para estimar mediana y cuartiles.", { "tier": "Extended" }]
                   ]
                 }
               ]
@@ -459,7 +499,11 @@
               "native_code": "0625",
               "title_es": "Fisica 0625",
               "title_en": "Physics 0625",
-              "attrs": { "tiers": ["Core", "Supplement"] },
+              "attrs": {
+                "tiers": ["Core", "Supplement"],
+                "vigencia": "2026-2028",
+                "source_url": "https://www.cambridgeinternational.org/Images/697209-2026-2028-syllabus.pdf"
+              },
               "children": [
                 {
                   "node_type": "topic",
@@ -472,38 +516,77 @@
                       "node_type": "subtopic",
                       "path": "igcse.p0625.t1.st2",
                       "native_code": "1.2",
-                      "title_es": "Movimiento",
-                      "title_en": "Motion",
+                      "title_es": "1.2 Movimiento",
+                      "title_en": "1.2 Motion",
                       "objectives": [
-                        ["0625.1.2.1", "Define speed and velocity and calculate average speed from distance and time.", "Definir rapidez y velocidad y calcular la rapidez media a partir de distancia y tiempo."],
-                        ["0625.1.2.3", "Plot and interpret distance-time and speed-time graphs, and determine acceleration from the gradient.", "Construir e interpretar graficas distancia-tiempo y velocidad-tiempo y determinar la aceleracion a partir de la pendiente."]
+                        ["0625.1.2", "Define speed and velocity, calculate average speed, and plot and interpret distance-time and speed-time graphs, obtaining acceleration from the gradient.", "Definir rapidez y velocidad, calcular la rapidez media y construir e interpretar graficas distancia-tiempo y velocidad-tiempo, obteniendo la aceleracion de la pendiente."]
                       ]
                     },
                     {
                       "node_type": "subtopic",
                       "path": "igcse.p0625.t1.st5",
                       "native_code": "1.5",
-                      "title_es": "Fuerzas",
-                      "title_en": "Forces",
+                      "title_es": "1.5 Fuerzas",
+                      "title_en": "1.5 Forces",
                       "objectives": [
-                        ["0625.1.5.1", "Describe the effects of forces on the shape and motion of a body and identify the forces acting using free-body diagrams.", "Describir los efectos de las fuerzas sobre la forma y el movimiento de un cuerpo e identificar las fuerzas actuantes mediante diagramas de cuerpo libre."],
-                        ["0625.1.5.2", "State and apply Newton's second law in the form F = ma.", "Enunciar y aplicar la segunda ley de Newton en la forma F = ma."],
-                        ["0625.1.5.3", "Describe friction as a force that opposes motion and its effect on the motion of a body.", "Describir la friccion como fuerza que se opone al movimiento y su efecto sobre el movimiento de un cuerpo."],
-                        ["0625.1.5.5", "Resolve a force into two perpendicular components and determine the resultant of two forces.", "Descomponer una fuerza en dos componentes perpendiculares y determinar la resultante de dos fuerzas.", { "tier": "Supplement" }],
-                        ["0625.1.5.6", "Calculate the moment of a force and apply the principle of moments to a body in equilibrium.", "Calcular el momento de una fuerza y aplicar el principio de los momentos a un cuerpo en equilibrio."]
+                        ["0625.1.5.1", "Effects of forces: describe how forces change the shape and motion of a body, identify the forces acting, find the resultant, apply F = ma and describe friction as a force opposing motion.", "Efectos de las fuerzas: describir como las fuerzas cambian la forma y el movimiento de un cuerpo, identificar las fuerzas actuantes, hallar la resultante, aplicar F = ma y describir la friccion como fuerza que se opone al movimiento."],
+                        ["0625.1.5.2", "Turning effect of forces: calculate the moment of a force and apply the principle of moments to a body in equilibrium.", "Efecto de giro de las fuerzas: calcular el momento de una fuerza y aplicar el principio de los momentos a un cuerpo en equilibrio."],
+                        ["0625.1.5.3", "Centre of gravity: describe it and relate its position to the stability of an object.", "Centro de gravedad: describirlo y relacionar su posicion con la estabilidad de un objeto."]
+                      ]
+                    },
+                    {
+                      "node_type": "subtopic",
+                      "path": "igcse.p0625.t1.st6",
+                      "native_code": "1.6",
+                      "title_es": "1.6 Momento lineal",
+                      "title_en": "1.6 Momentum",
+                      "objectives": [
+                        ["0625.1.6", "Define momentum and impulse and apply the conservation of momentum to collisions in one dimension.", "Definir el momento lineal y el impulso y aplicar la conservacion del momento a choques en una dimension.", { "tier": "Supplement" }]
                       ]
                     },
                     {
                       "node_type": "subtopic",
                       "path": "igcse.p0625.t1.st7",
                       "native_code": "1.7",
-                      "title_es": "Energia, trabajo y potencia",
-                      "title_en": "Energy, work and power",
+                      "title_es": "1.7 Energia, trabajo y potencia",
+                      "title_en": "1.7 Energy, work and power",
                       "objectives": [
-                        ["0625.1.7.1", "Identify energy stores and describe energy transfers between them.", "Identificar almacenes de energia y describir las transferencias entre ellos."],
-                        ["0625.1.7.2", "State the principle of conservation of energy and apply it to simple mechanical systems.", "Enunciar el principio de conservacion de la energia y aplicarlo a sistemas mecanicos sencillos."],
-                        ["0625.1.7.3", "Recall and use the equations for kinetic energy and gravitational potential energy.", "Recordar y aplicar las ecuaciones de energia cinetica y energia potencial gravitatoria."],
-                        ["0625.1.7.4", "Recall and use the equation for work done, W = Fd, and relate it to energy transfer.", "Recordar y aplicar la ecuacion del trabajo, W = Fd, y relacionarla con la transferencia de energia."]
+                        ["0625.1.7.1", "Energy: identify energy stores and transfers, state the principle of conservation of energy and use the equations for kinetic and gravitational potential energy.", "Energia: identificar almacenes y transferencias de energia, enunciar el principio de conservacion de la energia y usar las ecuaciones de energia cinetica y potencial gravitatoria."],
+                        ["0625.1.7.2", "Work: relate work done to energy transferred and use W = Fd.", "Trabajo: relacionar el trabajo realizado con la energia transferida y usar W = Fd."],
+                        ["0625.1.7.3", "Energy resources: describe how useful energy is obtained from different resources and compare their efficiency.", "Recursos energeticos: describir como se obtiene energia util de distintos recursos y comparar su eficiencia."],
+                        ["0625.1.7.4", "Power: define power as work done per unit time and calculate efficiency.", "Potencia: definir la potencia como trabajo por unidad de tiempo y calcular la eficiencia."]
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "node_type": "topic",
+                  "path": "igcse.p0625.t2",
+                  "native_code": "2",
+                  "title_es": "Fisica termica",
+                  "title_en": "Thermal physics",
+                  "children": [
+                    {
+                      "node_type": "subtopic",
+                      "path": "igcse.p0625.t2.st1",
+                      "native_code": "2.1",
+                      "title_es": "2.1 Modelo cinetico de particulas de la materia",
+                      "title_en": "2.1 Kinetic particle model of matter",
+                      "objectives": [
+                        ["0625.2.1.1", "States of matter: describe the properties of solids, liquids and gases in terms of the arrangement of their particles.", "Estados de la materia: describir las propiedades de solidos, liquidos y gases segun la disposicion de sus particulas."],
+                        ["0625.2.1.2", "Particle model: use the particle model to explain changes of state, pressure and thermal expansion.", "Modelo de particulas: usar el modelo de particulas para explicar los cambios de estado, la presion y la dilatacion termica."]
+                      ]
+                    },
+                    {
+                      "node_type": "subtopic",
+                      "path": "igcse.p0625.t2.st3",
+                      "native_code": "2.3",
+                      "title_es": "2.3 Transferencia de energia termica",
+                      "title_en": "2.3 Transfer of thermal energy",
+                      "objectives": [
+                        ["0625.2.3.1", "Conduction: describe thermal conduction in solids in terms of particles and free electrons.", "Conduccion: describir la conduccion termica en solidos en terminos de particulas y electrones libres."],
+                        ["0625.2.3.2", "Convection: describe convection in fluids in terms of density changes.", "Conveccion: describir la conveccion en fluidos en terminos de cambios de densidad."],
+                        ["0625.2.3.3", "Radiation: describe thermal radiation and the effect of surface colour and texture on emission and absorption.", "Radiacion: describir la radiacion termica y el efecto del color y la textura de la superficie en la emision y la absorcion."]
                       ]
                     }
                   ]
@@ -517,28 +600,27 @@
                   "children": [
                     {
                       "node_type": "subtopic",
+                      "path": "igcse.p0625.t3.st1",
+                      "native_code": "3.1",
+                      "title_es": "3.1 Propiedades generales de las ondas",
+                      "title_en": "3.1 General properties of waves",
+                      "objectives": [
+                        ["0625.3.1", "Describe wavelength, frequency, amplitude and speed, and use v = f x lambda for transverse and longitudinal waves.", "Describir longitud de onda, frecuencia, amplitud y rapidez, y usar v = f x lambda para ondas transversales y longitudinales."]
+                      ]
+                    },
+                    {
+                      "node_type": "subtopic",
                       "path": "igcse.p0625.t3.st2",
                       "native_code": "3.2",
-                      "title_es": "Luz",
-                      "title_en": "Light",
+                      "title_es": "3.2 Luz",
+                      "title_en": "3.2 Light",
                       "objectives": [
-                        ["0625.3.2.1", "Describe the reflection of light at a plane mirror and construct ray diagrams for the image formed.", "Describir la reflexion de la luz en un espejo plano y construir diagramas de rayos de la imagen formada."],
-                        ["0625.3.2.2", "Describe refraction, define the refractive index and apply Snell's law.", "Describir la refraccion, definir el indice de refraccion y aplicar la ley de Snell."],
-                        ["0625.3.2.3", "Describe the action of a thin converging lens, construct ray diagrams and describe the characteristics of the image formed.", "Describir la accion de una lente delgada convergente, construir diagramas de rayos y describir las caracteristicas de la imagen formada."],
-                        ["0625.3.2.4", "Define linear magnification and calculate it from image and object sizes.", "Definir el aumento lateral y calcularlo a partir de los tamanos de imagen y objeto."]
+                        ["0625.3.2.1", "Reflection: describe reflection at a plane mirror and construct ray diagrams for the image formed.", "Reflexion: describir la reflexion en un espejo plano y construir diagramas de rayos de la imagen formada."],
+                        ["0625.3.2.2", "Refraction: describe refraction, define the refractive index, apply Snell's law and describe total internal reflection.", "Refraccion: describir la refraccion, definir el indice de refraccion, aplicar la ley de Snell y describir la reflexion total interna."],
+                        ["0625.3.2.3", "Thin lenses: describe the action of converging and diverging lenses, construct ray diagrams, describe the image formed and define linear magnification.", "Lentes delgadas: describir la accion de las lentes convergentes y divergentes, construir diagramas de rayos, describir la imagen formada y definir el aumento lateral."],
+                        ["0625.3.2.4", "Dispersion of light: describe the dispersion of white light by a prism.", "Dispersion de la luz: describir la dispersion de la luz blanca en un prisma."]
                       ]
                     }
-                  ]
-                },
-                {
-                  "node_type": "topic",
-                  "path": "igcse.p0625.t2",
-                  "native_code": "2",
-                  "title_es": "Fisica termica",
-                  "title_en": "Thermal physics",
-                  "objectives": [
-                    ["0625.2.1.1", "Describe the particle model of matter and use it to explain the properties of solids, liquids and gases.", "Describir el modelo de particulas de la materia y usarlo para explicar las propiedades de solidos, liquidos y gases."],
-                    ["0625.2.3.1", "Describe thermal energy transfer by conduction, convection and radiation.", "Describir la transferencia de energia termica por conduccion, conveccion y radiacion."]
                   ]
                 }
               ]
@@ -549,6 +631,10 @@
               "native_code": "0620",
               "title_es": "Quimica 0620",
               "title_en": "Chemistry 0620",
+              "attrs": {
+                "vigencia": "2026-2028",
+                "source_url": "https://www.cambridgeinternational.org/Images/697205-2026-2028-syllabus.pdf"
+              },
               "children": [
                 {
                   "node_type": "topic",
@@ -557,28 +643,39 @@
                   "title_es": "Estados de la materia",
                   "title_en": "States of matter",
                   "objectives": [
-                    ["0620.1.1.1", "Describe the states of matter in terms of the kinetic particle model and explain changes of state.", "Describir los estados de la materia con el modelo cinetico de particulas y explicar los cambios de estado."]
+                    ["0620.1.1", "Solids, liquids and gases: describe the three states in terms of the kinetic particle model and explain changes of state.", "Solidos, liquidos y gases: describir los tres estados con el modelo cinetico de particulas y explicar los cambios de estado."],
+                    ["0620.1.2", "Diffusion: describe and explain diffusion in terms of particle movement.", "Difusion: describir y explicar la difusion en terminos del movimiento de las particulas."]
                   ]
                 },
                 {
                   "node_type": "topic",
-                  "path": "igcse.c0620.t4",
-                  "native_code": "4",
+                  "path": "igcse.c0620.t3",
+                  "native_code": "3",
                   "title_es": "Estequiometria",
                   "title_en": "Stoichiometry",
                   "objectives": [
-                    ["0620.4.1.1", "Write and balance chemical equations, including state symbols.", "Escribir y balancear ecuaciones quimicas, incluidos los simbolos de estado."],
-                    ["0620.4.2.1", "Use the mole concept to calculate reacting masses.", "Usar el concepto de mol para calcular masas reaccionantes.", { "tier": "Supplement" }]
+                    ["0620.3.1", "Formulae: write and balance chemical equations, including state symbols.", "Formulas: escribir y balancear ecuaciones quimicas, incluidos los simbolos de estado."],
+                    ["0620.3.3", "The mole and the Avogadro constant: use the mole concept to calculate reacting masses.", "El mol y la constante de Avogadro: usar el concepto de mol para calcular masas reaccionantes."]
                   ]
                 },
                 {
                   "node_type": "topic",
-                  "path": "igcse.c0620.t6",
-                  "native_code": "6",
+                  "path": "igcse.c0620.t5",
+                  "native_code": "5",
                   "title_es": "Energetica quimica",
                   "title_en": "Chemical energetics",
                   "objectives": [
-                    ["0620.6.1.1", "Describe exothermic and endothermic reactions in terms of energy transfer and draw reaction pathway diagrams.", "Describir reacciones exotermicas y endotermicas en terminos de transferencia de energia y trazar diagramas de camino de reaccion."]
+                    ["0620.5.1", "Exothermic and endothermic reactions: describe them in terms of energy transfer and draw reaction pathway diagrams.", "Reacciones exotermicas y endotermicas: describirlas en terminos de transferencia de energia y trazar diagramas de camino de reaccion."]
+                  ]
+                },
+                {
+                  "node_type": "topic",
+                  "path": "igcse.c0620.t9",
+                  "native_code": "9",
+                  "title_es": "Metales",
+                  "title_en": "Metals",
+                  "objectives": [
+                    ["0620.9.4", "Reactivity series: use it to predict displacement reactions and the ease of extraction of metals.", "Serie de reactividad: usarla para predecir reacciones de desplazamiento y la facilidad de extraccion de los metales."]
                   ]
                 }
               ]
@@ -589,6 +686,10 @@
               "native_code": "0610",
               "title_es": "Biologia 0610",
               "title_en": "Biology 0610",
+              "attrs": {
+                "vigencia": "2026-2028",
+                "source_url": "https://www.cambridgeinternational.org/Images/697203-2026-2028-syllabus.pdf"
+              },
               "children": [
                 {
                   "node_type": "topic",
@@ -597,7 +698,7 @@
                   "title_es": "Organizacion del organismo",
                   "title_en": "Organisation of the organism",
                   "objectives": [
-                    ["0610.2.1.1", "Describe the structure of plant and animal cells and relate structure to function.", "Describir la estructura de celulas vegetales y animales y relacionar estructura con funcion."]
+                    ["0610.2.1", "Cell structure: describe the structure of plant and animal cells and relate structure to function.", "Estructura celular: describir la estructura de celulas vegetales y animales y relacionar estructura con funcion."]
                   ]
                 },
                 {
@@ -607,17 +708,28 @@
                   "title_es": "Nutricion vegetal",
                   "title_en": "Plant nutrition",
                   "objectives": [
-                    ["0610.6.1.1", "Describe photosynthesis as the process by which plants synthesise carbohydrates, and state the word equation.", "Describir la fotosintesis como el proceso por el cual las plantas sintetizan carbohidratos y enunciar su ecuacion en palabras."]
+                    ["0610.6.1", "Photosynthesis: describe it as the process by which plants synthesise carbohydrates and state its word equation.", "Fotosintesis: describirla como el proceso por el cual las plantas sintetizan carbohidratos y enunciar su ecuacion en palabras."]
                   ]
                 },
                 {
                   "node_type": "topic",
                   "path": "igcse.b0610.t19",
                   "native_code": "19",
-                  "title_es": "Organismos y su ambiente",
+                  "title_es": "Los organismos y su ambiente",
                   "title_en": "Organisms and their environment",
                   "objectives": [
-                    ["0610.19.1.1", "Describe energy flow through an ecosystem using food chains, food webs and pyramids of number.", "Describir el flujo de energia en un ecosistema mediante cadenas y redes troficas y piramides de numeros."]
+                    ["0610.19.1", "Energy flow: describe the flow of energy through an ecosystem, starting with the Sun.", "Flujo de energia: describir el flujo de energia en un ecosistema, a partir del Sol."],
+                    ["0610.19.2", "Food chains and food webs: construct and interpret them and identify trophic levels.", "Cadenas y redes troficas: construirlas e interpretarlas e identificar los niveles troficos."]
+                  ]
+                },
+                {
+                  "node_type": "topic",
+                  "path": "igcse.b0610.t20",
+                  "native_code": "20",
+                  "title_es": "Influencia humana en los ecosistemas",
+                  "title_en": "Human influences on ecosystems",
+                  "objectives": [
+                    ["0610.20.3", "Pollution: describe the causes and effects of water and air pollution.", "Contaminacion: describir las causas y los efectos de la contaminacion del agua y del aire."]
                   ]
                 }
               ]
@@ -637,9 +749,8 @@
         "en": "Cambridge International AS & A Level Syllabuses"
       },
       "version": {
-        "label": "2025-2027",
+        "label": "foto-2026-08",
         "valid_from": "2025-01-01",
-        "valid_to": "2027-12-31",
         "source_url": "https://www.cambridgeinternational.org/programmes-and-qualifications/cambridge-advanced/cambridge-international-as-and-a-levels/"
       },
       "nodes": [
@@ -658,33 +769,39 @@
               "native_code": "9709",
               "title_es": "Matematica 9709",
               "title_en": "Mathematics 9709",
+              "attrs": {
+                "vigencia": "2026-2027",
+                "source_url": "https://www.cambridgeinternational.org/Images/697427-2026-2027-syllabus.pdf",
+                "nota": "El primer digito del codigo es el numero de COMPONENTE: 1 = Pure Mathematics 1, 4 = Mechanics."
+              },
               "children": [
                 {
-                  "node_type": "topic",
-                  "path": "asa.m9709.p1",
-                  "native_code": "P1",
-                  "title_es": "Matematica pura 1",
-                  "title_en": "Pure Mathematics 1",
+                  "node_type": "component",
+                  "path": "asa.m9709.c1",
+                  "native_code": "1",
+                  "title_es": "Componente 1: Matematica pura 1",
+                  "title_en": "Component 1: Pure Mathematics 1",
                   "objectives": [
-                    ["9709.P1.1.1", "Carry out the process of completing the square for a quadratic and use it to locate the vertex and solve equations.", "Completar el cuadrado en una expresion cuadratica y usarlo para localizar el vertice y resolver ecuaciones."],
-                    ["9709.P1.3.1", "Sketch and use the graphs of the sine, cosine and tangent functions and use the identities relating them.", "Bosquejar y usar las graficas de seno, coseno y tangente y aplicar las identidades que las relacionan."],
-                    ["9709.P1.7.1", "Understand the idea of the gradient of a curve and differentiate powers of x.", "Comprender la nocion de pendiente de una curva y derivar potencias de x."],
-                    ["9709.P1.7.3", "Apply differentiation to gradients, tangents, normals, stationary points and rates of change.", "Aplicar la derivacion a pendientes, tangentes, normales, puntos estacionarios y tasas de cambio."],
-                    ["9709.P1.8.1", "Understand integration as the reverse of differentiation and evaluate definite integrals to find areas.", "Comprender la integracion como operacion inversa de la derivacion y evaluar integrales definidas para hallar areas."]
+                    ["9709.1.1", "Quadratics: complete the square, find the vertex and solve quadratic equations and inequalities.", "Cuadraticas: completar el cuadrado, hallar el vertice y resolver ecuaciones e inecuaciones cuadraticas."],
+                    ["9709.1.2", "Functions: understand domain, range, composition and inverse functions.", "Funciones: comprender dominio, recorrido, composicion y funcion inversa."],
+                    ["9709.1.3", "Coordinate geometry: find equations of straight lines and circles and their intersections.", "Geometria analitica: hallar ecuaciones de rectas y circunferencias y sus intersecciones."],
+                    ["9709.1.5", "Trigonometry: sketch and use the graphs of sine, cosine and tangent and apply trigonometric identities.", "Trigonometria: bosquejar y usar las graficas de seno, coseno y tangente y aplicar identidades trigonometricas."],
+                    ["9709.1.7", "Differentiation: understand the gradient of a curve, differentiate powers of x and apply it to tangents, stationary points and rates of change.", "Derivacion: comprender la pendiente de una curva, derivar potencias de x y aplicarla a tangentes, puntos estacionarios y tasas de cambio."],
+                    ["9709.1.8", "Integration: understand integration as the reverse of differentiation and evaluate definite integrals to find areas.", "Integracion: comprender la integracion como inversa de la derivacion y evaluar integrales definidas para hallar areas."]
                   ]
                 },
                 {
-                  "node_type": "topic",
-                  "path": "asa.m9709.m1",
-                  "native_code": "M1",
-                  "title_es": "Mecanica",
-                  "title_en": "Mechanics",
+                  "node_type": "component",
+                  "path": "asa.m9709.c4",
+                  "native_code": "4",
+                  "title_es": "Componente 4: Mecanica",
+                  "title_en": "Component 4: Mechanics",
                   "objectives": [
-                    ["9709.M1.2.1", "Identify the forces acting on a body and represent them in a force diagram, including weight, normal contact force and friction.", "Identificar las fuerzas que actuan sobre un cuerpo y representarlas en un diagrama de fuerzas, incluidos peso, normal y friccion."],
-                    ["9709.M1.2.2", "Resolve forces into components and use equilibrium conditions for a particle on an inclined plane.", "Descomponer fuerzas en componentes y aplicar las condiciones de equilibrio a una particula sobre un plano inclinado."],
-                    ["9709.M1.2.3", "Use the model of a smooth or rough contact and the relationship F = mu R.", "Usar el modelo de contacto liso o rugoso y la relacion F = mu R."],
-                    ["9709.M1.3.1", "Apply Newton's laws of motion to the linear motion of a particle under constant forces.", "Aplicar las leyes de Newton al movimiento rectilineo de una particula bajo fuerzas constantes."],
-                    ["9709.M1.5.1", "Understand the concepts of work, energy and power and use the work-energy principle.", "Comprender los conceptos de trabajo, energia y potencia y aplicar el principio trabajo-energia."]
+                    ["9709.4.1", "Forces and equilibrium: identify the forces on a body, resolve them into components, use equilibrium conditions including on an inclined plane, and use the model of smooth or rough contact with F = mu R.", "Fuerzas y equilibrio: identificar las fuerzas sobre un cuerpo, descomponerlas en componentes, aplicar las condiciones de equilibrio incluido el plano inclinado y usar el modelo de contacto liso o rugoso con F = mu R."],
+                    ["9709.4.2", "Kinematics of motion in a straight line: use the equations of uniformly accelerated motion and interpret motion graphs.", "Cinematica del movimiento rectilineo: usar las ecuaciones del movimiento uniformemente acelerado e interpretar graficas de movimiento."],
+                    ["9709.4.3", "Momentum: use linear momentum and its conservation in collisions.", "Momento lineal: usar el momento lineal y su conservacion en choques."],
+                    ["9709.4.4", "Newton's laws of motion: apply them to the linear motion of a particle under constant forces, including connected particles.", "Leyes del movimiento de Newton: aplicarlas al movimiento rectilineo de una particula bajo fuerzas constantes, incluidas particulas conectadas."],
+                    ["9709.4.5", "Energy, work and power: use the work-energy principle and the conservation of mechanical energy.", "Energia, trabajo y potencia: aplicar el principio trabajo-energia y la conservacion de la energia mecanica."]
                   ]
                 }
               ]
@@ -695,6 +812,11 @@
               "native_code": "9702",
               "title_es": "Fisica 9702",
               "title_en": "Physics 9702",
+              "attrs": {
+                "vigencia": "2025-2027",
+                "source_url": "https://www.cambridgeinternational.org/Images/664565-2025-2027-syllabus.pdf",
+                "nota": "Cambridge ya publico el syllabus 2028-2030; cuando entre en vigor, esta rama se resiembra con su propia framework_version."
+              },
               "children": [
                 {
                   "node_type": "topic",
@@ -703,9 +825,9 @@
                   "title_es": "Dinamica",
                   "title_en": "Dynamics",
                   "objectives": [
-                    ["9702.3.1.1", "Understand that mass is the property of a body that resists change in motion and apply F = ma.", "Comprender que la masa es la propiedad que resiste el cambio de movimiento y aplicar F = ma."],
-                    ["9702.3.1.3", "Show a qualitative and quantitative understanding of frictional forces and their effect on motion.", "Mostrar comprension cualitativa y cuantitativa de las fuerzas de friccion y su efecto sobre el movimiento."],
-                    ["9702.3.3.1", "State and apply the principle of conservation of momentum to collisions in one dimension.", "Enunciar y aplicar el principio de conservacion del momento lineal a choques en una dimension."]
+                    ["9702.3.1", "Momentum and Newton's laws of motion: understand mass as resistance to change in motion and apply F = ma, including the effect of frictional forces.", "Momento y leyes de Newton: comprender la masa como resistencia al cambio de movimiento y aplicar F = ma, incluido el efecto de las fuerzas de friccion."],
+                    ["9702.3.2", "Non-uniform motion: describe motion with a resistive force, including terminal velocity.", "Movimiento no uniforme: describir el movimiento con fuerza resistiva, incluida la velocidad limite."],
+                    ["9702.3.3", "Linear momentum and its conservation: apply it to elastic and inelastic collisions in one and two dimensions.", "Momento lineal y su conservacion: aplicarla a choques elasticos e inelasticos en una y dos dimensiones."]
                   ]
                 },
                 {
@@ -715,8 +837,9 @@
                   "title_es": "Fuerzas, densidad y presion",
                   "title_en": "Forces, density and pressure",
                   "objectives": [
-                    ["9702.4.1.1", "Understand the origin of the upthrust acting on a body in a fluid and use the turning effect of forces.", "Comprender el origen del empuje sobre un cuerpo en un fluido y usar el efecto de giro de las fuerzas."],
-                    ["9702.4.2.1", "Use a vector triangle to represent coplanar forces in equilibrium and resolve forces on an inclined plane.", "Usar un triangulo de vectores para representar fuerzas coplanares en equilibrio y descomponer fuerzas en un plano inclinado."]
+                    ["9702.4.1", "Turning effects of forces: use the moment of a force, couples and the principle of moments.", "Efectos de giro de las fuerzas: usar el momento de una fuerza, los pares y el principio de los momentos."],
+                    ["9702.4.2", "Equilibrium of forces: use a vector triangle to represent coplanar forces in equilibrium and resolve forces, including on an inclined plane.", "Equilibrio de fuerzas: usar un triangulo de vectores para representar fuerzas coplanares en equilibrio y descomponer fuerzas, incluido el plano inclinado."],
+                    ["9702.4.3", "Density and pressure: derive and use p = rho g h and explain upthrust in a fluid.", "Densidad y presion: deducir y usar p = rho g h y explicar el empuje en un fluido."]
                   ]
                 },
                 {
@@ -726,18 +849,8 @@
                   "title_es": "Trabajo, energia y potencia",
                   "title_en": "Work, energy and power",
                   "objectives": [
-                    ["9702.5.1.1", "Understand the concept of work and calculate the work done by a constant force.", "Comprender el concepto de trabajo y calcular el trabajo de una fuerza constante."],
-                    ["9702.5.2.1", "Apply the principle of conservation of energy to solve problems involving kinetic and gravitational potential energy.", "Aplicar el principio de conservacion de la energia a problemas con energia cinetica y potencial gravitatoria."]
-                  ]
-                },
-                {
-                  "node_type": "topic",
-                  "path": "asa.p9702.t8",
-                  "native_code": "8",
-                  "title_es": "Superposicion",
-                  "title_en": "Superposition",
-                  "objectives": [
-                    ["9702.8.1.1", "Explain and use the principle of superposition and describe interference and diffraction of light.", "Explicar y aplicar el principio de superposicion y describir la interferencia y la difraccion de la luz."]
+                    ["9702.5.1", "Energy conservation: apply the principle of conservation of energy, define work done and calculate power and efficiency.", "Conservacion de la energia: aplicar el principio de conservacion de la energia, definir el trabajo realizado y calcular potencia y eficiencia."],
+                    ["9702.5.2", "Gravitational potential energy and kinetic energy: derive and use their equations in mechanical systems.", "Energia potencial gravitatoria y energia cinetica: deducir y usar sus ecuaciones en sistemas mecanicos."]
                   ]
                 }
               ]
@@ -757,7 +870,7 @@
         "en": "IB Middle Years Programme"
       },
       "version": {
-        "label": "2020",
+        "label": "foto-2026-08",
         "valid_from": "2020-09-01",
         "source_url": "https://www.ibo.org/programmes/middle-years-programme/curriculum/"
       },
@@ -770,15 +883,16 @@
           "age_min": 11,
           "age_max": 16,
           "attrs": {
-            "nota": "En MYP los objetivos son criterios de evaluacion (A-D) con descriptores por banda de anos (1, 3, 5), no contenidos. El contenido lo define cada colegio. Por eso las alineaciones con MINEDEC son 'related', nunca 'exact'.",
+            "nota": "En MYP los objetivos son CRITERIOS DE EVALUACION (A-D) con descriptores por banda de anos (1, 3, 5): describen procesos, no contenidos. El contenido lo define cada colegio. Por eso las alineaciones con MINEDEC son siempre 'related', nunca 'exact'.",
             "equivalencia_ec": ["g8", "g9", "g10", "g11", "g12"]
           },
           "children": [
             {
               "node_type": "subject_group",
               "path": "myp.math",
-              "title_es": "Grupo 4: Matematica",
+              "title_es": "Matematica",
               "title_en": "Mathematics",
+              "attrs": { "source_url": "https://ibo.org/programmes/middle-years-programme/curriculum/mathematics/" },
               "children": [
                 {
                   "node_type": "year",
@@ -797,7 +911,7 @@
                       "title_es": "Criterio A: Conocimiento y comprension",
                       "title_en": "Criterion A: Knowing and understanding",
                       "objectives": [
-                        ["MYP.MATH.3.A.i", "Select appropriate mathematics when solving problems in both familiar and unfamiliar situations.", "Seleccionar la matematica adecuada al resolver problemas en situaciones conocidas y desconocidas."],
+                        ["MYP.MATH.3.A.i", "Select appropriate mathematics when solving problems in familiar and unfamiliar situations.", "Seleccionar la matematica adecuada al resolver problemas en situaciones conocidas y desconocidas."],
                         ["MYP.MATH.3.A.ii", "Apply the selected mathematics successfully when solving problems.", "Aplicar con exito la matematica seleccionada al resolver problemas."],
                         ["MYP.MATH.3.A.iii", "Solve problems correctly in a variety of contexts.", "Resolver problemas correctamente en una variedad de contextos."]
                       ]
@@ -810,7 +924,7 @@
                       "title_en": "Criterion B: Investigating patterns",
                       "objectives": [
                         ["MYP.MATH.3.B.i", "Select and apply mathematical problem-solving techniques to discover complex patterns.", "Seleccionar y aplicar tecnicas de resolucion de problemas para descubrir patrones complejos."],
-                        ["MYP.MATH.3.B.ii", "Describe patterns as general rules consistent with findings.", "Describir patrones como reglas generales coherentes con los hallazgos."],
+                        ["MYP.MATH.3.B.ii", "Describe patterns as general rules consistent with the findings.", "Describir patrones como reglas generales coherentes con los hallazgos."],
                         ["MYP.MATH.3.B.iii", "Verify and justify these general rules.", "Verificar y justificar dichas reglas generales."]
                       ]
                     },
@@ -821,7 +935,7 @@
                       "title_es": "Criterio C: Comunicacion",
                       "title_en": "Criterion C: Communicating",
                       "objectives": [
-                        ["MYP.MATH.3.C.i", "Use appropriate mathematical language in both oral and written explanations.", "Usar el lenguaje matematico apropiado en explicaciones orales y escritas."],
+                        ["MYP.MATH.3.C.i", "Use appropriate mathematical language in oral and written explanations.", "Usar el lenguaje matematico apropiado en explicaciones orales y escritas."],
                         ["MYP.MATH.3.C.iii", "Move between different forms of mathematical representation.", "Transitar entre distintas formas de representacion matematica."]
                       ]
                     },
@@ -832,9 +946,9 @@
                       "title_es": "Criterio D: Aplicacion a contextos de la vida real",
                       "title_en": "Criterion D: Applying mathematics in real-life contexts",
                       "objectives": [
-                        ["MYP.MATH.3.D.i", "Identify relevant elements of authentic real-life situations.", "Identificar los elementos relevantes de situaciones autenticas de la vida real."],
+                        ["MYP.MATH.3.D.i", "Identify the relevant elements of authentic real-life situations.", "Identificar los elementos relevantes de situaciones autenticas de la vida real."],
                         ["MYP.MATH.3.D.ii", "Select appropriate mathematical strategies when solving authentic real-life situations.", "Seleccionar estrategias matematicas apropiadas para resolver situaciones autenticas."],
-                        ["MYP.MATH.3.D.iv", "Justify the degree of accuracy of a solution and whether it makes sense in the context.", "Justificar el grado de exactitud de una solucion y si tiene sentido en el contexto."]
+                        ["MYP.MATH.3.D.iv", "Justify the degree of accuracy of a solution and whether it makes sense in context.", "Justificar el grado de exactitud de una solucion y si tiene sentido en el contexto."]
                       ]
                     }
                   ]
@@ -878,8 +992,9 @@
             {
               "node_type": "subject_group",
               "path": "myp.sci",
-              "title_es": "Grupo 3: Ciencias",
+              "title_es": "Ciencias",
               "title_en": "Sciences",
+              "attrs": { "source_url": "https://ibo.org/programmes/middle-years-programme/curriculum/sciences/" },
               "children": [
                 {
                   "node_type": "year",
@@ -899,7 +1014,7 @@
                       "title_en": "Criterion A: Knowing and understanding",
                       "objectives": [
                         ["MYP.SCI.3.A.i", "Outline scientific knowledge.", "Esbozar conocimientos cientificos."],
-                        ["MYP.SCI.3.A.ii", "Apply scientific knowledge and understanding to solve problems in familiar and unfamiliar situations.", "Aplicar el conocimiento cientifico para resolver problemas en situaciones conocidas y desconocidas."],
+                        ["MYP.SCI.3.A.ii", "Apply scientific knowledge and understanding to solve problems in familiar and unfamiliar situations.", "Aplicar el conocimiento y la comprension cientifica para resolver problemas en situaciones conocidas y desconocidas."],
                         ["MYP.SCI.3.A.iii", "Analyse information to make scientifically supported judgments.", "Analizar informacion para emitir juicios con respaldo cientifico."]
                       ]
                     },
@@ -912,7 +1027,7 @@
                       "objectives": [
                         ["MYP.SCI.3.B.i", "Outline a testable hypothesis and explain it using scientific reasoning.", "Formular una hipotesis contrastable y explicarla con razonamiento cientifico."],
                         ["MYP.SCI.3.B.ii", "Outline how to manipulate the variables and how relevant data will be collected.", "Describir como manipular las variables y como se recogeran los datos relevantes."],
-                        ["MYP.SCI.3.B.iv", "Design a logical, complete and safe method in which variables are controlled.", "Disenar un metodo logico, completo y seguro con las variables controladas."]
+                        ["MYP.SCI.3.B.iv", "Design a logical, complete and safe method in which the variables are controlled.", "Disenar un metodo logico, completo y seguro con las variables controladas."]
                       ]
                     },
                     {
@@ -934,8 +1049,8 @@
                       "title_es": "Criterio D: Reflexion sobre los impactos de la ciencia",
                       "title_en": "Criterion D: Reflecting on the impacts of science",
                       "objectives": [
-                        ["MYP.SCI.3.D.i", "Summarize the ways in which science is applied and used to address a specific problem or issue.", "Resumir las formas en que la ciencia se aplica para abordar un problema especifico."],
-                        ["MYP.SCI.3.D.ii", "Describe and summarize the implications of the use of science and its application to solve a specific problem.", "Describir y resumir las implicaciones del uso de la ciencia para resolver un problema especifico."]
+                        ["MYP.SCI.3.D.i", "Summarize the ways in which science is applied to address a specific problem or issue.", "Resumir las formas en que la ciencia se aplica para abordar un problema especifico."],
+                        ["MYP.SCI.3.D.ii", "Describe and summarize the implications of using science to solve a specific problem.", "Describir y resumir las implicaciones del uso de la ciencia para resolver un problema especifico."]
                       ]
                     }
                   ]
@@ -957,7 +1072,7 @@
                       "title_es": "Criterio A: Conocimiento y comprension",
                       "title_en": "Criterion A: Knowing and understanding",
                       "objectives": [
-                        ["MYP.SCI.5.A.ii", "Apply scientific knowledge and understanding to solve problems set in familiar and unfamiliar situations.", "Aplicar el conocimiento cientifico para resolver problemas en situaciones conocidas y desconocidas."],
+                        ["MYP.SCI.5.A.ii", "Apply scientific knowledge and understanding to solve problems set in familiar and unfamiliar situations.", "Aplicar el conocimiento cientifico para resolver problemas planteados en situaciones conocidas y desconocidas."],
                         ["MYP.SCI.5.A.iii", "Analyse and evaluate information to make scientifically supported judgments.", "Analizar y evaluar informacion para emitir juicios con respaldo cientifico."]
                       ]
                     },
@@ -969,7 +1084,7 @@
                       "title_en": "Criterion B: Inquiring and designing",
                       "objectives": [
                         ["MYP.SCI.5.B.i", "Explain a problem or question to be tested by a scientific investigation.", "Explicar un problema o pregunta a contrastar mediante una investigacion cientifica."],
-                        ["MYP.SCI.5.B.iv", "Explain how to manipulate the variables and explain how sufficient, relevant data will be collected.", "Explicar como manipular las variables y como se recogeran datos suficientes y relevantes."]
+                        ["MYP.SCI.5.B.iv", "Explain how to manipulate the variables and how sufficient, relevant data will be collected.", "Explicar como manipular las variables y como se recogeran datos suficientes y relevantes."]
                       ]
                     }
                   ]
@@ -991,7 +1106,7 @@
         "en": "IB Diploma Programme"
       },
       "version": {
-        "label": "2023",
+        "label": "foto-2026-08",
         "valid_from": "2023-08-01",
         "source_url": "https://www.ibo.org/programmes/diploma-programme/curriculum/"
       },
@@ -1003,14 +1118,21 @@
           "title_en": "IB Diploma Programme",
           "age_min": 16,
           "age_max": 19,
-          "attrs": { "equivalencia_ec": ["g12", "g13"] },
+          "attrs": {
+            "equivalencia_ec": ["g12", "g13"],
+            "nota": "DP y Cambridge AS/A Level son titulaciones PARALELAS de la misma banda 16-19; un alumno cursa una u otra. Por eso no hay prerrequisitos que crucen de A Level a DP: ambas ramas cuelgan de IGCSE."
+          },
           "children": [
             {
               "node_type": "subject",
               "path": "dp.phy",
               "title_es": "Fisica",
               "title_en": "Physics",
-              "attrs": { "primera_evaluacion": 2025, "niveles": ["SL", "HL"] },
+              "attrs": {
+                "vigencia": "guia 2023, primera evaluacion 2025",
+                "niveles": ["SL", "HL"],
+                "source_url": "https://ibo.org/programmes/diploma-programme/curriculum/sciences/physics/"
+              },
               "children": [
                 {
                   "node_type": "theme",
@@ -1018,72 +1140,22 @@
                   "native_code": "A",
                   "title_es": "Tema A: Espacio, tiempo y movimiento",
                   "title_en": "Theme A: Space, time and motion",
-                  "children": [
-                    {
-                      "node_type": "topic",
-                      "path": "dp.phy.a.a1",
-                      "native_code": "A.1",
-                      "title_es": "A.1 Cinematica",
-                      "title_en": "A.1 Kinematics",
-                      "objectives": [
-                        ["DP.PHY.A.1.1", "Describe the difference between distance and displacement, speed and velocity, and use the equations of motion for uniform acceleration.", "Distinguir distancia de desplazamiento y rapidez de velocidad, y usar las ecuaciones del movimiento uniformemente acelerado."],
-                        ["DP.PHY.A.1.3", "Analyse motion using displacement-time, velocity-time and acceleration-time graphs.", "Analizar el movimiento con graficas desplazamiento-tiempo, velocidad-tiempo y aceleracion-tiempo."]
-                      ]
-                    },
-                    {
-                      "node_type": "topic",
-                      "path": "dp.phy.a.a2",
-                      "native_code": "A.2",
-                      "title_es": "A.2 Fuerzas y momento lineal",
-                      "title_en": "A.2 Forces and momentum",
-                      "objectives": [
-                        ["DP.PHY.A.2.1", "Construct free-body diagrams and resolve forces into components, including on an inclined plane.", "Construir diagramas de cuerpo libre y descomponer fuerzas en componentes, incluido el plano inclinado."],
-                        ["DP.PHY.A.2.2", "Apply Newton's three laws of motion to systems of interacting bodies.", "Aplicar las tres leyes de Newton a sistemas de cuerpos que interactuan."],
-                        ["DP.PHY.A.2.3", "Distinguish static from dynamic friction and apply F = mu N.", "Distinguir la friccion estatica de la cinetica y aplicar F = mu N."],
-                        ["DP.PHY.A.2.6", "Apply the conservation of linear momentum to collisions and explosions.", "Aplicar la conservacion del momento lineal a choques y explosiones."]
-                      ]
-                    },
-                    {
-                      "node_type": "topic",
-                      "path": "dp.phy.a.a3",
-                      "native_code": "A.3",
-                      "title_es": "A.3 Trabajo, energia y potencia",
-                      "title_en": "A.3 Work, energy and power",
-                      "objectives": [
-                        ["DP.PHY.A.3.1", "Apply the principle of conservation of energy to mechanical systems, including transfers between kinetic and potential energy.", "Aplicar el principio de conservacion de la energia a sistemas mecanicos, incluidas las transferencias entre energia cinetica y potencial."],
-                        ["DP.PHY.A.3.2", "Calculate the work done by a constant force and by a force that varies with displacement.", "Calcular el trabajo de una fuerza constante y de una fuerza variable con el desplazamiento."],
-                        ["DP.PHY.A.3.4", "Determine power and efficiency in energy transfers.", "Determinar la potencia y la eficiencia en transferencias de energia."]
-                      ]
-                    }
+                  "objectives": [
+                    ["DP.PHY.A.1", "Kinematics: distinguish distance from displacement and speed from velocity, use the equations of uniformly accelerated motion and analyse motion graphs.", "Cinematica: distinguir distancia de desplazamiento y rapidez de velocidad, usar las ecuaciones del movimiento uniformemente acelerado y analizar graficas de movimiento."],
+                    ["DP.PHY.A.2", "Forces and momentum: construct free-body diagrams, resolve forces including on an inclined plane, apply Newton's three laws, distinguish static from dynamic friction with F = mu N, and apply conservation of momentum.", "Fuerzas y momento lineal: construir diagramas de cuerpo libre, descomponer fuerzas incluido el plano inclinado, aplicar las tres leyes de Newton, distinguir friccion estatica de cinetica con F = mu N y aplicar la conservacion del momento."],
+                    ["DP.PHY.A.3", "Work, energy and power: apply the conservation of energy to mechanical systems, calculate work done by constant and varying forces, and determine power and efficiency.", "Trabajo, energia y potencia: aplicar la conservacion de la energia a sistemas mecanicos, calcular el trabajo de fuerzas constantes y variables y determinar potencia y eficiencia."]
                   ]
                 },
                 {
                   "node_type": "theme",
                   "path": "dp.phy.c",
                   "native_code": "C",
-                  "title_es": "Tema C: Ondas y comportamiento ondulatorio",
+                  "title_es": "Tema C: Comportamiento ondulatorio",
                   "title_en": "Theme C: Wave behaviour",
-                  "children": [
-                    {
-                      "node_type": "topic",
-                      "path": "dp.phy.c.c2",
-                      "native_code": "C.2",
-                      "title_es": "C.2 Modelo ondulatorio",
-                      "title_en": "C.2 Wave model",
-                      "objectives": [
-                        ["DP.PHY.C.2.4", "Describe reflection and refraction of waves and apply Snell's law and the concept of critical angle.", "Describir la reflexion y refraccion de ondas y aplicar la ley de Snell y el concepto de angulo critico."]
-                      ]
-                    },
-                    {
-                      "node_type": "topic",
-                      "path": "dp.phy.c.c3",
-                      "native_code": "C.3",
-                      "title_es": "C.3 Fenomenos ondulatorios",
-                      "title_en": "C.3 Wave phenomena",
-                      "objectives": [
-                        ["DP.PHY.C.3.2", "Describe the superposition of waves, interference patterns and diffraction.", "Describir la superposicion de ondas, los patrones de interferencia y la difraccion."]
-                      ]
-                    }
+                  "objectives": [
+                    ["DP.PHY.C.1", "Simple harmonic motion: describe the conditions for SHM and relate period, frequency and amplitude.", "Movimiento armonico simple: describir las condiciones del MAS y relacionar periodo, frecuencia y amplitud."],
+                    ["DP.PHY.C.2", "Wave model: describe transverse and longitudinal waves, and the reflection and refraction of waves, applying Snell's law and the critical angle.", "Modelo ondulatorio: describir ondas transversales y longitudinales y la reflexion y refraccion de ondas, aplicando la ley de Snell y el angulo critico."],
+                    ["DP.PHY.C.3", "Wave phenomena: describe the superposition of waves, interference patterns and diffraction.", "Fenomenos ondulatorios: describir la superposicion de ondas, los patrones de interferencia y la difraccion."]
                   ]
                 }
               ]
@@ -1093,7 +1165,12 @@
               "path": "dp.math_aa",
               "title_es": "Matematica: Analisis y enfoques",
               "title_en": "Mathematics: Analysis and Approaches",
-              "attrs": { "niveles": ["SL", "HL"] },
+              "attrs": {
+                "vigencia": "guia 2019, primera evaluacion 2021",
+                "niveles": ["SL", "HL"],
+                "source_url": "https://ibo.org/programmes/diploma-programme/curriculum/mathematics/",
+                "nota": "El IB publicara la guia nueva en febrero de 2027 (primera ensenanza agosto 2027, primera evaluacion mayo 2029); saldran las aplicaciones financieras y los datos bivariados. Resembrar entonces con su propia framework_version."
+              },
               "children": [
                 {
                   "node_type": "topic",
@@ -1102,7 +1179,7 @@
                   "title_es": "Tema 2: Funciones",
                   "title_en": "Topic 2: Functions",
                   "objectives": [
-                    ["DP.MAA.2.5", "Model real-life situations with linear, quadratic and exponential functions and interpret the parameters.", "Modelar situaciones reales con funciones lineales, cuadraticas y exponenciales e interpretar sus parametros."]
+                    ["DP.MAA.2", "Functions: model real-life situations with linear, quadratic, exponential and rational functions and interpret their parameters.", "Funciones: modelar situaciones reales con funciones lineales, cuadraticas, exponenciales y racionales e interpretar sus parametros."]
                   ]
                 },
                 {
@@ -1112,7 +1189,7 @@
                   "title_es": "Tema 3: Geometria y trigonometria",
                   "title_en": "Topic 3: Geometry and trigonometry",
                   "objectives": [
-                    ["DP.MAA.3.2", "Use the sine rule, cosine rule and the area of a triangle formula to solve problems in two and three dimensions.", "Usar los teoremas del seno y del coseno y la formula del area del triangulo para resolver problemas en dos y tres dimensiones."]
+                    ["DP.MAA.3", "Geometry and trigonometry: use the sine rule, the cosine rule and the area formula to solve problems in two and three dimensions, and work with trigonometric functions and identities.", "Geometria y trigonometria: usar los teoremas del seno y del coseno y la formula del area para resolver problemas en dos y tres dimensiones, y trabajar con funciones e identidades trigonometricas."]
                   ]
                 },
                 {
@@ -1122,9 +1199,7 @@
                   "title_es": "Tema 5: Calculo",
                   "title_en": "Topic 5: Calculus",
                   "objectives": [
-                    ["DP.MAA.5.2", "Understand the derivative as a rate of change and differentiate polynomial functions.", "Comprender la derivada como tasa de cambio y derivar funciones polinomicas."],
-                    ["DP.MAA.5.6", "Apply differentiation to kinematics, relating displacement, velocity and acceleration.", "Aplicar la derivacion a la cinematica relacionando desplazamiento, velocidad y aceleracion."],
-                    ["DP.MAA.5.11", "Use definite integrals to find areas under curves and apply integration to kinematics.", "Usar integrales definidas para hallar areas bajo curvas y aplicar la integracion a la cinematica."]
+                    ["DP.MAA.5", "Calculus: understand the derivative as a rate of change, differentiate and integrate standard functions, and apply calculus to kinematics and optimisation.", "Calculo: comprender la derivada como tasa de cambio, derivar e integrar funciones estandar y aplicar el calculo a la cinematica y la optimizacion."]
                   ]
                 }
               ]

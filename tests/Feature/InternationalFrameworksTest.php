@@ -120,21 +120,60 @@ class InternationalFrameworksTest extends TestCase
         $this->assertSame('Extended', $extended->attrs['tier']);
     }
 
+    public function test_cada_syllabus_declara_su_vigencia_y_su_fuente(): void
+    {
+        $this->seed(InternationalFrameworksSeeder::class);
+
+        // La etiqueta de framework_version es una foto: la vigencia real es por syllabus,
+        // porque Cambridge los renueva en ciclos distintos.
+        foreach (CurNode::whereIn('node_type', ['syllabus', 'subject'])->get() as $node) {
+            $this->assertArrayHasKey('source_url', $node->attrs, "{$node->path} sin fuente");
+        }
+
+        $this->assertSame('2025-2027', CurNode::where('path', 'igcse.m0580')->firstOrFail()->attrs['vigencia']);
+        $this->assertSame('2026-2028', CurNode::where('path', 'igcse.p0625')->firstOrFail()->attrs['vigencia']);
+
+        // Trazabilidad: la versión guarda el sha256 del JSON sembrado.
+        $this->assertSame(
+            hash_file('sha256', database_path('data/marcos-internacionales.json')),
+            FrameworkVersion::first()->source_sha256,
+        );
+    }
+
+    public function test_los_seeders_son_idempotentes(): void
+    {
+        $this->seedMineducAnchors();
+        $this->seed(InternationalFrameworksSeeder::class);
+        $this->seed(CrosswalkSeeder::class);
+
+        $nodos = CurNode::count();
+        $objetivos = LearningObjective::count();
+        $aristas = Alignment::count();
+
+        // Volver a sembrar no debe duplicar nada ni reventar por unique.
+        $this->seed(InternationalFrameworksSeeder::class);
+        $this->seed(CrosswalkSeeder::class);
+
+        $this->assertSame($nodos, CurNode::count());
+        $this->assertSame($objetivos, LearningObjective::count());
+        $this->assertSame($aristas, Alignment::count());
+    }
+
     public function test_el_crosswalk_conecta_minedec_con_cambridge_e_ib(): void
     {
         $this->seedMineducAnchors();
         $this->seed(InternationalFrameworksSeeder::class);
         $this->seed(CrosswalkSeeder::class);
 
-        $this->assertGreaterThan(0, Concept::count());
         $this->assertGreaterThan(30, Alignment::count());
+        $this->assertSame(count(Concept::pluck('slug')->all()), Concept::pluck('slug')->unique()->count());
 
         $planoInclinado = LearningObjective::where('native_code', 'CN.F.5.1.9')->firstOrFail();
         $targets = $planoInclinado->alignments()->with('target')->get();
 
         $this->assertGreaterThanOrEqual(4, $targets->count());
-        $this->assertContains('9709.M1.2.2', $targets->pluck('target.native_code')->all());
-        $this->assertContains('DP.PHY.A.2.1', $targets->pluck('target.native_code')->all());
+        $this->assertContains('9709.4.1', $targets->pluck('target.native_code')->all());
+        $this->assertContains('DP.PHY.A.2', $targets->pluck('target.native_code')->all());
 
         // Los criterios MYP evalúan procesos, no contenidos: nunca 'exact'.
         $myp = Alignment::query()
@@ -160,18 +199,35 @@ class InternationalFrameworksTest extends TestCase
         $this->seed(InternationalFrameworksSeeder::class);
         $this->seed(CrosswalkSeeder::class);
 
-        $igcse = LearningObjective::where('native_code', '0625.1.5.2')->firstOrFail();
+        $igcse = LearningObjective::where('native_code', '0625.1.5.1')->firstOrFail();
         $previos = $igcse->prerequisites()->pluck('native_code')->all();
-        $this->assertContains('9Pf.01', $previos, 'antes de F = ma en IGCSE va Stage 9 de Lower Secondary');
+        $this->assertContains('8Pf.03', $previos, 'antes de F = ma en IGCSE van las fuerzas equilibradas de Stage 8');
 
-        $alevel = LearningObjective::where('native_code', '9702.3.1.1')->firstOrFail();
-        $this->assertContains('0625.1.5.2', $alevel->prerequisites()->pluck('native_code')->all());
+        $alevel = LearningObjective::where('native_code', '9702.3.1')->firstOrFail();
+        $this->assertContains('0625.1.5.1', $alevel->prerequisites()->pluck('native_code')->all());
 
         $this->assertSame(
             'manual',
             Alignment::where('relation', 'prerequisite')->first()->method,
-            'la progresión interna de un marco no la propone la IA'
+            'la progresión entre marcos no la propone la IA'
         );
+    }
+
+    public function test_ningun_prerrequisito_cruza_entre_dp_y_a_level(): void
+    {
+        $this->seedMineducAnchors();
+        $this->seed(InternationalFrameworksSeeder::class);
+        $this->seed(CrosswalkSeeder::class);
+
+        // Son titulaciones paralelas de 16-19: un alumno cursa una u otra, así que
+        // un prerrequisito que cruce nunca se podría satisfacer. Ambas cuelgan de IGCSE.
+        $dp = LearningObjective::where('native_code', 'like', 'DP.%')->pluck('id');
+        $asa = LearningObjective::where('native_code', 'like', '97%')->pluck('id');
+
+        $this->assertSame(0, Alignment::where('relation', 'prerequisite')
+            ->whereIn('source_id', $dp)->whereIn('target_id', $asa)->count());
+        $this->assertSame(0, Alignment::where('relation', 'prerequisite')
+            ->whereIn('source_id', $asa)->whereIn('target_id', $dp)->count());
     }
 
     public function test_el_crosswalk_falla_ruidosamente_si_faltan_los_marcos(): void

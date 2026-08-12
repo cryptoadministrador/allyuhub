@@ -72,12 +72,16 @@ MINEDUC-2024-00046-A y 2025-00010-A, son columnas informativas, no bloqueos de m
    → reemplazar el mapeo-interno de `track_phase_objectives`.
 3. ~~Marcos Cambridge e IB~~ **HECHO (semilla)**: `InternationalFrameworksSeeder`
    (CAIE-LSEC, CAIE-IGCSE, CAIE-ASA, IB-MYP, IB-DP desde
-   `database/data/marcos-internacionales.json`) + `CrosswalkSeeder` (11 conceptos,
-   ~50 aristas STEM ancladas en las 8 destrezas MINEDEC verificadas, todas fuera de
-   producción hasta que un docente las revise).
-   **Falta**: enunciados cotejados contra los framework/syllabus oficiales
-   (hoy son paráfrasis, `is_verified=false`), Lengua/Sociales, y el flujo de revisión
-   docente que ponga `reviewed_by`/`reviewed_at`.
+   `database/data/marcos-internacionales.json`) + `CrosswalkSeeder` (13 conceptos,
+   65 aristas STEM ancladas en las 8 destrezas MINEDEC verificadas, todas fuera de
+   producción hasta que un docente las revise). Los **códigos nativos** están cotejados
+   contra los documentos oficiales vigentes en 2026-08 (`attrs.source_url` de cada nodo);
+   los **enunciados** son paráfrasis (`is_verified=false`).
+   **Falta**: enunciados cotejados por un docente con acceso al syllabus, Lengua/Sociales,
+   y el flujo de revisión que ponga `reviewed_by`/`reviewed_at`.
+   **Ojo al resembrar**: los ciclos de Cambridge vencen (0580 en 2027, 0625/0620/0610 en
+   2028, 9709 en 2027, 9702 en 2027 con el 2028-2030 ya publicado) y el IB estrena guía
+   de Matemática AA en 2027. Cada ciclo nuevo entra como `framework_version` aparte.
 4. ~~Motor de práctica~~ **HECHO (núcleo)**: `practice_items`/`practice_attempts`,
    semilla determinista sha256(item:user:intento), verificación en servidor con
    tolerancia (`App\Services\Practice\*`), endpoints next/attempts y 5 ítems de
