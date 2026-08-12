@@ -11,7 +11,8 @@ Léelos antes de tomar decisiones de arquitectura.
 ## Stack
 
 - Laravel 13 · PHP 8.4 · PostgreSQL 16 (extensiones: ltree, pg_trgm) · SQLite en tests
-- API solo lectura en `routes/api.php` (prefijo `/api/v1`)
+- API en `routes/api.php` (prefijo `/api/v1`): solo lectura, salvo los intentos del
+  motor de práctica (`POST practice/items/{item}/attempts`, verificados en servidor)
 - Frontend: pendiente (Inertia + React según el plan)
 - Simuladores: viven FUERA de este repo (monorepo Vite/TS aparte, ver plan §4 de v1);
   aquí solo se registran como `resources` con `bundle_url` al CDN
@@ -69,10 +70,23 @@ MINEDUC-2024-00046-A y 2025-00010-A, son columnas informativas, no bloqueos de m
    y ejecutarlo por área — este entorno no puede descargarlos solo.
 2. **Importador PCEI**: dosificación real del Acuerdo 2017-00040-A (PDF EPJA_Completo)
    → reemplazar el mapeo-interno de `track_phase_objectives`.
-3. **Marcos Cambridge e IB** (estructura en el informe del proyecto): nuevos `frameworks`
-   + primeras `alignments` a mano para STEM de 8.º EGB–3.º BGU.
-4. **Motor de práctica** (plan v2 §Frente 1): ítems parametrizados con semilla por alumno
-   y verificación programática. ANTES que cualquier chat con IA.
+3. ~~Marcos Cambridge e IB~~ **HECHO (semilla)**: `InternationalFrameworksSeeder`
+   (CAIE-LSEC, CAIE-IGCSE, CAIE-ASA, IB-MYP, IB-DP desde
+   `database/data/marcos-internacionales.json`) + `CrosswalkSeeder` (13 conceptos,
+   65 aristas STEM ancladas en las 8 destrezas MINEDEC verificadas, todas fuera de
+   producción hasta que un docente las revise). Los **códigos nativos** están cotejados
+   contra los documentos oficiales vigentes en 2026-08 (`attrs.source_url` de cada nodo);
+   los **enunciados** son paráfrasis (`is_verified=false`).
+   **Falta**: enunciados cotejados por un docente con acceso al syllabus, Lengua/Sociales,
+   y el flujo de revisión que ponga `reviewed_by`/`reviewed_at`.
+   **Ojo al resembrar**: los ciclos de Cambridge vencen (0580 en 2027, 0625/0620/0610 en
+   2028, 9709 en 2027, 9702 en 2027 con el 2028-2030 ya publicado) y el IB estrena guía
+   de Matemática AA en 2027. Cada ciclo nuevo entra como `framework_version` aparte.
+4. ~~Motor de práctica~~ **HECHO (núcleo)**: `practice_items`/`practice_attempts`,
+   semilla determinista sha256(item:user:intento), verificación en servidor con
+   tolerancia (`App\Services\Practice\*`), endpoints next/attempts y 5 ítems de
+   plano inclinado sembrados. **Falta**: mastery learning, selección adaptativa,
+   más ítems, y sustituir el `user_id` provisional del payload cuando llegue LTI 1.3.
 5. **LTI 1.3** con `packbackbooks/lti-1p3-tool` (plan v1 §5): OIDC + Deep Linking + AGS.
 
 ## Qué NO hacer

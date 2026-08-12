@@ -43,6 +43,12 @@ class LearningObjective extends Model
         return $this->hasMany(Alignment::class, 'source_id');
     }
 
+    /** Ítems de práctica parametrizada anclados a esta destreza. */
+    public function practiceItems(): HasMany
+    {
+        return $this->hasMany(PracticeItem::class, 'objective_id');
+    }
+
     /** Prerrequisitos: qué hay que dominar antes de esto. */
     public function prerequisites(): BelongsToMany
     {
