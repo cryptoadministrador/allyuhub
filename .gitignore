@@ -25,3 +25,6 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# PDFs oficiales del currículo: pesados y con copyright — se descargan localmente
+storage/curriculo/*.pdf

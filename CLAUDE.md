@@ -63,9 +63,10 @@ MINEDUC-2024-00046-A y 2025-00010-A, son columnas informativas, no bloqueos de m
 
 ## Roadmap inmediato (en orden)
 
-1. **Importador real del currículo MINEDEC** (`app/Console/Commands/ImportMineduc.php`):
-   parsear los PDF oficiales → sustituir las destrezas `is_verified=false` del seeder.
-   Guardar `source_sha256` en `framework_versions`.
+1. ~~Importador MINEDEC~~ **HECHO**: `php artisan mineduc:import <pdf> --official`
+   (parser de códigos + replicación por subnivel + trazabilidad sha256 + tests).
+   **Falta**: descargar los PDF oficiales (lista en `storage/curriculo/README.md`)
+   y ejecutarlo por área — este entorno no puede descargarlos solo.
 2. **Importador PCEI**: dosificación real del Acuerdo 2017-00040-A (PDF EPJA_Completo)
    → reemplazar el mapeo-interno de `track_phase_objectives`.
 3. **Marcos Cambridge e IB** (estructura en el informe del proyecto): nuevos `frameworks`
