@@ -104,7 +104,13 @@ class PracticeController extends Controller
 
         // Si el alumno llegó por LTI con AGS, se re-publica su mastery en el
         // gradebook de Moodle (cola con backoff; una consulta fija por intento).
-        $this->queueLtiScore($userId, $item->objective_id);
+        // SOLO si la petición viene del propio dueño autenticado: mientras esta API
+        // siga aceptando user_id en el payload sin auth (deuda que cierra el frontend),
+        // publicar por user_id crudo permitiría a un anónimo corromper la nota de
+        // cualquier alumno LTI en Moodle. La nota solo sale de una sesión LTI real.
+        if (auth()->check() && (int) auth()->id() === $userId) {
+            $this->queueLtiScore($userId, $item->objective_id);
+        }
 
         // `expected` se revela solo DESPUÉS de responder (retroalimentación);
         // el siguiente intento trae números nuevos, así que no regala nada.

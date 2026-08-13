@@ -243,6 +243,39 @@ class LtiAgsTest extends TestCase
         Http::assertNotSent(fn ($request) => str_contains($request->url(), 'token.php'));
     }
 
+    /**
+     * REGRESIÓN DE SEGURIDAD (auditoría LTI): mientras la API de práctica acepte
+     * user_id en el payload sin auth, un anónimo NO puede corromper la nota de un
+     * alumno LTI en Moodle. La víctima ya lanzó con AGS (tiene resource link); el
+     * atacante, sin sesión, responde intentos con el user_id de la víctima: se
+     * registra el intento pero NO se publica score. El push solo sale de la sesión
+     * LTI del propio dueño.
+     */
+    public function test_un_anonimo_no_puede_inyectar_notas_con_el_user_id_de_otro(): void
+    {
+        Http::fake();
+
+        $victima = $this->launchWithAgs();          // deja resource link con AGS + sesión abierta
+        $this->flushSession();                       // el atacante NO tiene la sesión de la víctima
+        auth()->logout();
+
+        $this->assertSame(1, LtiResourceLink::where('user_id', $victima->id)->count());
+
+        // El atacante conoce (o enumera) el user_id de la víctima y machaca intentos.
+        $engine = new PracticeEngine;
+        $attemptNo = $this->item->attempts()->where('user_id', $victima->id)->count() + 1;
+        $params = $engine->sampleParams($this->item->params, $engine->seedFor($this->item->id, $victima->id, $attemptNo));
+
+        $this->postJson("/api/v1/practice/items/{$this->item->id}/attempts", [
+            'user_id' => $victima->id,
+            'answer' => $params['m'] * $params['g'] * sin(deg2rad($params['theta'])),
+        ])->assertCreated();
+
+        // El intento se guardó (contrato v1 intacto) pero NINGÚN score salió a Moodle.
+        Http::assertNotSent(fn ($request) => str_contains($request->url(), 'token.php'));
+        Http::assertNotSent(fn ($request) => str_contains($request->url(), '/scores'));
+    }
+
     public function test_si_la_platform_rechaza_el_score_el_job_reintenta(): void
     {
         Http::fake([

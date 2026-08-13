@@ -33,7 +33,9 @@ class ToolKeys
         }
 
         $key = RSA::createKey(2048);
-        Storage::disk('local')->put(self::STORAGE_PATH, $key->toString('PKCS8'));
+        // visibility 'private' → 0600: la clave privada no debe ser legible por
+        // otros usuarios del servidor (relevante en hosting compartido).
+        Storage::disk('local')->put(self::STORAGE_PATH, $key->toString('PKCS8'), 'private');
 
         return true;
     }

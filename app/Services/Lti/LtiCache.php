@@ -38,8 +38,15 @@ class LtiCache implements ICache
 
     public function checkNonceIsValid(string $nonce, string $state): bool
     {
-        // pull() borra al leer: el nonce vale UNA vez, coincida o no el state.
-        return Cache::pull('lti1p3:nonce:'.$nonce) === $state;
+        // El nonce vale UNA vez. pull() (get+forget) tiene una ventana de carrera
+        // entre dos launches concurrentes del mismo id_token; un lock atómico la
+        // cierra: solo el primero que adquiere el lock consume el nonce, el resto
+        // ve el nonce ya borrado y falla. En stores sin lock nativo (array/file)
+        // Laravel degrada a un lock de cache, suficiente en un solo proceso; en
+        // producción el store DEBE ser compartido (ver assertSharedCacheInProduction).
+        return Cache::lock('lti1p3:nonce-lock:'.$nonce, 5)->block(5, function () use ($nonce, $state) {
+            return Cache::pull('lti1p3:nonce:'.$nonce) === $state;
+        });
     }
 
     public function cacheAccessToken(string $key, string $accessToken): void
