@@ -29,8 +29,16 @@ OJO: el Acuerdo 2017-00040-A fue **derogado** por el MINEDUC-2025-00034-A
 | EPJA_Completo_Adaptaciones-Curriculares.pdf | educacion.gob.ec/wp-content/uploads/downloads/2017/05/ | Referencia histórica: adaptaciones Básica Superior + Bachillerato (2017, derogado) |
 | MINEDUC-MINEDUC-2025-00034-A (RO Nº 121) | esacc.corteconstitucional.gob.ec (buscar en registroficial.gob.ec) | Texto del acuerdo que expide el currículo EPJA por competencias |
 
-Trampa del parser EPJA: las destrezas conservan los códigos del currículo 2016 pero
-AGRUPADAS: `LL.4.1. (1, 2)` = LL.4.1.1 + LL.4.1.2. Expandir antes de buscar en el grafo.
+Flujo (ALFA/POST ya implementado):
+
+```bash
+php artisan epja:import storage/curriculo/curriculo-alfabetizacion-priorizado.pdf --dry-run
+php artisan epja:import storage/curriculo/curriculo-alfabetizacion-priorizado.pdf --official
+```
+
+Ojo: el priorizado usa códigos PROPIOS (`A.RS.n`, `P.CC.n`, `CAI.JA.b.n`), no los del 2016.
+La trampa de los códigos 2016 AGRUPADOS (`LL.4.1. (1, 2)` = LL.4.1.1 + LL.4.1.2) aplica al
+anexo de ADAPTACIONES de Básica Superior/Bachillerato (importador pendiente).
 
 También sirven los PDF del Currículo Priorizado con énfasis en competencias (2023)
 — impórtalos como versión nueva del framework, no encima de la 2016.

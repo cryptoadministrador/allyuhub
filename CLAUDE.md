@@ -89,14 +89,17 @@ modalidades y 2025-00031-A regula el Bachillerato Técnico EPJA (100 días/ciclo
    (parser de códigos + replicación por subnivel + trazabilidad sha256 + tests).
    **Falta**: descargar los PDF oficiales (lista en `storage/curriculo/README.md`)
    y ejecutarlo por área — este entorno no puede descargarlos solo.
-2. **Importador PCEI**: dosificación real → reemplazar el mapeo-interno de
-   `track_phase_objectives`. La fuente ya NO es el 2017-00040-A (derogado): es el
-   **Acuerdo 2025-00034-A** (currículo EPJA por competencias + alfabetización priorizada;
-   anexo en `educacion.gob.ec/.../2025/09/curriculo-alfabetizacion-priorizado.pdf`) con el
-   EPJA_Completo de 2017 solo como referencia histórica de las adaptaciones. Trampa del
-   parser: las destrezas EPJA conservan los códigos del currículo 2016 pero AGRUPADAS con
-   la notación `LL.4.1. (1, 2)` = LL.4.1.1 + LL.4.1.2 — hay que expandirla.
-   Bloqueo: los PDF hay que descargarlos a `storage/curriculo/` a mano (robots.txt).
+2. ~~Importador PCEI (ALFA/POST)~~ **HECHO**: `php artisan epja:import <pdf> --official`
+   importa el currículo priorizado del Acuerdo 2025-00034-A (263 destrezas con códigos
+   PROPIOS: `A.RS.n`/`P.CC.n`/`CAI.JA.b.n` — ¡NO son los del 2016!) como marco `EC-EPJA`,
+   y reancla las fases de PCEI-ALFA/POST (source `acuerdo-2025-00034-A` sustituye al
+   `mapeo-interno`). Datos duros del documento (verificados contra el PDF completo):
+   NO trae dosificación por módulos (destrezas por nivel, agrupadas en criterios CE),
+   ni carga horaria, y su numeración tiene huecos a propósito (es priorizado).
+   La tabla CAI es de 4 columnas y se parsea con `pdftotext -layout`.
+   **Falta PCEI-BSI/BI**: las adaptaciones de Básica Superior y Bachillerato (esas SÍ
+   usan códigos 2016 agrupados, `LL.4.1. (1, 2)` = LL.4.1.1 + LL.4.1.2) viven en el
+   anexo de adaptaciones del 2025-00034-A / EPJA_Completo 2017 — pendiente de PDF.
 3. ~~Marcos Cambridge e IB~~ **HECHO (semilla)**: `InternationalFrameworksSeeder`
    (CAIE-LSEC, CAIE-IGCSE, CAIE-ASA, IB-MYP, IB-DP desde
    `database/data/marcos-internacionales.json`) + `CrosswalkSeeder` (13 conceptos,
