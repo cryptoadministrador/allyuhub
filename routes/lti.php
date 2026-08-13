@@ -13,3 +13,5 @@ use Illuminate\Support\Facades\Route;
 | POST llegan cross-site desde la Platform: la protección es state+nonce.
 */
 Route::get('jwks', [LtiController::class, 'jwks']);
+Route::match(['get', 'post'], 'login', [LtiController::class, 'login'])->name('lti.login');
+Route::post('launch', [LtiController::class, 'launch'])->name('lti.launch');
