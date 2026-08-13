@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\PushLtiScore;
 use App\Models\LearningObjective;
+use App\Models\LtiResourceLink;
 use App\Models\ObjectiveMastery;
 use App\Models\PracticeItem;
 use App\Models\Track;
@@ -100,6 +102,10 @@ class PracticeController extends Controller
             ], 409);
         }
 
+        // Si el alumno llegó por LTI con AGS, se re-publica su mastery en el
+        // gradebook de Moodle (cola con backoff; una consulta fija por intento).
+        $this->queueLtiScore($userId, $item->objective_id);
+
         // `expected` se revela solo DESPUÉS de responder (retroalimentación);
         // el siguiente intento trae números nuevos, así que no regala nada.
         return response()->json([
@@ -109,6 +115,20 @@ class PracticeController extends Controller
             'expected' => $result['expected'],
             'answer' => $attempt->answer,
         ], 201);
+    }
+
+    /** Despacha el push AGS si el alumno tiene un resource link LTI para esta destreza. */
+    private function queueLtiScore(int $userId, string $objectiveId): void
+    {
+        $linkId = LtiResourceLink::query()
+            ->where('user_id', $userId)
+            ->where('objective_id', $objectiveId)
+            ->orderByDesc('last_launched_at')
+            ->value('id');
+
+        if ($linkId !== null) {
+            PushLtiScore::dispatch($linkId);
+        }
     }
 
     private function persistAttempt($item, int $userId, int $attemptNo, string $seed, array $params, array $data, array $result)

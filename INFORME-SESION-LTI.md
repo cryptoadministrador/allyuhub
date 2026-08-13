@@ -128,4 +128,39 @@ la Tool — la misma verificación que hará Moodle.
   — anotado como endurecimiento posible (riesgo bajo: el JWT resultante solo
   sirve en la sesión DL del docente en Moodle).
 
-(La fase D añade su sección más abajo.)
+## Fase D — AGS: calificaciones de vuelta al gradebook
+
+El launch con claim AGS persiste el contexto en `lti_resource_links` (el job
+corre en cola: la sesión no le sirve). Tras cada intento de práctica de un
+usuario con resource link, `PushLtiScore` publica el score vía
+client-credentials (grant JWT firmado por la Tool) contra el lineitem del
+launch. **Criterio del score (documentado en el job): mastery de la destreza
+×100**, no el correcto/incorrecto suelto — el gradebook refleja dominio
+acumulado y cada intento lo re-publica actualizado. Reintentos: `tries=5`
+con backoff 10s/60s/300s/900s; 4xx/5xx de la Platform lanzan para que la
+cola reintente; sin AGS o sin scope de score → no-op silencioso y logueado.
+
+### Oráculo adversarial de seguridad — fase D (pregunta → respuesta)
+
+- **¿Puedo inyectar un score sin sesión LTI?** No hay NINGÚN endpoint HTTP de
+  scores: el push nace en el servidor tras un intento verificado, y solo si
+  existe un `lti_resource_links` creado por un launch VALIDADO de ese mismo
+  alumno. Un usuario no-LTI jamás dispara nada (test).
+- **¿El intento con `user_id` de payload puede empujar el score de OTRO?**
+  Empuja el del `user_id` del intento… que es exactamente el alumno dueño del
+  resource link consultado por (user_id, objective). El riesgo real es el ya
+  conocido y heredado de v1/v2: el `user_id` en payload es suplantable hasta
+  LTI-auth en la API (roadmap; anotado abajo en «qué queda fuera»). El score
+  siempre va al `lti_sub` del dueño de la fila, nunca a un sub arbitrario
+  del request.
+- **¿El grant expone la clave privada?** No: viaja un client_assertion JWT
+  RS256 firmado; el test lo decodifica contra el JWKS público y verifica
+  iss/sub/aud. El token de acceso se cachea 3500 s y se limpia tras un 401
+  (retry único).
+- **¿Un lineitem forjado?** El `ags` guardado viene del id_token VALIDADO
+  (firma+nonce+deployment), nunca de input del cliente; updateOrCreate está
+  atado a (platform, resource_link, user).
+- **¿Reintentos infinitos / tormenta?** tries=5 con backoff creciente y fin;
+  el fallo definitivo queda en failed_jobs para inspección manual.
+
+(La fase E cierra el informe más abajo.)

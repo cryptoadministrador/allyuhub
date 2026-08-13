@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Lti;
 
 use App\Http\Controllers\Controller;
 use App\Models\LearningObjective;
+use App\Models\LtiPlatform;
+use App\Models\LtiResourceLink;
 use App\Models\Resource;
 use App\Models\ResourceVersion;
 use App\Models\User;
@@ -110,7 +112,46 @@ class LtiController extends Controller
             return $this->deepLinkingSelection();
         }
 
+        $this->rememberAgsContext($body, $user);
+
         return $this->resourceView($body, $user);
+    }
+
+    /**
+     * Si el launch trae el claim AGS, persiste el contexto de calificación:
+     * el job PushLtiScore lo necesita fuera de la sesión (corre en cola).
+     */
+    private function rememberAgsContext(array $body, User $user): void
+    {
+        if (! isset($body[Claim::AGS_ENDPOINT], $body[Claim::RESOURCE_LINK]['id'])) {
+            return;
+        }
+
+        $platformId = LtiPlatform::query()->active()
+            ->where('issuer', $body['iss'])
+            ->where('client_id', is_array($body['aud']) ? $body['aud'][0] : $body['aud'])
+            ->value('id');
+        if ($platformId === null) {
+            return;   // no debería pasar: el launch ya validó la registration
+        }
+
+        $custom = $body[Claim::CUSTOM] ?? [];
+        $objectiveId = ($custom['allyu_type'] ?? null) === 'objective'
+            ? LearningObjective::query()->whereKey($custom['allyu_id'] ?? null)->value('id')
+            : null;
+
+        LtiResourceLink::updateOrCreate(
+            [
+                'platform_id' => $platformId,
+                'resource_link_id' => $body[Claim::RESOURCE_LINK]['id'],
+                'user_id' => $user->id,
+            ],
+            [
+                'objective_id' => $objectiveId,
+                'ags' => $body[Claim::AGS_ENDPOINT],
+                'last_launched_at' => now(),
+            ],
+        );
     }
 
     /**
