@@ -30,6 +30,12 @@ use RuntimeException;
  * van con method=manual porque son estructurales de los propios marcos, pero tampoco
  * se dan por revisadas.
  *
+ * Excepción consagrada (motor de práctica v2): el AdaptiveSelector NAVEGA por las
+ * aristas prerequisite con method=manual aunque no estén revisadas — son autoría
+ * humana, no propuesta de IA, y no se muestran como equivalencias. Ver el docblock
+ * de App\Services\Practice\AdaptiveSelector para el razonamiento y su condición
+ * de revisión.
+ *
  * Dos cosas que el grafo real impuso y conviene no olvidar:
  *  - Cambridge Lower Secondary NO tiene lentes ni F = ma: su física llega a fuerzas
  *    equilibradas/no equilibradas (8Pf.03), momentos (8Pf.04) y conservación

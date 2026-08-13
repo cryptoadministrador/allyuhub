@@ -39,10 +39,20 @@ class MasteryTracker
         bool $isCorrect,
         ?DateTimeInterface $at = null,
     ): ObjectiveMastery {
-        $m = ObjectiveMastery::firstOrNew([
-            'user_id' => $userId,
-            'objective_id' => $objectiveId,
-        ]);
+        // Read-modify-write protegido: sin el lock, dos intentos simultáneos del
+        // mismo alumno sobre el mismo objetivo (dos pestañas, dos ítems) leerían la
+        // misma base y el último UPDATE se comería al otro en silencio — attempts_count
+        // quedaría en N-1 y la EMA saltaría un paso. lockForUpdate es no-op en SQLite
+        // (los tests no lo ejercitan) pero en PostgreSQL serializa la carrera.
+        $m = ObjectiveMastery::query()
+            ->where('user_id', $userId)
+            ->where('objective_id', $objectiveId)
+            ->lockForUpdate()
+            ->first()
+            ?? new ObjectiveMastery([
+                'user_id' => $userId,
+                'objective_id' => $objectiveId,
+            ]);
 
         $mastery = (float) ($m->mastery ?? 0.0);
         $streak = (int) ($m->streak ?? 0);

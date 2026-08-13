@@ -23,13 +23,25 @@ use Illuminate\Support\Collection;
  *     practicado, orden estable seq/created_at/id).
  *
  * Aristas admitidas: relation=prerequisite con method=manual O reviewed_at NOT
- * NULL — la IA propone, el docente dispone (regla 5 de CLAUDE.md). Semántica
- * (CrosswalkSeeder): alignment(source=A, target=B) = «para intentar A, domina
- * antes B»; retroceder = seguir targets, avanzar = seguir sources.
+ * NULL. EXCEPCIÓN CONSAGRADA a la regla 5 de CLAUDE.md: `production()` exige
+ * además confidence ≥ 0.8, pensado para el crosswalk de EQUIVALENCIAS que ven
+ * los docentes; aquí una arista `manual` ya es de autoría humana (progresión
+ * estructural del marco, no propuesta de IA) y solo se usa para NAVEGAR, no se
+ * muestra como equivalencia. Auditar esta decisión cuando existan practice_items
+ * sobre marcos internacionales: hoy el retroceso/avance no dispara en producción
+ * porque las aristas prerequisite son inter-marco y solo hay ítems EC-MINEDEC.
+ * Semántica (CrosswalkSeeder): alignment(source=A, target=B) = «para intentar A,
+ * domina antes B»; retroceder = seguir targets, avanzar = seguir sources.
  *
  * El grafo cruza marcos (Cambridge/IB): se prefieren candidatos del marco del
  * objetivo de partida y solo se cruza de marco si no queda ninguno.
  * Todo desempate es un orden total (mastery, native_code, id): CERO azar.
+ *
+ * Nota de diseño: los candidatos se filtran por el hito PERMANENTE mastered_at,
+ * no por el mastery vivo — un prerrequisito dominado hace meses cuyo mastery
+ * decayó no vuelve a proponerse como refuerzo. El disparador del retroceso sí
+ * usa el mastery vivo. Es deliberado (evita oscilaciones); revísalo si se
+ * quiere repaso espaciado.
  */
 class AdaptiveSelector
 {

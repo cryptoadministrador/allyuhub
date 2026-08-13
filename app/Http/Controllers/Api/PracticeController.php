@@ -10,6 +10,7 @@ use App\Models\Track;
 use App\Services\Practice\AdaptiveSelector;
 use App\Services\Practice\MasteryTracker;
 use App\Services\Practice\PracticeEngine;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -88,8 +89,31 @@ class PracticeController extends Controller
         );
 
         // Intento + actualización de mastery en la MISMA transacción:
-        // o quedan los dos, o ninguno.
-        $attempt = DB::transaction(function () use ($item, $userId, $attemptNo, $seed, $params, $data, $result) {
+        // o quedan los dos, o ninguno. Si dos peticiones simultáneas calcularon el
+        // mismo attempt_no (unique por ítem+usuario), la perdedora responde 409 y el
+        // cliente reintenta — nunca un 500.
+        try {
+            $attempt = $this->persistAttempt($item, $userId, $attemptNo, $seed, $params, $data, $result);
+        } catch (UniqueConstraintViolationException) {
+            return response()->json([
+                'message' => 'Intento duplicado: otra petición registró este intento primero. Pide el siguiente ítem y reintenta.',
+            ], 409);
+        }
+
+        // `expected` se revela solo DESPUÉS de responder (retroalimentación);
+        // el siguiente intento trae números nuevos, así que no regala nada.
+        return response()->json([
+            'id' => $attempt->id,
+            'attempt_no' => $attemptNo,
+            'is_correct' => $result['is_correct'],
+            'expected' => $result['expected'],
+            'answer' => $attempt->answer,
+        ], 201);
+    }
+
+    private function persistAttempt($item, int $userId, int $attemptNo, string $seed, array $params, array $data, array $result)
+    {
+        return DB::transaction(function () use ($item, $userId, $attemptNo, $seed, $params, $data, $result) {
             $attempt = $item->attempts()->create([
                 'user_id' => $userId,
                 'attempt_no' => $attemptNo,
@@ -105,16 +129,6 @@ class PracticeController extends Controller
 
             return $attempt;
         });
-
-        // `expected` se revela solo DESPUÉS de responder (retroalimentación);
-        // el siguiente intento trae números nuevos, así que no regala nada.
-        return response()->json([
-            'id' => $attempt->id,
-            'attempt_no' => $attemptNo,
-            'is_correct' => $result['is_correct'],
-            'expected' => $result['expected'],
-            'answer' => $attempt->answer,
-        ], 201);
     }
 
     /**
