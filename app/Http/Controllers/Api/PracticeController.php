@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\LearningObjective;
 use App\Models\ObjectiveMastery;
-use App\Models\PracticeAttempt;
 use App\Models\PracticeItem;
+use App\Services\Practice\AdaptiveSelector;
 use App\Services\Practice\MasteryTracker;
 use App\Services\Practice\PracticeEngine;
 use Illuminate\Http\Request;
@@ -24,13 +24,15 @@ class PracticeController extends Controller
     public function __construct(
         private readonly PracticeEngine $engine,
         private readonly MasteryTracker $tracker,
+        private readonly AdaptiveSelector $selector,
     ) {}
 
     /**
      * GET /api/v1/objectives/{objective}/practice/next?user_id=…
      *
-     * Devuelve el ítem menos practicado del objetivo, instanciado con la semilla
-     * hash(item:user:intento). Mientras el alumno no responda, repetir la
+     * Delegado en AdaptiveSelector: refuerzo de prerrequisito, avance o práctica
+     * normal (`reason` lo explica). El ítem elegido se instancia con la semilla
+     * v1 hash(item:user:intento): mientras el alumno no responda, repetir la
      * petición devuelve exactamente los mismos números (misma semilla).
      * Nunca expone solution_expr ni el valor esperado.
      */
@@ -39,35 +41,24 @@ class PracticeController extends Controller
         $data = $request->validate(['user_id' => 'required|integer|exists:users,id']);
         $userId = (int) $data['user_id'];
 
-        $items = $objective->practiceItems()
-            ->orderBy('seq')->orderBy('created_at')->orderBy('id')
-            ->get();
-        abort_if($items->isEmpty(), 404, 'El objetivo no tiene ítems de práctica');
+        $selection = $this->selector->next($objective, $userId);
+        abort_if($selection === null, 404, 'El objetivo no tiene ítems de práctica');
 
-        $counts = PracticeAttempt::query()
-            ->whereIn('item_id', $items->pluck('id'))
-            ->where('user_id', $userId)
-            ->selectRaw('item_id, count(*) as total')
-            ->groupBy('item_id')
-            ->pluck('total', 'item_id');
-
-        // El menos practicado; a igualdad, el orden estable (seq) decide.
-        $minCount = $items->map(fn ($i) => $counts[$i->id] ?? 0)->min();
-        $item = $items->first(fn ($i) => ($counts[$i->id] ?? 0) === $minCount);
-
-        $attemptNo = ($counts[$item->id] ?? 0) + 1;
+        $item = $selection['item'];
+        $attemptNo = $selection['attempt_no'];
         $seed = $this->engine->seedFor($item->id, $userId, $attemptNo);
         $params = $this->engine->sampleParams($item->params, $seed);
 
         return response()->json([
             'item_id' => $item->id,
-            'objective_id' => $objective->id,
+            'objective_id' => $selection['objective']->id,
             'attempt_no' => $attemptNo,
             'statement' => $this->engine->renderStatement($item->statement, $params),
             'params' => $params,
             'answer_unit' => $item->answer_unit,
             'tolerance' => $item->tolerance,
             'tolerance_kind' => $item->tolerance_kind,
+            'reason' => $selection['reason'],
         ]);
     }
 
