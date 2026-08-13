@@ -31,4 +31,5 @@ Route::prefix('v1')->group(function () {
     Route::get('objectives/{objective}/practice/next', [PracticeController::class, 'next']);
     Route::post('practice/items/{item}/attempts', [PracticeController::class, 'submitAttempt']);
     Route::get('practice/mastery', [PracticeController::class, 'mastery']);
+    Route::get('practice/progress', [PracticeController::class, 'progress']);
 });

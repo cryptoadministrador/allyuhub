@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\LearningObjective;
 use App\Models\ObjectiveMastery;
 use App\Models\PracticeItem;
+use App\Models\Track;
 use App\Services\Practice\AdaptiveSelector;
 use App\Services\Practice\MasteryTracker;
 use App\Services\Practice\PracticeEngine;
@@ -141,5 +142,55 @@ class PracticeController extends Controller
                 'mastered_at' => $m->mastered_at,
                 'last_attempt_at' => $m->last_attempt_at,
             ]);
+    }
+
+    /**
+     * GET /api/v1/practice/progress?user_id=…&track=… — resumen por fase del
+     * track: destrezas dominadas / en progreso / no iniciadas. Consultas
+     * acotadas (fases, enlaces y masteries en bulk): el coste no crece con el
+     * número de fases ni de destrezas.
+     */
+    public function progress(Request $request)
+    {
+        $data = $request->validate([
+            'user_id' => 'required|integer|exists:users,id',
+            'track' => 'required|string|exists:tracks,code',
+        ]);
+
+        $track = Track::where('code', $data['track'])->first();
+        $phases = $track->phases;   // ya ordenadas por seq (relación)
+
+        $links = DB::table('track_phase_objectives')
+            ->whereIn('phase_id', $phases->pluck('id'))
+            ->get(['phase_id', 'objective_id']);
+
+        $masteries = ObjectiveMastery::query()
+            ->where('user_id', (int) $data['user_id'])
+            ->whereIn('objective_id', $links->pluck('objective_id')->unique())
+            ->get()
+            ->keyBy('objective_id');
+
+        $byPhase = $links->groupBy('phase_id');
+
+        return response()->json([
+            'track' => $track->code,
+            'phases' => $phases->map(function ($phase) use ($byPhase, $masteries) {
+                $objectiveIds = ($byPhase[$phase->id] ?? collect())->pluck('objective_id');
+                $mastered = $objectiveIds
+                    ->filter(fn ($id) => ($masteries[$id] ?? null)?->mastered_at !== null)->count();
+                $started = $objectiveIds->filter(fn ($id) => isset($masteries[$id]))->count();
+
+                return [
+                    'phase_id' => $phase->id,
+                    'seq' => $phase->seq,
+                    'label' => $phase->label,
+                    'is_propedeutic' => $phase->is_propedeutic,
+                    'objectives_total' => $objectiveIds->count(),
+                    'mastered' => $mastered,
+                    'in_progress' => $started - $mastered,
+                    'not_started' => $objectiveIds->count() - $started,
+                ];
+            })->values(),
+        ]);
     }
 }
