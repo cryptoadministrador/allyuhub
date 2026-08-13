@@ -124,7 +124,16 @@ modalidades y 2025-00031-A regula el Bachillerato Técnico EPJA (100 días/ciclo
    marcos internacionales, así que el retroceso no actúa dentro de EC-MINEDEC),
    más ítems al verificar áreas nuevas, retroalimentación gradual (issue #1),
    y sustituir el `user_id` provisional del payload cuando llegue LTI 1.3.
-5. **LTI 1.3** con `packbackbooks/lti-1p3-tool` (plan v1 §5): OIDC + Deep Linking + AGS.
+5. ~~LTI 1.3~~ **HECHO (Tool completa; pendiente de Moodle real)**: OIDC login +
+   launch validado con `packbackbooks/lti-1p3-tool` v6.4 (API MessageFactory —
+   la vieja LtiMessageLaunch está deprecated), provisión por (lti_iss, lti_sub),
+   Deep Linking (simuladores publicados + destrezas con ítems, lineitem AGS) y
+   AGS: `PushLtiScore` publica el mastery×100 en cola con backoff. Operación:
+   `lti:keys`, `lti:platform:add`, rutas `/lti/*` (grupo de middleware propio,
+   sin EncryptCookies ni CSRF: la protección es state+nonce), guía en
+   `docs/lti-moodle.md` (checklist para el Moodle del colegio).
+   **Falta**: validarlo contra un Moodle real, fusionar la sesión LTI con la
+   API de práctica (sigue el `user_id` provisional en payload) y el frontend.
 
 ## Qué NO hacer
 
