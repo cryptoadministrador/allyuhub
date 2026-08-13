@@ -1,5 +1,5 @@
 import { Head } from '@inertiajs/react';
-import AppLayout from '../Layouts/AppLayout';
+import AppLayout from '../layouts/AppLayout';
 
 /** Un simulador publicado: título y acceso al bundle (CDN). */
 export default function Recurso({ resource }) {

@@ -1,6 +1,6 @@
 import { Head } from '@inertiajs/react';
 import { useCallback, useEffect, useState } from 'react';
-import AppLayout from '../Layouts/AppLayout';
+import AppLayout from '../layouts/AppLayout';
 
 /**
  * Progreso por trayecto: por cada fase del track, cuántas destrezas están

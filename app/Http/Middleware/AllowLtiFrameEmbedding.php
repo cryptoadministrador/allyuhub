@@ -24,7 +24,8 @@ class AllowLtiFrameEmbedding
         $origins = rescue(
             fn () => LtiPlatform::query()->active()
                 ->pluck('issuer')
-                ->map(fn (string $issuer) => preg_replace('~^(https?://[^/]+).*~', '$1', $issuer))
+                ->map($this->toOrigin(...))
+                ->filter()
                 ->unique()
                 ->implode(' '),
             '',
@@ -37,5 +38,27 @@ class AllowLtiFrameEmbedding
         );
 
         return $response;
+    }
+
+    /**
+     * Issuer → origen (esquema://host[:puerto]) apto para una directiva CSP.
+     *
+     * Con `parse_url`, no con regex: un issuer mal pegado tipo
+     * «https://moodle.test *» o un `urn:` pasaban verbatim al header y podían
+     * colar un `*` en frame-ancestors, abriendo la app a clickjacking desde
+     * cualquier origen. Lo que no sea una URL http(s) se descarta.
+     */
+    private function toOrigin(string $issuer): ?string
+    {
+        $parts = parse_url(trim($issuer));
+
+        if (! isset($parts['scheme'], $parts['host'])
+            || ! in_array($parts['scheme'], ['http', 'https'], true)
+            || preg_match('/[\s;\'"]/', $parts['host']) === 1) {
+            return null;
+        }
+
+        return $parts['scheme'].'://'.$parts['host']
+            .(isset($parts['port']) ? ':'.$parts['port'] : '');
     }
 }

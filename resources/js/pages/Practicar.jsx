@@ -1,6 +1,6 @@
 import { Head } from '@inertiajs/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import AppLayout from '../Layouts/AppLayout';
+import AppLayout from '../layouts/AppLayout';
 
 /**
  * El bucle de práctica: pide el siguiente ítem a la API (misma sesión),

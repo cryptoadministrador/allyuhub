@@ -127,6 +127,13 @@ class LtiController extends Controller
         $type = $custom['allyu_type'] ?? null;
         $id = $custom['allyu_id'] ?? null;
 
+        // El claim custom lo configura el admin de Moodle (semi-confiable): si no
+        // es un UUID, PostgreSQL revienta el whereKey con «invalid input syntax
+        // for type uuid» y el launch responde 500. Se filtra antes de consultar.
+        if (! is_string($id) || ! Str::isUuid($id)) {
+            return redirect()->route('progreso');
+        }
+
         if ($type === 'objective' && LearningObjective::whereKey($id)->exists()) {
             return redirect()->route('practicar', $id);
         }

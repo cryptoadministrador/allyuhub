@@ -15,10 +15,18 @@ Léelos antes de tomar decisiones de arquitectura.
   catálogo. Los endpoints de práctica viven en `routes/web.php` bajo el mismo prefijo,
   con `auth` de sesión: el alumno es SIEMPRE `Auth::id()` — un `user_id` en el request
   es 422 (`prohibited`). La deuda del user_id de payload está CERRADA.
-- Frontend: Inertia + React 19 (Vite 8 + Tailwind 4), páginas en `resources/js/Pages`
-  (`/practicar/{objective}`, `/recurso/{resource}`, `/progreso`), en español y aptas
-  para el iframe de Moodle (CSP frame-ancestors con los issuers registrados).
+- Frontend: Inertia + React 19 (Vite 8 + Tailwind 4), páginas en **`resources/js/pages`**
+  y layouts en `resources/js/layouts` — TODO EN MINÚSCULA: es el default de Inertia 3
+  (`resource_path('js/pages')`). En Windows/macOS da igual porque el sistema de archivos
+  no distingue mayúsculas, pero en Linux (CI y producción) `Pages` NO se encuentra y
+  `assertInertia` falla. Rutas: `/practicar/{objective}`, `/recurso/{resource}`,
+  `/progreso`, en español y aptas para el iframe de Moodle (CSP frame-ancestors
+  construida con los issuers de las Platforms activas, normalizados con `parse_url`).
   Los tests NUNCA compilan el frontend: `withoutVite()` + `assertInertia`.
+- **La práctica es ABIERTA por diseño**: un alumno puede practicar cualquier destreza
+  con ítems, esté o no en su track (modelo Khan). No es un agujero — la nota siempre es
+  suya y la verificación es en servidor — pero si el colegio quiere restringirla, el
+  punto es `submitAttempt` contra `track_phase_objectives`.
 - Simuladores: viven FUERA de este repo (monorepo Vite/TS aparte, ver plan §4 de v1);
   aquí solo se registran como `resources` con `bundle_url` al CDN
 
