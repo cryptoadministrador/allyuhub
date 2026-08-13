@@ -107,7 +107,7 @@ class LtiAgsTest extends TestCase
             ];
         }
 
-        $this->withUnencryptedCookie(LtiOidcLogin::COOKIE_PREFIX.$q['state'], $q['state'])
+        $this->withCookie(LtiOidcLogin::COOKIE_PREFIX.$q['state'], $q['state'])
             ->post('/lti/launch', ['state' => $q['state'], 'id_token' => $this->moodle->idToken($overrides)])
             ->assertOk();
 
@@ -122,8 +122,7 @@ class LtiAgsTest extends TestCase
         $params = $engine->sampleParams($this->item->params, $engine->seedFor($this->item->id, $user->id, $attemptNo));
         $expected = $params['m'] * $params['g'] * sin(deg2rad($params['theta']));
 
-        $this->postJson("/api/v1/practice/items/{$this->item->id}/attempts", [
-            'user_id' => $user->id,
+        $this->actingAs($user)->postJson("/api/v1/practice/items/{$this->item->id}/attempts", [
             'answer' => $correct ? $expected : $expected + 50,
         ])->assertCreated();
     }
@@ -244,14 +243,12 @@ class LtiAgsTest extends TestCase
     }
 
     /**
-     * REGRESIÓN DE SEGURIDAD (auditoría LTI): mientras la API de práctica acepte
-     * user_id en el payload sin auth, un anónimo NO puede corromper la nota de un
-     * alumno LTI en Moodle. La víctima ya lanzó con AGS (tiene resource link); el
-     * atacante, sin sesión, responde intentos con el user_id de la víctima: se
-     * registra el intento pero NO se publica score. El push solo sale de la sesión
-     * LTI del propio dueño.
+     * REGRESIÓN DE SEGURIDAD (evolución del test de la auditoría LTI): con la
+     * deuda del user_id CERRADA, un anónimo ya no puede NI SIQUIERA practicar —
+     * mucho menos inyectar notas. El user_id que antes explotaba ahora ni existe
+     * como campo: sin sesión es 401 y con sesión sería 422 (prohibited).
      */
-    public function test_un_anonimo_no_puede_inyectar_notas_con_el_user_id_de_otro(): void
+    public function test_un_anonimo_ya_no_puede_ni_practicar_ni_inyectar_notas(): void
     {
         Http::fake();
 
@@ -260,8 +257,9 @@ class LtiAgsTest extends TestCase
         auth()->logout();
 
         $this->assertSame(1, LtiResourceLink::where('user_id', $victima->id)->count());
+        $attemptsBefore = $this->item->attempts()->count();
 
-        // El atacante conoce (o enumera) el user_id de la víctima y machaca intentos.
+        // El atacante intenta lo de siempre: user_id de la víctima en el body.
         $engine = new PracticeEngine;
         $attemptNo = $this->item->attempts()->where('user_id', $victima->id)->count() + 1;
         $params = $engine->sampleParams($this->item->params, $engine->seedFor($this->item->id, $victima->id, $attemptNo));
@@ -269,9 +267,10 @@ class LtiAgsTest extends TestCase
         $this->postJson("/api/v1/practice/items/{$this->item->id}/attempts", [
             'user_id' => $victima->id,
             'answer' => $params['m'] * $params['g'] * sin(deg2rad($params['theta'])),
-        ])->assertCreated();
+        ])->assertUnauthorized();
 
-        // El intento se guardó (contrato v1 intacto) pero NINGÚN score salió a Moodle.
+        // Ni intento registrado, ni score a Moodle: la puerta está cerrada.
+        $this->assertSame($attemptsBefore, $this->item->attempts()->count());
         Http::assertNotSent(fn ($request) => str_contains($request->url(), 'token.php'));
         Http::assertNotSent(fn ($request) => str_contains($request->url(), '/scores'));
     }

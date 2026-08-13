@@ -54,10 +54,9 @@ class LtiLaunchTest extends TestCase
 
     private function launch(string $state, string $idToken)
     {
-        // withUnencryptedCookie: las rutas /lti/* no llevan EncryptCookies
-        // (el nombre de la cookie de state es dinámico), así que la cookie
-        // viaja en claro como lo hará desde el navegador real.
-        return $this->withUnencryptedCookie(LtiOidcLogin::COOKIE_PREFIX.$state, $state)
+        // withCookie viaja CIFRADA, como en el navegador real: las rutas
+        // /lti/* van por el grupo web completo (EncryptCookies incluido).
+        return $this->withCookie(LtiOidcLogin::COOKIE_PREFIX.$state, $state)
             ->post('/lti/launch', ['state' => $state, 'id_token' => $idToken]);
     }
 
@@ -83,8 +82,8 @@ class LtiLaunchTest extends TestCase
         $this->assertNotEmpty($query['state']);
         $this->assertNotEmpty($query['nonce']);
 
-        // La cookie de state ata el apretón a ESTE navegador.
-        $cookie = $response->getCookie(LtiOidcLogin::COOKIE_PREFIX.$query['state'], decrypt: false);
+        // La cookie de state ata el apretón a ESTE navegador (cifrada en el grupo web).
+        $cookie = $response->getCookie(LtiOidcLogin::COOKIE_PREFIX.$query['state']);
         $this->assertNotNull($cookie);
         $this->assertSame($query['state'], $cookie->getValue());
     }
@@ -257,11 +256,10 @@ class LtiLaunchTest extends TestCase
             Claim::CUSTOM => ['allyu_type' => 'objective', 'allyu_id' => $objective->id],
         ]))->assertOk();
 
-        $user = User::where('lti_sub', 'moodle-user-7')->firstOrFail();
-
-        // El enlace de práctica lleva el user de la SESIÓN, no algo del payload.
+        // El enlace de práctica ya no lleva user_id: la API identifica por sesión.
         $response->assertSee('CN.F.5.1.9')
-            ->assertSee("/api/v1/objectives/{$objective->id}/practice/next?user_id={$user->id}", escape: false);
+            ->assertSee("/api/v1/objectives/{$objective->id}/practice/next", escape: false)
+            ->assertDontSee('user_id=', escape: false);
     }
 
     public function test_launch_sin_custom_muestra_la_vista_generica(): void

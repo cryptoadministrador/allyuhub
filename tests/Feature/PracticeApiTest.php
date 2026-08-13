@@ -71,7 +71,9 @@ class PracticeApiTest extends TestCase
 
     private function next(User $user)
     {
-        return $this->getJson("/api/v1/objectives/{$this->objective->id}/practice/next?user_id={$user->id}");
+        // La identidad sale de la SESIÓN (actingAs), jamás de un user_id.
+        return $this->actingAs($user)
+            ->getJson("/api/v1/objectives/{$this->objective->id}/practice/next");
     }
 
     /** La física del ítem, calculada con PHP puro: contraste independiente del motor. */
@@ -111,7 +113,7 @@ class PracticeApiTest extends TestCase
         // Intento 1: respuesta exacta → correcto.
         $p1 = $this->next($this->ana)->json('params');
         $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [
-            'user_id' => $this->ana->id, 'answer' => $this->expectedFor($p1), 'time_ms' => 42000,
+            'answer' => $this->expectedFor($p1), 'time_ms' => 42000,
         ])->assertCreated()
             ->assertJsonPath('attempt_no', 1)
             ->assertJsonPath('is_correct', true);
@@ -119,7 +121,7 @@ class PracticeApiTest extends TestCase
         // Intento 2: números nuevos; muy desviada → incorrecto.
         $p2 = $this->next($this->ana)->json('params');
         $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [
-            'user_id' => $this->ana->id, 'answer' => $this->expectedFor($p2) + 10,
+            'answer' => $this->expectedFor($p2) + 10,
         ])->assertCreated()
             ->assertJsonPath('attempt_no', 2)
             ->assertJsonPath('is_correct', false);
@@ -127,7 +129,7 @@ class PracticeApiTest extends TestCase
         // Intento 3: dentro de la tolerancia relativa del 2 % → correcto.
         $p3 = $this->next($this->ana)->json('params');
         $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [
-            'user_id' => $this->ana->id, 'answer' => $this->expectedFor($p3) * 1.01,
+            'answer' => $this->expectedFor($p3) * 1.01,
         ])->assertCreated()
             ->assertJsonPath('attempt_no', 3)
             ->assertJsonPath('is_correct', true);
@@ -144,7 +146,7 @@ class PracticeApiTest extends TestCase
     {
         $p1 = $this->next($this->ana)->json('params');
         $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [
-            'user_id' => $this->ana->id, 'answer' => 0,
+            'answer' => 0,
         ])->assertCreated();
 
         $again = $this->next($this->ana)->assertOk();
@@ -158,7 +160,6 @@ class PracticeApiTest extends TestCase
 
         // El cliente miente: respuesta absurda marcada como "correcta".
         $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [
-            'user_id' => $this->ana->id,
             'answer' => $this->expectedFor($p1) + 1000,
             'is_correct' => true,
             'expected' => 0,
@@ -188,7 +189,7 @@ class PracticeApiTest extends TestCase
         $this->next($this->ana)->assertOk()->assertJsonPath('item_id', self::ITEM_ID);
 
         $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [
-            'user_id' => $this->ana->id, 'answer' => 0,
+            'answer' => 0,
         ])->assertCreated();
 
         // Tras practicar el primero, toca el menos practicado.
@@ -197,15 +198,15 @@ class PracticeApiTest extends TestCase
 
     public function test_validaciones(): void
     {
-        // user_id obligatorio y existente.
-        $this->getJson("/api/v1/objectives/{$this->objective->id}/practice/next")->assertStatus(422);
-        $this->getJson("/api/v1/objectives/{$this->objective->id}/practice/next?user_id=999")->assertStatus(422);
+        // Sin sesión no se practica (la autorización fina vive en PracticeAuthTest).
+        $this->getJson("/api/v1/objectives/{$this->objective->id}/practice/next")
+            ->assertUnauthorized();
 
+        $this->actingAs($this->ana);
+        $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [])
+            ->assertStatus(422);   // falta answer
         $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [
-            'user_id' => $this->ana->id,
-        ])->assertStatus(422);   // falta answer
-        $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [
-            'user_id' => $this->ana->id, 'answer' => 'no-numérica',
+            'answer' => 'no-numérica',
         ])->assertStatus(422);
 
         // Objetivo sin ítems de práctica → 404.
@@ -213,7 +214,7 @@ class PracticeApiTest extends TestCase
             'node_id' => $this->objective->node_id, 'version_id' => $this->objective->version_id,
             'native_code' => 'CN.F.5.1.9', 'statement' => ['es' => '…'],
         ]);
-        $this->getJson("/api/v1/objectives/{$bare->id}/practice/next?user_id={$this->ana->id}")
+        $this->getJson("/api/v1/objectives/{$bare->id}/practice/next")
             ->assertNotFound();
     }
 }

@@ -41,8 +41,8 @@ class PracticeLoadTest extends TestCase
         $params = $engine->sampleParams($item->params, $engine->seedFor($item->id, $user->id, $attemptNo));
         $expected = $params['m'] * $params['g'] * sin(deg2rad($params['theta']));
 
-        $this->postJson("/api/v1/practice/items/{$item->id}/attempts", [
-            'user_id' => $user->id, 'answer' => $expected,
+        $this->actingAs($user)->postJson("/api/v1/practice/items/{$item->id}/attempts", [
+            'answer' => $expected,
         ])->assertCreated();
     }
 
@@ -70,10 +70,11 @@ class PracticeLoadTest extends TestCase
         $big = LearningObjective::factory()->create();
         PracticeItem::factory()->count(12)->for($big, 'objective')->create();
 
+        $this->actingAs($user);
         $q2 = $this->countQueries(fn () => $this->getJson(
-            "/api/v1/objectives/{$small->id}/practice/next?user_id={$user->id}")->assertOk());
+            "/api/v1/objectives/{$small->id}/practice/next")->assertOk());
         $q12 = $this->countQueries(fn () => $this->getJson(
-            "/api/v1/objectives/{$big->id}/practice/next?user_id={$user->id}")->assertOk());
+            "/api/v1/objectives/{$big->id}/practice/next")->assertOk());
 
         $this->assertSame($q2, $q12, 'next() no debe costar más consultas con más ítems');
     }
@@ -88,10 +89,11 @@ class PracticeLoadTest extends TestCase
         $this->makePhases($chico, 1);
         $this->makePhases($grande, 6);
 
+        $this->actingAs($user);
         $q1 = $this->countQueries(fn () => $this->getJson(
-            "/api/v1/practice/progress?user_id={$user->id}&track=T-CHICO")->assertOk());
+            '/api/v1/practice/progress?track=T-CHICO')->assertOk());
         $q6 = $this->countQueries(fn () => $this->getJson(
-            "/api/v1/practice/progress?user_id={$user->id}&track=T-GRANDE")->assertOk());
+            '/api/v1/practice/progress?track=T-GRANDE')->assertOk());
 
         $this->assertSame($q1, $q6, 'progress no debe costar más consultas con más fases');
     }

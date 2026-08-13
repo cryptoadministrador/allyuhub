@@ -110,7 +110,8 @@ class AdaptivePracticeTest extends TestCase
 
     private function next(LearningObjective $objective)
     {
-        return $this->getJson("/api/v1/objectives/{$objective->id}/practice/next?user_id={$this->ana->id}");
+        return $this->actingAs($this->ana)
+            ->getJson("/api/v1/objectives/{$objective->id}/practice/next");
     }
 
     /** Contesta el intento en curso del ítem del objetivo, bien o mal. */
@@ -125,8 +126,7 @@ class AdaptivePracticeTest extends TestCase
         $params = $engine->sampleParams($item->params, $engine->seedFor($item->id, $this->ana->id, $attemptNo));
         $expected = $params['m'] * $params['g'] * sin(deg2rad($params['theta']));
 
-        $this->postJson("/api/v1/practice/items/{$item->id}/attempts", [
-            'user_id' => $this->ana->id,
+        $this->actingAs($this->ana)->postJson("/api/v1/practice/items/{$item->id}/attempts", [
             'answer' => $correct ? $expected : $expected + 50,
         ])->assertCreated();
     }

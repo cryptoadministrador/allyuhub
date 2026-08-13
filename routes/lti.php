@@ -7,10 +7,10 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 | LTI 1.3 — la Tool vista desde Moodle (roadmap §5)
 |--------------------------------------------------------------------------
-| Estas rutas van por el grupo de middleware `lti` (bootstrap/app.php):
-| sesión y cookies en claro (el nombre de la cookie de state es dinámico y
-| no se puede excluir de EncryptCookies), sin CSRF de Laravel porque los
-| POST llegan cross-site desde la Platform: la protección es state+nonce.
+| Estas rutas van por el grupo `web` COMPLETO (bootstrap/app.php): la sesión
+| del launch es la misma que la de la app. Única excepción: CSRF de Laravel
+| desactivado para lti/* — los POST llegan cross-site desde la Platform y la
+| protección del protocolo es state+nonce.
 */
 Route::get('jwks', [LtiController::class, 'jwks']);
 Route::match(['get', 'post'], 'login', [LtiController::class, 'login'])->name('lti.login');

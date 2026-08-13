@@ -1,16 +1,16 @@
 <?php
 
 use App\Http\Controllers\Api\CurriculumController;
-use App\Http\Controllers\Api\PracticeController;
 use App\Http\Controllers\Api\ResourceController;
 use App\Http\Controllers\Api\TrackController;
 use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| API v1 — el grafo y el catálogo son solo lectura (se importan/publican por
-| pipeline, no por esta API). Única escritura: los intentos del motor de
-| práctica, que se verifican SIEMPRE en el servidor.
+| API v1 pública — SOLO LECTURA del grafo y el catálogo (se importan y
+| publican por pipeline, no por esta API). Los endpoints de práctica viven
+| en routes/web.php bajo el mismo prefijo /api/v1: exigen sesión (auth) y
+| el alumno sale de Auth::id(), jamás del payload.
 |--------------------------------------------------------------------------
 */
 Route::prefix('v1')->group(function () {
@@ -27,9 +27,4 @@ Route::prefix('v1')->group(function () {
 
     Route::get('resources', [ResourceController::class, 'index']);
     Route::get('resources/{resource:slug}', [ResourceController::class, 'show']);
-
-    Route::get('objectives/{objective}/practice/next', [PracticeController::class, 'next']);
-    Route::post('practice/items/{item}/attempts', [PracticeController::class, 'submitAttempt']);
-    Route::get('practice/mastery', [PracticeController::class, 'mastery']);
-    Route::get('practice/progress', [PracticeController::class, 'progress']);
 });

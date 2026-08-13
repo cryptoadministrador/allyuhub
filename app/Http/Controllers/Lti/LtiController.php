@@ -294,9 +294,9 @@ class LtiController extends Controller
         if (($custom['allyu_type'] ?? null) === 'objective' && isset($custom['allyu_id'])) {
             $objective = LearningObjective::find($custom['allyu_id']);
             if ($objective !== null && $objective->practiceItems()->exists()) {
-                // El usuario va DE LA SESIÓN, no del payload (provisional hasta
-                // que la API de práctica se fusione con esta autenticación).
-                $practiceUrl = url("/api/v1/objectives/{$objective->id}/practice/next").'?user_id='.$user->id;
+                // La API identifica al alumno por la SESIÓN: el enlace ya no
+                // lleva (ni puede llevar) user_id.
+                $practiceUrl = url("/api/v1/objectives/{$objective->id}/practice/next");
             }
         } elseif (($custom['allyu_type'] ?? null) === 'resource' && isset($custom['allyu_id'])) {
             $resource = Resource::query()->published()->find($custom['allyu_id']);

@@ -94,7 +94,7 @@ class LtiDeepLinkingTest extends TestCase
     {
         [$state, $nonce] = $this->handshake();
 
-        return $this->withUnencryptedCookie(LtiOidcLogin::COOKIE_PREFIX.$state, $state)
+        return $this->withCookie(LtiOidcLogin::COOKIE_PREFIX.$state, $state)
             ->post('/lti/launch', [
                 'state' => $state,
                 'id_token' => $this->moodle->deepLinkToken(['nonce' => $nonce]),
@@ -178,7 +178,7 @@ class LtiDeepLinkingTest extends TestCase
     {
         // Launch de resource link (no de deep linking).
         [$state, $nonce] = $this->handshake();
-        $this->withUnencryptedCookie(LtiOidcLogin::COOKIE_PREFIX.$state, $state)
+        $this->withCookie(LtiOidcLogin::COOKIE_PREFIX.$state, $state)
             ->post('/lti/launch', [
                 'state' => $state,
                 'id_token' => $this->moodle->idToken(['nonce' => $nonce]),
