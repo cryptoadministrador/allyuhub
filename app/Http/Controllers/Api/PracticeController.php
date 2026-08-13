@@ -4,10 +4,15 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\LearningObjective;
-use App\Models\PracticeAttempt;
+use App\Models\ObjectiveMastery;
 use App\Models\PracticeItem;
+use App\Models\Track;
+use App\Services\Practice\AdaptiveSelector;
+use App\Services\Practice\MasteryTracker;
 use App\Services\Practice\PracticeEngine;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Motor de práctica: instanciación determinista y verificación en servidor.
@@ -18,13 +23,18 @@ use Illuminate\Http\Request;
  */
 class PracticeController extends Controller
 {
-    public function __construct(private readonly PracticeEngine $engine) {}
+    public function __construct(
+        private readonly PracticeEngine $engine,
+        private readonly MasteryTracker $tracker,
+        private readonly AdaptiveSelector $selector,
+    ) {}
 
     /**
      * GET /api/v1/objectives/{objective}/practice/next?user_id=…
      *
-     * Devuelve el ítem menos practicado del objetivo, instanciado con la semilla
-     * hash(item:user:intento). Mientras el alumno no responda, repetir la
+     * Delegado en AdaptiveSelector: refuerzo de prerrequisito, avance o práctica
+     * normal (`reason` lo explica). El ítem elegido se instancia con la semilla
+     * v1 hash(item:user:intento): mientras el alumno no responda, repetir la
      * petición devuelve exactamente los mismos números (misma semilla).
      * Nunca expone solution_expr ni el valor esperado.
      */
@@ -33,35 +43,24 @@ class PracticeController extends Controller
         $data = $request->validate(['user_id' => 'required|integer|exists:users,id']);
         $userId = (int) $data['user_id'];
 
-        $items = $objective->practiceItems()
-            ->orderBy('seq')->orderBy('created_at')->orderBy('id')
-            ->get();
-        abort_if($items->isEmpty(), 404, 'El objetivo no tiene ítems de práctica');
+        $selection = $this->selector->next($objective, $userId);
+        abort_if($selection === null, 404, 'El objetivo no tiene ítems de práctica');
 
-        $counts = PracticeAttempt::query()
-            ->whereIn('item_id', $items->pluck('id'))
-            ->where('user_id', $userId)
-            ->selectRaw('item_id, count(*) as total')
-            ->groupBy('item_id')
-            ->pluck('total', 'item_id');
-
-        // El menos practicado; a igualdad, el orden estable (seq) decide.
-        $minCount = $items->map(fn ($i) => $counts[$i->id] ?? 0)->min();
-        $item = $items->first(fn ($i) => ($counts[$i->id] ?? 0) === $minCount);
-
-        $attemptNo = ($counts[$item->id] ?? 0) + 1;
+        $item = $selection['item'];
+        $attemptNo = $selection['attempt_no'];
         $seed = $this->engine->seedFor($item->id, $userId, $attemptNo);
         $params = $this->engine->sampleParams($item->params, $seed);
 
         return response()->json([
             'item_id' => $item->id,
-            'objective_id' => $objective->id,
+            'objective_id' => $selection['objective']->id,
             'attempt_no' => $attemptNo,
             'statement' => $this->engine->renderStatement($item->statement, $params),
             'params' => $params,
             'answer_unit' => $item->answer_unit,
             'tolerance' => $item->tolerance,
             'tolerance_kind' => $item->tolerance_kind,
+            'reason' => $selection['reason'],
         ]);
     }
 
@@ -89,16 +88,17 @@ class PracticeController extends Controller
             $item->tolerance, $item->tolerance_kind,
         );
 
-        $attempt = $item->attempts()->create([
-            'user_id' => $userId,
-            'attempt_no' => $attemptNo,
-            'seed' => $seed,
-            'params' => $params,
-            'answer' => (float) $data['answer'],
-            'expected' => $result['expected'],
-            'is_correct' => $result['is_correct'],
-            'time_ms' => $data['time_ms'] ?? null,
-        ]);
+        // Intento + actualización de mastery en la MISMA transacción:
+        // o quedan los dos, o ninguno. Si dos peticiones simultáneas calcularon el
+        // mismo attempt_no (unique por ítem+usuario), la perdedora responde 409 y el
+        // cliente reintenta — nunca un 500.
+        try {
+            $attempt = $this->persistAttempt($item, $userId, $attemptNo, $seed, $params, $data, $result);
+        } catch (UniqueConstraintViolationException) {
+            return response()->json([
+                'message' => 'Intento duplicado: otra petición registró este intento primero. Pide el siguiente ítem y reintenta.',
+            ], 409);
+        }
 
         // `expected` se revela solo DESPUÉS de responder (retroalimentación);
         // el siguiente intento trae números nuevos, así que no regala nada.
@@ -109,5 +109,102 @@ class PracticeController extends Controller
             'expected' => $result['expected'],
             'answer' => $attempt->answer,
         ], 201);
+    }
+
+    private function persistAttempt($item, int $userId, int $attemptNo, string $seed, array $params, array $data, array $result)
+    {
+        return DB::transaction(function () use ($item, $userId, $attemptNo, $seed, $params, $data, $result) {
+            $attempt = $item->attempts()->create([
+                'user_id' => $userId,
+                'attempt_no' => $attemptNo,
+                'seed' => $seed,
+                'params' => $params,
+                'answer' => (float) $data['answer'],
+                'expected' => $result['expected'],
+                'is_correct' => $result['is_correct'],
+                'time_ms' => $data['time_ms'] ?? null,
+            ]);
+
+            $this->tracker->apply($userId, $item->objective_id, $result['is_correct'], $attempt->created_at);
+
+            return $attempt;
+        });
+    }
+
+    /**
+     * GET /api/v1/practice/mastery?user_id=… — estado de dominio por destreza.
+     * Orden estable: última práctica primero, con desempate por objective_id.
+     */
+    public function mastery(Request $request)
+    {
+        $data = $request->validate(['user_id' => 'required|integer|exists:users,id']);
+
+        return ObjectiveMastery::query()
+            ->where('user_id', (int) $data['user_id'])
+            ->with('objective:id,native_code,statement,version_id')
+            ->orderByDesc('last_attempt_at')
+            ->orderBy('objective_id')
+            ->get()
+            ->map(fn (ObjectiveMastery $m) => [
+                'objective_id' => $m->objective_id,
+                'native_code' => $m->objective?->native_code,
+                'statement' => $m->objective?->statement,
+                'mastery' => $m->mastery,
+                'streak' => $m->streak,
+                'attempts_count' => $m->attempts_count,
+                'is_mastered' => $m->is_mastered,
+                'mastered_at' => $m->mastered_at,
+                'last_attempt_at' => $m->last_attempt_at,
+            ]);
+    }
+
+    /**
+     * GET /api/v1/practice/progress?user_id=…&track=… — resumen por fase del
+     * track: destrezas dominadas / en progreso / no iniciadas. Consultas
+     * acotadas (fases, enlaces y masteries en bulk): el coste no crece con el
+     * número de fases ni de destrezas.
+     */
+    public function progress(Request $request)
+    {
+        $data = $request->validate([
+            'user_id' => 'required|integer|exists:users,id',
+            'track' => 'required|string|exists:tracks,code',
+        ]);
+
+        $track = Track::where('code', $data['track'])->first();
+        $phases = $track->phases;   // ya ordenadas por seq (relación)
+
+        $links = DB::table('track_phase_objectives')
+            ->whereIn('phase_id', $phases->pluck('id'))
+            ->get(['phase_id', 'objective_id']);
+
+        $masteries = ObjectiveMastery::query()
+            ->where('user_id', (int) $data['user_id'])
+            ->whereIn('objective_id', $links->pluck('objective_id')->unique())
+            ->get()
+            ->keyBy('objective_id');
+
+        $byPhase = $links->groupBy('phase_id');
+
+        return response()->json([
+            'track' => $track->code,
+            'phases' => $phases->map(function ($phase) use ($byPhase, $masteries) {
+                $objectiveIds = ($byPhase[$phase->id] ?? collect())->pluck('objective_id');
+                $mastered = $objectiveIds
+                    ->filter(fn ($id) => ($masteries[$id] ?? null)?->mastered_at !== null)->count();
+                $started = $objectiveIds->filter(fn ($id) => isset($masteries[$id]))->count();
+
+                return [
+                    'phase_id' => $phase->id,
+                    'seq' => $phase->seq,
+                    'label' => $phase->label,
+                    'is_propedeutic' => $phase->is_propedeutic,
+                    'objectives_total' => $objectiveIds->count(),
+                    'mastered' => $mastered,
+                    'in_progress' => $started - $mastered,
+                    'not_started' => $objectiveIds->count() - $started,
+                ];
+            })->values(),
+        ]);
     }
 }

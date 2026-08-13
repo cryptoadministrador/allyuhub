@@ -112,11 +112,18 @@ modalidades y 2025-00031-A regula el Bachillerato Técnico EPJA (100 días/ciclo
    **Ojo al resembrar**: los ciclos de Cambridge vencen (0580 en 2027, 0625/0620/0610 en
    2028, 9709 en 2027, 9702 en 2027 con el 2028-2030 ya publicado) y el IB estrena guía
    de Matemática AA en 2027. Cada ciclo nuevo entra como `framework_version` aparte.
-4. ~~Motor de práctica~~ **HECHO (núcleo)**: `practice_items`/`practice_attempts`,
+4. ~~Motor de práctica~~ **HECHO (núcleo + v2)**: `practice_items`/`practice_attempts`,
    semilla determinista sha256(item:user:intento), verificación en servidor con
-   tolerancia (`App\Services\Practice\*`), endpoints next/attempts y 5 ítems de
-   plano inclinado sembrados. **Falta**: mastery learning, selección adaptativa,
-   más ítems, y sustituir el `user_id` provisional del payload cuando llegue LTI 1.3.
+   tolerancia (`App\Services\Practice\*`), endpoints next/attempts. La v2 añade
+   mastery learning (`objective_masteries`: EMA α=0.35/β=0.3, racha FIRMADA,
+   hito `mastered_at`), selección adaptativa sobre el grafo de prerrequisitos
+   (retroceso/avance con aristas manual/revisadas, campo `reason` en next),
+   banco de 17 ítems sobre las 8 destrezas verificadas (seeder IDEMPOTENTE por
+   objetivo+seq) y `GET practice/mastery` + `GET practice/progress?track=`.
+   **Falta**: aristas prerequisite intra-MINEDEC (hoy solo hay progresión entre
+   marcos internacionales, así que el retroceso no actúa dentro de EC-MINEDEC),
+   más ítems al verificar áreas nuevas, retroalimentación gradual (issue #1),
+   y sustituir el `user_id` provisional del payload cuando llegue LTI 1.3.
 5. **LTI 1.3** con `packbackbooks/lti-1p3-tool` (plan v1 §5): OIDC + Deep Linking + AGS.
 
 ## Qué NO hacer
