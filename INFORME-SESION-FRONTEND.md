@@ -81,4 +81,72 @@ exigen sesión (`auth`) y el alumno es SIEMPRE `Auth::id()`. Decisiones:
 - **Los tests jamás compilan el frontend**: `withoutVite()` en el TestCase
   base; toda pantalla se afirma con `assertInertia` (componente + props).
 
-(Las fases C-E añaden sus secciones más abajo.)
+## Fase C — El bucle de práctica (`/practicar/{objective}`)
+
+Enunciado instanciado por la API (misma sesión), respuesta con unidad,
+verificación en servidor, retroalimentación inmediata (`expected` solo llega
+DESPUÉS de responder) y el `reason` adaptativo en lenguaje de alumno
+(«Repasemos algo anterior…» / «¡A por lo siguiente!»). Barra de dominio como
+`progressbar` real, actualizada tras cada intento. Estados: cargando, sin
+ítems (prop `has_items`, con test), sesión caducada (401 → `/entrar`), fallo
+de red con reintento, y 409 (intento duplicado) que re-pide el siguiente.
+Detalle técnico: Inertia v2 ya no trae axios — `fetch` propio con
+`X-XSRF-TOKEN` de la cookie (los POST van por el grupo web CON CSRF).
+
+### Oráculo de frontend — props revisadas una a una
+
+- `Practicar`: objective{id, native_code, statement es, has_items} + mastery.
+  SIN solution_expr, SIN seed, SIN item precargado — con aserciones `missing`.
+- `Recurso`: id/slug/título/bundle_url (todo público). `Progreso`: tracks
+  (catálogo). Compartido: auth.user{id, name} — test afirma que email,
+  password y lti_sub NO viajan.
+- El `expected` solo aparece en la respuesta del POST attempts (tras
+  responder), como siempre; la página nunca lo recibe antes.
+
+## Fase D — `/progreso`
+
+Por fase del track: dominadas / en progreso / sin empezar, con números y
+palabras además de la barra. Insignia de fase propedéutica. Selector de
+trayecto accesible (con un solo track no hay selector). **Pendiente
+documentado**: no existe mapeo curso-de-Moodle → track (necesita datos del
+Moodle real); por ahora el alumno elige el trayecto.
+
+## Fase E — Accesibilidad y cierre
+
+Pasada sobre las pantallas nuevas (construida en el código, no a posteriori):
+
+- **Teclado**: todo son controles nativos (button/input/select/a); skip-link
+  «Saltar al contenido» en el layout; foco gestionado en el bucle de práctica
+  (ítem nuevo → campo; resultado → panel de feedback con tabIndex=-1).
+- **Foco visible**: `focus:outline-2` explícito en todos los controles.
+- **Labels**: input de respuesta y selector de trayecto con `<label>`
+  asociado; barras con `role=progressbar` + aria-valuenow/valuetext.
+- **Lectores de pantalla**: resultado del intento en `aria-live=polite`;
+  estados de carga/vacío con `role=status`, errores con `role=alert`.
+- **Nada solo-color**: correcto/incorrecto llevan icono ✓/✗ y palabra;
+  el progreso lleva cifras; la insignia propedéutica es texto.
+- **Sin dangerouslySetInnerHTML** en todo el árbol JS (los enunciados vienen
+  de PDFs: React escapa por defecto y así se queda).
+
+CLAUDE.md al día: deuda del user_id marcada CERRADA en Stack y roadmap §4/§5,
+sección de frontend real.
+
+## Qué quedó fuera (pendientes honestos)
+
+- **Mapeo curso Moodle → track** para preseleccionar el trayecto en /progreso
+  (necesita el Moodle real del colegio).
+- **Validación manual en un Moodle real** del flujo completo dentro del
+  iframe (cookies SameSite=None en Safari/iOS es el sospechoso de siempre) —
+  checklist ya en `docs/lti-moodle.md`.
+- **Página del docente** (elegir contenido fuera del flujo deep linking) y
+  retroalimentación gradual (issue #1): fuera del alcance de esta misión.
+- La CSP `frame-ancestors` consulta `lti_platforms` por request (query
+  ligera); si algún día pesa, cachear 60 s.
+
+## Estado final
+
+- Suite: **125/125 en verde** (1055 aserciones) sin compilar el frontend;
+  `npm run build` verificado aparte (compila limpio). Pint limpio.
+- `composer.lock` y `package-lock.json` commiteados.
+- Commits: A `1122a45` (la deuda, cerrada), B `aafa391`, C `b8780a9`,
+  D `52d173f`, E (este). **Sin push, sin PR** — flujo humano posterior.

@@ -11,9 +11,14 @@ Léelos antes de tomar decisiones de arquitectura.
 ## Stack
 
 - Laravel 13 · PHP 8.4 · PostgreSQL 16 (extensiones: ltree, pg_trgm) · SQLite en tests
-- API en `routes/api.php` (prefijo `/api/v1`): solo lectura, salvo los intentos del
-  motor de práctica (`POST practice/items/{item}/attempts`, verificados en servidor)
-- Frontend: pendiente (Inertia + React según el plan)
+- API pública en `routes/api.php` (prefijo `/api/v1`): SOLO lectura del grafo y el
+  catálogo. Los endpoints de práctica viven en `routes/web.php` bajo el mismo prefijo,
+  con `auth` de sesión: el alumno es SIEMPRE `Auth::id()` — un `user_id` en el request
+  es 422 (`prohibited`). La deuda del user_id de payload está CERRADA.
+- Frontend: Inertia + React 19 (Vite 8 + Tailwind 4), páginas en `resources/js/Pages`
+  (`/practicar/{objective}`, `/recurso/{resource}`, `/progreso`), en español y aptas
+  para el iframe de Moodle (CSP frame-ancestors con los issuers registrados).
+  Los tests NUNCA compilan el frontend: `withoutVite()` + `assertInertia`.
 - Simuladores: viven FUERA de este repo (monorepo Vite/TS aparte, ver plan §4 de v1);
   aquí solo se registran como `resources` con `bundle_url` al CDN
 
@@ -122,18 +127,19 @@ modalidades y 2025-00031-A regula el Bachillerato Técnico EPJA (100 días/ciclo
    objetivo+seq) y `GET practice/mastery` + `GET practice/progress?track=`.
    **Falta**: aristas prerequisite intra-MINEDEC (hoy solo hay progresión entre
    marcos internacionales, así que el retroceso no actúa dentro de EC-MINEDEC),
-   más ítems al verificar áreas nuevas, retroalimentación gradual (issue #1),
-   y sustituir el `user_id` provisional del payload cuando llegue LTI 1.3.
+   más ítems al verificar áreas nuevas y retroalimentación gradual (issue #1).
+   El `user_id` provisional del payload ya NO existe: identidad por sesión.
 5. ~~LTI 1.3~~ **HECHO (Tool completa; pendiente de Moodle real)**: OIDC login +
    launch validado con `packbackbooks/lti-1p3-tool` v6.4 (API MessageFactory —
    la vieja LtiMessageLaunch está deprecated), provisión por (lti_iss, lti_sub),
    Deep Linking (simuladores publicados + destrezas con ítems, lineitem AGS) y
    AGS: `PushLtiScore` publica el mastery×100 en cola con backoff. Operación:
-   `lti:keys`, `lti:platform:add`, rutas `/lti/*` (grupo de middleware propio,
-   sin EncryptCookies ni CSRF: la protección es state+nonce), guía en
-   `docs/lti-moodle.md` (checklist para el Moodle del colegio).
-   **Falta**: validarlo contra un Moodle real, fusionar la sesión LTI con la
-   API de práctica (sigue el `user_id` provisional en payload) y el frontend.
+   `lti:keys`, `lti:platform:add`, rutas `/lti/*` (grupo `web` completo con
+   CSRF exceptuado solo en lti/*: la protección del protocolo es state+nonce),
+   guía en `docs/lti-moodle.md` (checklist para el Moodle del colegio).
+   El launch redirige a la app Inertia con la MISMA sesión, y la API de
+   práctica ya identifica por esa sesión (deuda del user_id CERRADA).
+   **Falta**: validarlo contra un Moodle real y mapear curso Moodle → track.
 
 ## Qué NO hacer
 
