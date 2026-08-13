@@ -163,4 +163,44 @@ cola reintente; sin AGS o sin scope de score → no-op silencioso y logueado.
 - **¿Reintentos infinitos / tormenta?** tries=5 con backoff creciente y fin;
   el fallo definitivo queda en failed_jobs para inspección manual.
 
-(La fase E cierra el informe más abajo.)
+## Fase E — Documentación operativa
+
+`docs/lti-moodle.md`: registro paso a paso en Moodle (URLs exactas, servicios
+AGS, privacidad), requisitos del despliegue (HTTPS, cache compartida, cola,
+`SESSION_SAME_SITE=none`), checklist de prueba manual para el piloto y tabla
+de síntomas→causa. `CLAUDE.md` roadmap §5 actualizado.
+
+## Qué quedó fuera (y dónde retomarlo)
+
+- **Fusión de la sesión LTI con la API de práctica**: los endpoints
+  `/api/v1/practice/*` siguen aceptando `user_id` en el payload (contrato
+  v1/v2 intacto, la misión lo exigía). La vista del launch ya enlaza con el
+  usuario de la SESIÓN; el cierre real (la API leyendo la sesión/token y
+  rechazando suplantación) llega con el frontend. Es LA deuda de seguridad
+  conocida del repo, no nueva de esta misión.
+- **NRPS** (roster del curso): la librería lo trae; no se pidió y no se usó.
+- **Re-verificación del rol docente en Deep Linking** (endurecimiento menor,
+  anotado en el oráculo de la fase C).
+- **Rotación de claves con solapamiento** (dos kids simultáneos en el JWKS
+  durante la transición): hoy `lti:keys --force` rota en seco.
+- **Multi-idioma de las vistas Blade**: mínimas y en español, como pide el
+  repo; el frontend real las reemplazará.
+
+## Qué necesita un Moodle real para validarse (no se pudo simular)
+
+- El **checklist completo de `docs/lti-moodle.md` §3**: launch desde una
+  actividad real, selección de contenido guardada por Moodle, columna de
+  calificación creada desde el lineitem del DeepLinkingResponse, y la nota
+  del alumno apareciendo en el gradebook tras practicar.
+- Los **valores reales** de issuer/client_id/deployment del Moodle del
+  colegio (aquí se usaron URLs de prueba; NO se inventaron credenciales).
+- Comportamiento de Moodle con `SESSION_SAME_SITE=none` en los navegadores
+  del colegio (Safari/iOS es el sospechoso habitual con cookies en iframe).
+
+## Estado final
+
+- Suite: **113/113 en verde** (los 80 previos a la misión intactos; 33 tests
+  LTI nuevos). Pint limpio. `composer.lock` fijado con la librería v6.4.3.
+- Commits de la rama `lti13`: fase A `428df53`, fase B `b29406b`, fase C
+  `3df7dbc`, fase D `92ffe2a`, fase E (docs+cierre, este commit).
+- Sin push, sin PR: flujo humano posterior.
