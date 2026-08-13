@@ -90,6 +90,25 @@ class AppPagesTest extends TestCase
             );
     }
 
+    public function test_practicar_avisa_cuando_la_destreza_no_tiene_items(): void
+    {
+        $sinItems = LearningObjective::create([
+            'node_id' => $this->objective->node_id, 'version_id' => $this->objective->version_id,
+            'native_code' => 'CN.F.5.1.4', 'statement' => ['es' => 'Sin ítems aún'],
+        ]);
+
+        // La página carga igual (estado vacío digno): el prop lo dice y el
+        // componente muestra el aviso en vez de un fetch roto.
+        $this->actingAs($this->ana)
+            ->get("/practicar/{$sinItems->id}")
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Practicar')
+                ->where('objective.has_items', false)
+                ->where('mastery', null)
+            );
+    }
+
     public function test_recurso_publicado_se_muestra_y_borrador_no_existe(): void
     {
         $sim = Resource::create([
