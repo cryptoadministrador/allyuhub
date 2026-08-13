@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\LearningObjective;
+use App\Models\ObjectiveMastery;
 use App\Models\PracticeAttempt;
 use App\Models\PracticeItem;
+use App\Services\Practice\MasteryTracker;
 use App\Services\Practice\PracticeEngine;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Motor de práctica: instanciación determinista y verificación en servidor.
@@ -18,7 +21,10 @@ use Illuminate\Http\Request;
  */
 class PracticeController extends Controller
 {
-    public function __construct(private readonly PracticeEngine $engine) {}
+    public function __construct(
+        private readonly PracticeEngine $engine,
+        private readonly MasteryTracker $tracker,
+    ) {}
 
     /**
      * GET /api/v1/objectives/{objective}/practice/next?user_id=…
@@ -89,16 +95,24 @@ class PracticeController extends Controller
             $item->tolerance, $item->tolerance_kind,
         );
 
-        $attempt = $item->attempts()->create([
-            'user_id' => $userId,
-            'attempt_no' => $attemptNo,
-            'seed' => $seed,
-            'params' => $params,
-            'answer' => (float) $data['answer'],
-            'expected' => $result['expected'],
-            'is_correct' => $result['is_correct'],
-            'time_ms' => $data['time_ms'] ?? null,
-        ]);
+        // Intento + actualización de mastery en la MISMA transacción:
+        // o quedan los dos, o ninguno.
+        $attempt = DB::transaction(function () use ($item, $userId, $attemptNo, $seed, $params, $data, $result) {
+            $attempt = $item->attempts()->create([
+                'user_id' => $userId,
+                'attempt_no' => $attemptNo,
+                'seed' => $seed,
+                'params' => $params,
+                'answer' => (float) $data['answer'],
+                'expected' => $result['expected'],
+                'is_correct' => $result['is_correct'],
+                'time_ms' => $data['time_ms'] ?? null,
+            ]);
+
+            $this->tracker->apply($userId, $item->objective_id, $result['is_correct'], $attempt->created_at);
+
+            return $attempt;
+        });
 
         // `expected` se revela solo DESPUÉS de responder (retroalimentación);
         // el siguiente intento trae números nuevos, así que no regala nada.
@@ -109,5 +123,32 @@ class PracticeController extends Controller
             'expected' => $result['expected'],
             'answer' => $attempt->answer,
         ], 201);
+    }
+
+    /**
+     * GET /api/v1/practice/mastery?user_id=… — estado de dominio por destreza.
+     * Orden estable: última práctica primero, con desempate por objective_id.
+     */
+    public function mastery(Request $request)
+    {
+        $data = $request->validate(['user_id' => 'required|integer|exists:users,id']);
+
+        return ObjectiveMastery::query()
+            ->where('user_id', (int) $data['user_id'])
+            ->with('objective:id,native_code,statement,version_id')
+            ->orderByDesc('last_attempt_at')
+            ->orderBy('objective_id')
+            ->get()
+            ->map(fn (ObjectiveMastery $m) => [
+                'objective_id' => $m->objective_id,
+                'native_code' => $m->objective?->native_code,
+                'statement' => $m->objective?->statement,
+                'mastery' => $m->mastery,
+                'streak' => $m->streak,
+                'attempts_count' => $m->attempts_count,
+                'is_mastered' => $m->is_mastered,
+                'mastered_at' => $m->mastered_at,
+                'last_attempt_at' => $m->last_attempt_at,
+            ]);
     }
 }
