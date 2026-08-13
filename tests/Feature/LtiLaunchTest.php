@@ -100,9 +100,9 @@ class LtiLaunchTest extends TestCase
     {
         [$state, $nonce] = $this->handshake();
 
+        // Sin custom: el launch redirige a la app (grupo web, con CSRF).
         $this->launch($state, $this->moodle->idToken(['nonce' => $nonce]))
-            ->assertOk()
-            ->assertSee('Ana Estudiante');
+            ->assertRedirect('/progreso');
 
         $this->assertDatabaseHas('users', [
             'lti_iss' => FakeLtiPlatform::ISSUER,
@@ -113,14 +113,14 @@ class LtiLaunchTest extends TestCase
 
         // Segundo launch del mismo alumno: mismo usuario, no un duplicado.
         [$state2, $nonce2] = $this->handshake();
-        $this->launch($state2, $this->moodle->idToken(['nonce' => $nonce2]))->assertOk();
+        $this->launch($state2, $this->moodle->idToken(['nonce' => $nonce2]))->assertRedirect();
         $this->assertSame(1, User::count());
     }
 
     public function test_mismo_sub_en_otro_issuer_es_otro_usuario(): void
     {
         [$state, $nonce] = $this->handshake();
-        $this->launch($state, $this->moodle->idToken(['nonce' => $nonce]))->assertOk();
+        $this->launch($state, $this->moodle->idToken(['nonce' => $nonce]))->assertRedirect();
 
         // Otra Platform con el MISMO sub (los sub de Moodle no son globales).
         $otro = new FakeLtiPlatform([
@@ -136,7 +136,7 @@ class LtiLaunchTest extends TestCase
             'nonce' => $nonce2,
             'iss' => 'https://otro-moodle.test',
             'email' => null,   // sin email: el placeholder debe ser único
-        ]))->assertOk();
+        ]))->assertRedirect();
 
         $this->assertSame(2, User::count());
     }
@@ -147,7 +147,7 @@ class LtiLaunchTest extends TestCase
         $local = User::factory()->create(['email' => 'ana@colegio.test']);
 
         [$state, $nonce] = $this->handshake();
-        $this->launch($state, $this->moodle->idToken(['nonce' => $nonce]))->assertOk();
+        $this->launch($state, $this->moodle->idToken(['nonce' => $nonce]))->assertRedirect();
 
         // No se fusionó con la cuenta local: usuario NUEVO con email placeholder.
         $this->assertSame(2, User::count());
@@ -179,7 +179,7 @@ class LtiLaunchTest extends TestCase
         [$state, $nonce] = $this->handshake();
         $token = $this->moodle->idToken(['nonce' => $nonce]);
 
-        $this->launch($state, $token)->assertOk();
+        $this->launch($state, $token)->assertRedirect();
 
         // Replay exacto del mismo id_token: el nonce ya fue consumido.
         $this->launch($state, $token)->assertForbidden();
@@ -251,23 +251,25 @@ class LtiLaunchTest extends TestCase
         ]);
 
         [$state, $nonce] = $this->handshake();
-        $response = $this->launch($state, $this->moodle->idToken([
+        $this->launch($state, $this->moodle->idToken([
             'nonce' => $nonce,
             Claim::CUSTOM => ['allyu_type' => 'objective', 'allyu_id' => $objective->id],
-        ]))->assertOk();
+        ]))->assertRedirect("/practicar/{$objective->id}");
 
-        // El enlace de práctica ya no lleva user_id: la API identifica por sesión.
-        $response->assertSee('CN.F.5.1.9')
-            ->assertSee("/api/v1/objectives/{$objective->id}/practice/next", escape: false)
-            ->assertDontSee('user_id=', escape: false);
+        // La MISMA sesión del launch abre la página de práctica (Inertia):
+        // la identidad viaja en la sesión, jamás en la URL.
+        $this->get("/practicar/{$objective->id}")
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Practicar')
+                ->where('objective.native_code', 'CN.F.5.1.9'));
     }
 
-    public function test_launch_sin_custom_muestra_la_vista_generica(): void
+    public function test_launch_sin_custom_redirige_al_progreso(): void
     {
         [$state, $nonce] = $this->handshake();
 
         $this->launch($state, $this->moodle->idToken(['nonce' => $nonce]))
-            ->assertOk()
-            ->assertSee('AllyuHub');
+            ->assertRedirect('/progreso');
     }
 }

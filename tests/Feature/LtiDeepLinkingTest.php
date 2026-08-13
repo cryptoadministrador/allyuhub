@@ -176,13 +176,13 @@ class LtiDeepLinkingTest extends TestCase
 
     public function test_responder_desde_un_launch_normal_se_rechaza(): void
     {
-        // Launch de resource link (no de deep linking).
+        // Launch de resource link (no de deep linking): redirige a la app.
         [$state, $nonce] = $this->handshake();
         $this->withCookie(LtiOidcLogin::COOKIE_PREFIX.$state, $state)
             ->post('/lti/launch', [
                 'state' => $state,
                 'id_token' => $this->moodle->idToken(['nonce' => $nonce]),
-            ])->assertOk();
+            ])->assertRedirect();
 
         $this->post('/lti/deep-link', [
             'type' => 'objective',

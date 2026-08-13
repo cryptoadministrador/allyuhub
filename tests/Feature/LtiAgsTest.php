@@ -109,7 +109,7 @@ class LtiAgsTest extends TestCase
 
         $this->withCookie(LtiOidcLogin::COOKIE_PREFIX.$q['state'], $q['state'])
             ->post('/lti/launch', ['state' => $q['state'], 'id_token' => $this->moodle->idToken($overrides)])
-            ->assertOk();
+            ->assertRedirect();   // el launch ahora aterriza en la app Inertia
 
         return User::where('lti_sub', 'moodle-user-7')->firstOrFail();
     }

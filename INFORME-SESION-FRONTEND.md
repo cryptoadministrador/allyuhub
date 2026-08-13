@@ -60,4 +60,25 @@ exigen sesión (`auth`) y el alumno es SIEMPRE `Auth::id()`. Decisiones:
   (protegido por state+nonce del protocolo); los POST de práctica están en el
   grupo web con CSRF activo (axios/Inertia envían X-XSRF-TOKEN).
 
-(Las fases B-E añaden sus secciones más abajo.)
+## Fase B — Inertia + React
+
+- `inertiajs/inertia-laravel ^3.3` + `@inertiajs/react` 2 + React 19 +
+  `@vitejs/plugin-react` sobre el Vite 8/Tailwind 4 existentes.
+- `HandleInertiaRequests` comparte lo MÍNIMO: `auth.user` = {id, nombre} —
+  jamás email/lti_sub/modelo entero — y flash. Con test que afirma la
+  ausencia de esos campos en las props.
+- **El launch LTI ya no renderiza Blade: redirige (302)** a
+  `/practicar/{objective}`, `/recurso/{resource}` o `/progreso` — rutas del
+  grupo web COMPLETO (con CSRF). `launch.blade.php` eliminada. Las Blade de
+  deep linking SE QUEDAN como Blade a propósito: son formularios de un solo
+  uso hacia Moodle (POST cross-site), sin estado de app — Inertia ahí solo
+  añadiría fricción.
+- **Iframe**: middleware `AllowLtiFrameEmbedding` emite
+  `Content-Security-Policy: frame-ancestors 'self' <issuers activos>` (jamás
+  `*`; los desactivados quedan fuera — con test). Sin `X-Frame-Options` que
+  lo contradiga. Si la tabla no existe (despliegue a medio migrar), la
+  política degrada a `'self'` a secas — nunca más permisiva, nunca un 500.
+- **Los tests jamás compilan el frontend**: `withoutVite()` en el TestCase
+  base; toda pantalla se afirma con `assertInertia` (componente + props).
+
+(Las fases C-E añaden sus secciones más abajo.)

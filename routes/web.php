@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\PracticeController;
+use App\Http\Controllers\App\PageController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -9,6 +10,13 @@ Route::get('/', function () {
 
 // Sesión caducada o acceso sin launch: la única puerta de entrada es Moodle.
 Route::view('/entrar', 'entrar')->name('entrar');
+
+// Páginas de la app (Inertia + React). La identidad es SIEMPRE la sesión.
+Route::middleware('auth')->group(function () {
+    Route::get('/practicar/{objective}', [PageController::class, 'practicar'])->name('practicar');
+    Route::get('/recurso/{resource}', [PageController::class, 'recurso'])->name('recurso');
+    Route::get('/progreso', [PageController::class, 'progreso'])->name('progreso');
+});
 
 /*
 |--------------------------------------------------------------------------

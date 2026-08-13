@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Middleware\AllowLtiFrameEmbedding;
+use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -29,6 +31,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // Sin sesión, las páginas redirigen a /entrar («vuelve desde Moodle»);
         // las peticiones JSON reciben su 401 estándar.
         $middleware->redirectGuestsTo('/entrar');
+
+        $middleware->web(append: [
+            HandleInertiaRequests::class,
+            AllowLtiFrameEmbedding::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
