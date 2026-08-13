@@ -19,8 +19,12 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Packback\Lti1p3\Claims\Claim;
+use Packback\Lti1p3\DeepLinkResources\Resource as DeepLinkResource;
 use Packback\Lti1p3\Factories\MessageFactory;
+use Packback\Lti1p3\LtiConstants;
+use Packback\Lti1p3\LtiDeepLink;
 use Packback\Lti1p3\LtiException;
+use Packback\Lti1p3\LtiLineitem;
 use Packback\Lti1p3\LtiOidcLogin;
 use Packback\Lti1p3\Messages\DeepLinkingRequest;
 use Packback\Lti1p3\OidcException;
@@ -103,10 +107,98 @@ class LtiController extends Controller
         ]]);
 
         if ($message instanceof DeepLinkingRequest) {
-            abort(501, 'Deep Linking llega en la fase C.');
+            return $this->deepLinkingSelection();
         }
 
         return $this->resourceView($body, $user);
+    }
+
+    /**
+     * POST /lti/deep-link — el docente eligió un contenido: la Tool responde
+     * con el DeepLinkingResponse JWT firmado con SU clave privada, en un
+     * formulario auto-enviado al deep_link_return_url de la Platform.
+     * Solo vale dentro de una sesión iniciada por un launch de Deep Linking.
+     */
+    public function deepLinkRespond(Request $request)
+    {
+        $data = $request->validate([
+            'type' => 'required|in:objective,resource',
+            'id' => 'required|uuid',
+        ]);
+
+        $launchId = session('lti.launch_id');
+        abort_if($launchId === null, 403, 'No hay una sesión LTI activa.');
+
+        $body = $this->cache->getLaunchData($launchId);
+        abort_if($body === null, 403, 'El launch expiró: vuelve a entrar desde Moodle.');
+        abort_if(
+            ($body[Claim::MESSAGE_TYPE] ?? null) !== LtiConstants::MESSAGE_TYPE_DEEPLINK,
+            403,
+            'Este launch no es de Deep Linking.',
+        );
+
+        $clientId = is_array($body['aud']) ? $body['aud'][0] : $body['aud'];
+        $registration = $this->db->findRegistrationByIssuer($body['iss'], $clientId);
+        abort_if($registration === null, 403, 'Platform no registrada.');
+
+        $deepLink = new LtiDeepLink(
+            $registration,
+            $body[Claim::DEPLOYMENT_ID],
+            $body[Claim::DL_DEEP_LINK_SETTINGS],
+        );
+
+        return view('lti.deep-link-response', [
+            'returnUrl' => $deepLink->returnUrl(),
+            'jwt' => $deepLink->getResponseJwt([
+                $this->contentItemFor($data['type'], $data['id'], $deepLink),
+            ]),
+        ]);
+    }
+
+    /** Vista de selección: simuladores publicados + destrezas con ítems. */
+    private function deepLinkingSelection()
+    {
+        return view('lti.deep-link', [
+            'sims' => Resource::query()->published()
+                ->whereIn('kind', ['simulation', 'lab'])
+                ->orderBy('slug')->get(),
+            'objectives' => LearningObjective::query()
+                ->whereHas('practiceItems')
+                ->orderBy('native_code')->orderBy('id')->get(),
+        ]);
+    }
+
+    /** El content item del elegido; con lineitem AGS si la Platform lo acepta. */
+    private function contentItemFor(string $type, string $id, LtiDeepLink $deepLink): DeepLinkResource
+    {
+        if ($type === 'objective') {
+            $objective = LearningObjective::query()->whereHas('practiceItems')->find($id);
+            abort_if($objective === null, 422, 'Destreza inexistente o sin ítems de práctica.');
+
+            $item = DeepLinkResource::new()
+                ->setUrl(route('lti.launch'))
+                ->setTitle($objective->native_code.' — '.Str::limit($objective->statement['es'] ?? '', 80))
+                ->setCustomParams(['allyu_type' => 'objective', 'allyu_id' => $objective->id]);
+
+            if ($deepLink->canAcceptLineitem()) {
+                // Un lineitem por destreza: la nota que AGS empujará en fase D.
+                $item->setLineItem(LtiLineitem::new()
+                    ->setScoreMaximum(100)
+                    ->setLabel($objective->native_code)
+                    ->setResourceId('objective:'.$objective->id)
+                    ->setTag('allyuhub-mastery'));
+            }
+
+            return $item;
+        }
+
+        $resource = Resource::query()->published()->find($id);
+        abort_if($resource === null, 422, 'Recurso inexistente o sin publicar.');
+
+        return DeepLinkResource::new()
+            ->setUrl(route('lti.launch'))
+            ->setTitle($resource->title['es'] ?? $resource->slug)
+            ->setCustomParams(['allyu_type' => 'resource', 'allyu_id' => $resource->id]);
     }
 
     /**

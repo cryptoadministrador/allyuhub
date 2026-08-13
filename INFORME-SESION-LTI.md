@@ -96,4 +96,36 @@ sesión para la fase D.
   NUEVO: el unique (lti_iss, lti_sub) hace ganar a uno y el otro relee
   (catch de UniqueConstraintViolation).
 
-(Las fases C-D añaden sus secciones más abajo.)
+## Fase C — Deep Linking
+
+El launch `LtiDeepLinkingRequest` aterriza en una vista de selección con
+(a) simuladores PUBLICADOS y (b) destrezas CON ítems de práctica. Al elegir,
+`POST /lti/deep-link` construye el content item (url = launch de la Tool,
+`custom.allyu_type/allyu_id` con el id interno, y lineitem AGS de 100 puntos
+si la Platform declaró `accept_lineitem`) y responde con el
+DeepLinkingResponse JWT firmado por la Tool en un formulario auto-enviado al
+`deep_link_return_url`. El test decodifica ese JWT contra el JWKS público de
+la Tool — la misma verificación que hará Moodle.
+
+### Oráculo adversarial de seguridad — fase C (pregunta → respuesta)
+
+- **¿Puedo fabricar un DeepLinkingResponse sin pasar por un launch?** No:
+  `POST /lti/deep-link` exige sesión con `lti.launch_id` vivo en cache Y que
+  ese launch cacheado sea de tipo DeepLinkingRequest. Tests: sin sesión → 403;
+  con sesión de un launch normal (resource link) → 403.
+- **¿El `data` opaco de la Platform vuelve?** Sí, obligatorio por spec: la
+  librería lo copia de los settings cacheados del launch validado (test).
+- **¿Puedo colar contenido no publicado o destrezas sin ítems?** No: el
+  content item solo se construye desde `Resource::published()` o
+  `whereHas('practiceItems')` → 422 en otro caso; la vista tampoco los lista
+  (test con borrador y destreza sin ítems).
+- **¿La firma de la respuesta es verificable?** Sí: firmada RS256 con la
+  privada de la Tool y el kid publicado en /lti/jwks; el test la decodifica
+  con ese JWKS.
+- **¿Un alumno puede deep-linkear?** Moodle solo ofrece la selección de
+  contenido a roles docentes y el DeepLinkingResponse solo lo acepta dentro
+  de la sesión DL que él mismo abrió. La Tool NO re-verifica el rol del claim
+  — anotado como endurecimiento posible (riesgo bajo: el JWT resultante solo
+  sirve en la sesión DL del docente en Moodle).
+
+(La fase D añade su sección más abajo.)

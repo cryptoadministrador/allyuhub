@@ -71,6 +71,26 @@ class FakeLtiPlatform
         return ['keys' => [array_merge($jwk, ['alg' => 'RS256', 'use' => 'sig', 'kid' => self::KID])]];
     }
 
+    /** id_token de un launch de Deep Linking (docente eligiendo contenido). */
+    public function deepLinkToken(array $overrides = []): string
+    {
+        return $this->idToken(array_merge([
+            'sub' => 'moodle-teacher-1',
+            'name' => 'Docente Pérez',
+            Claim::MESSAGE_TYPE => 'LtiDeepLinkingRequest',
+            Claim::ROLES => ['http://purl.imsglobal.org/vocab/lis/v2/membership#Instructor'],
+            Claim::RESOURCE_LINK => null,   // un DL launch no lleva resource_link
+            Claim::DL_DEEP_LINK_SETTINGS => [
+                'deep_link_return_url' => self::ISSUER.'/mod/lti/contentitem_return.php',
+                'accept_types' => ['ltiResourceLink'],
+                'accept_presentation_document_targets' => ['iframe', 'window'],
+                'accept_multiple' => false,
+                'accept_lineitem' => true,
+                'data' => 'dl-opaque-data-1',
+            ],
+        ], $overrides));
+    }
+
     /**
      * id_token firmado por la Platform (o por $signWith, p. ej. la clave del
      * atacante). Un override a null ELIMINA el claim.
