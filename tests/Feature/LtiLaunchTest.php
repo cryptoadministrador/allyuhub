@@ -54,10 +54,9 @@ class LtiLaunchTest extends TestCase
 
     private function launch(string $state, string $idToken)
     {
-        // withUnencryptedCookie: las rutas /lti/* no llevan EncryptCookies
-        // (el nombre de la cookie de state es dinámico), así que la cookie
-        // viaja en claro como lo hará desde el navegador real.
-        return $this->withUnencryptedCookie(LtiOidcLogin::COOKIE_PREFIX.$state, $state)
+        // withCookie viaja CIFRADA, como en el navegador real: las rutas
+        // /lti/* van por el grupo web completo (EncryptCookies incluido).
+        return $this->withCookie(LtiOidcLogin::COOKIE_PREFIX.$state, $state)
             ->post('/lti/launch', ['state' => $state, 'id_token' => $idToken]);
     }
 
@@ -83,8 +82,8 @@ class LtiLaunchTest extends TestCase
         $this->assertNotEmpty($query['state']);
         $this->assertNotEmpty($query['nonce']);
 
-        // La cookie de state ata el apretón a ESTE navegador.
-        $cookie = $response->getCookie(LtiOidcLogin::COOKIE_PREFIX.$query['state'], decrypt: false);
+        // La cookie de state ata el apretón a ESTE navegador (cifrada en el grupo web).
+        $cookie = $response->getCookie(LtiOidcLogin::COOKIE_PREFIX.$query['state']);
         $this->assertNotNull($cookie);
         $this->assertSame($query['state'], $cookie->getValue());
     }
@@ -101,9 +100,9 @@ class LtiLaunchTest extends TestCase
     {
         [$state, $nonce] = $this->handshake();
 
+        // Sin custom: el launch redirige a la app (grupo web, con CSRF).
         $this->launch($state, $this->moodle->idToken(['nonce' => $nonce]))
-            ->assertOk()
-            ->assertSee('Ana Estudiante');
+            ->assertRedirect('/progreso');
 
         $this->assertDatabaseHas('users', [
             'lti_iss' => FakeLtiPlatform::ISSUER,
@@ -114,14 +113,14 @@ class LtiLaunchTest extends TestCase
 
         // Segundo launch del mismo alumno: mismo usuario, no un duplicado.
         [$state2, $nonce2] = $this->handshake();
-        $this->launch($state2, $this->moodle->idToken(['nonce' => $nonce2]))->assertOk();
+        $this->launch($state2, $this->moodle->idToken(['nonce' => $nonce2]))->assertRedirect();
         $this->assertSame(1, User::count());
     }
 
     public function test_mismo_sub_en_otro_issuer_es_otro_usuario(): void
     {
         [$state, $nonce] = $this->handshake();
-        $this->launch($state, $this->moodle->idToken(['nonce' => $nonce]))->assertOk();
+        $this->launch($state, $this->moodle->idToken(['nonce' => $nonce]))->assertRedirect();
 
         // Otra Platform con el MISMO sub (los sub de Moodle no son globales).
         $otro = new FakeLtiPlatform([
@@ -137,7 +136,7 @@ class LtiLaunchTest extends TestCase
             'nonce' => $nonce2,
             'iss' => 'https://otro-moodle.test',
             'email' => null,   // sin email: el placeholder debe ser único
-        ]))->assertOk();
+        ]))->assertRedirect();
 
         $this->assertSame(2, User::count());
     }
@@ -148,7 +147,7 @@ class LtiLaunchTest extends TestCase
         $local = User::factory()->create(['email' => 'ana@colegio.test']);
 
         [$state, $nonce] = $this->handshake();
-        $this->launch($state, $this->moodle->idToken(['nonce' => $nonce]))->assertOk();
+        $this->launch($state, $this->moodle->idToken(['nonce' => $nonce]))->assertRedirect();
 
         // No se fusionó con la cuenta local: usuario NUEVO con email placeholder.
         $this->assertSame(2, User::count());
@@ -180,7 +179,7 @@ class LtiLaunchTest extends TestCase
         [$state, $nonce] = $this->handshake();
         $token = $this->moodle->idToken(['nonce' => $nonce]);
 
-        $this->launch($state, $token)->assertOk();
+        $this->launch($state, $token)->assertRedirect();
 
         // Replay exacto del mismo id_token: el nonce ya fue consumido.
         $this->launch($state, $token)->assertForbidden();
@@ -252,24 +251,25 @@ class LtiLaunchTest extends TestCase
         ]);
 
         [$state, $nonce] = $this->handshake();
-        $response = $this->launch($state, $this->moodle->idToken([
+        $this->launch($state, $this->moodle->idToken([
             'nonce' => $nonce,
             Claim::CUSTOM => ['allyu_type' => 'objective', 'allyu_id' => $objective->id],
-        ]))->assertOk();
+        ]))->assertRedirect("/practicar/{$objective->id}");
 
-        $user = User::where('lti_sub', 'moodle-user-7')->firstOrFail();
-
-        // El enlace de práctica lleva el user de la SESIÓN, no algo del payload.
-        $response->assertSee('CN.F.5.1.9')
-            ->assertSee("/api/v1/objectives/{$objective->id}/practice/next?user_id={$user->id}", escape: false);
+        // La MISMA sesión del launch abre la página de práctica (Inertia):
+        // la identidad viaja en la sesión, jamás en la URL.
+        $this->get("/practicar/{$objective->id}")
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Practicar')
+                ->where('objective.native_code', 'CN.F.5.1.9'));
     }
 
-    public function test_launch_sin_custom_muestra_la_vista_generica(): void
+    public function test_launch_sin_custom_redirige_al_progreso(): void
     {
         [$state, $nonce] = $this->handshake();
 
         $this->launch($state, $this->moodle->idToken(['nonce' => $nonce]))
-            ->assertOk()
-            ->assertSee('AllyuHub');
+            ->assertRedirect('/progreso');
     }
 }

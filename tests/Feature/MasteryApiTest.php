@@ -65,14 +65,13 @@ class MasteryApiTest extends TestCase
     /** Responde el intento en curso del ítem, bien o mal según $correct. */
     private function attempt(User $user, bool $correct): void
     {
-        $params = $this->getJson(
-            "/api/v1/objectives/{$this->objective->id}/practice/next?user_id={$user->id}"
+        $params = $this->actingAs($user)->getJson(
+            "/api/v1/objectives/{$this->objective->id}/practice/next"
         )->json('params');
 
         $expected = $params['m'] * $params['g'] * sin(deg2rad($params['theta']));
 
         $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [
-            'user_id' => $user->id,
             'answer' => $correct ? $expected : $expected + 50,
         ])->assertCreated();
     }
@@ -103,7 +102,7 @@ class MasteryApiTest extends TestCase
         $this->attempt($this->ana, true);
         $this->attempt($this->luis, false);
 
-        $res = $this->getJson("/api/v1/practice/mastery?user_id={$this->ana->id}")
+        $res = $this->actingAs($this->ana)->getJson('/api/v1/practice/mastery')
             ->assertOk()
             ->assertJsonCount(1)
             ->assertJsonPath('0.objective_id', $this->objective->id)
@@ -115,7 +114,7 @@ class MasteryApiTest extends TestCase
         $this->assertEqualsWithDelta(0.5775, $res->json('0.mastery'), 1e-4);
 
         // Luis solo ve lo suyo (streak -1 por el fallo).
-        $this->getJson("/api/v1/practice/mastery?user_id={$this->luis->id}")
+        $this->actingAs($this->luis)->getJson('/api/v1/practice/mastery')
             ->assertOk()
             ->assertJsonCount(1)
             ->assertJsonPath('0.streak', -1);
@@ -127,14 +126,13 @@ class MasteryApiTest extends TestCase
             $this->attempt($this->ana, true);
         }
 
-        $this->getJson("/api/v1/practice/mastery?user_id={$this->ana->id}")
+        $this->actingAs($this->ana)->getJson('/api/v1/practice/mastery')
             ->assertOk()
             ->assertJsonPath('0.is_mastered', true);
     }
 
-    public function test_validacion_de_user_id(): void
+    public function test_sin_sesion_no_hay_mastery(): void
     {
-        $this->getJson('/api/v1/practice/mastery')->assertStatus(422);
-        $this->getJson('/api/v1/practice/mastery?user_id=999')->assertStatus(422);
+        $this->getJson('/api/v1/practice/mastery')->assertUnauthorized();
     }
 }

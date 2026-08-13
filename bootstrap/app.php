@@ -1,11 +1,11 @@
 <?php
 
-use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
+use App\Http\Middleware\AllowLtiFrameEmbedding;
+use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
-use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Route;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -15,18 +15,26 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
         then: function () {
-            // LTI 1.3: grupo propio SIN EncryptCookies (la cookie de state
-            // lleva nombre dinámico) y sin CSRF (los POST llegan cross-site
-            // desde Moodle; la protección del protocolo es state+nonce).
-            Route::middleware('lti')
+            // LTI 1.3 en el grupo `web` COMPLETO: la sesión que nace en el
+            // launch es la MISMA (cookies cifradas) que usan las páginas de
+            // la app y la API de práctica. Única excepción: sin CSRF de
+            // Laravel (abajo) — los POST llegan cross-site desde Moodle y la
+            // protección del protocolo es state+nonce.
+            Route::middleware('web')
                 ->prefix('lti')
                 ->group(base_path('routes/lti.php'));
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->group('lti', [
-            AddQueuedCookiesToResponse::class,
-            StartSession::class,
+        $middleware->validateCsrfTokens(except: ['lti/*']);
+
+        // Sin sesión, las páginas redirigen a /entrar («vuelve desde Moodle»);
+        // las peticiones JSON reciben su 401 estándar.
+        $middleware->redirectGuestsTo('/entrar');
+
+        $middleware->web(append: [
+            HandleInertiaRequests::class,
+            AllowLtiFrameEmbedding::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

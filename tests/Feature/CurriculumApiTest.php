@@ -7,6 +7,7 @@ use App\Models\Framework;
 use App\Models\FrameworkVersion;
 use App\Models\LearningObjective;
 use App\Models\Resource;
+use App\Models\ResourceVersion;
 use App\Models\Track;
 use App\Models\TrackPhase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -127,5 +128,31 @@ class CurriculumApiTest extends TestCase
         $this->getJson('/api/v1/resources?objective=CN.F.5.1.12')
             ->assertOk()
             ->assertJsonCount(0, 'data');
+    }
+
+    /**
+     * REGRESIÓN (auditoría frontend): `show` no filtraba por estado mientras
+     * `index` sí, así que un borrador seguía siendo consultable por slug y
+     * filtraba el `bundle_url` de un simulador aún no publicado.
+     */
+    public function test_un_recurso_en_borrador_no_se_puede_consultar_por_slug(): void
+    {
+        $res = Resource::create([
+            'slug' => 'lente-delgada', 'kind' => 'lab',
+            'title' => ['es' => 'Banco óptico'], 'status' => 'published',
+        ]);
+        $v = ResourceVersion::create([
+            'resource_id' => $res->id, 'semver' => '1.0.0',
+            'bundle_url' => 'https://cdn.allyuhub.test/sims/lente/1.0.0/',
+            'published_at' => now(),
+        ]);
+        $res->update(['current_version_id' => $v->id]);
+
+        $this->getJson('/api/v1/resources/lente-delgada')->assertOk();
+
+        $res->update(['status' => 'draft']);
+        $this->getJson('/api/v1/resources/lente-delgada')
+            ->assertNotFound()
+            ->assertDontSee('cdn.allyuhub.test');
     }
 }

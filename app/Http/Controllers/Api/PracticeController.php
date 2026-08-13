@@ -19,9 +19,10 @@ use Illuminate\Support\Facades\DB;
 /**
  * Motor de práctica: instanciación determinista y verificación en servidor.
  *
- * PROVISIONAL: el alumno se identifica con `user_id` en la petición porque el
- * repo aún no tiene autenticación; cuando llegue LTI 1.3 (roadmap ítem 5) el
- * usuario saldrá del token (lti_iss + lti_sub), nunca del payload.
+ * IDENTIDAD (deuda v1 CERRADA): el alumno es SIEMPRE el usuario autenticado
+ * de la sesión (Auth::id()) — la sesión nace en el launch LTI. Un `user_id`
+ * en el request es un 422 explícito (regla `prohibited`): mejor un cliente
+ * desactualizado que grita que uno que suplanta en silencio.
  */
 class PracticeController extends Controller
 {
@@ -32,7 +33,7 @@ class PracticeController extends Controller
     ) {}
 
     /**
-     * GET /api/v1/objectives/{objective}/practice/next?user_id=…
+     * GET /api/v1/objectives/{objective}/practice/next
      *
      * Delegado en AdaptiveSelector: refuerzo de prerrequisito, avance o práctica
      * normal (`reason` lo explica). El ítem elegido se instancia con la semilla
@@ -42,8 +43,8 @@ class PracticeController extends Controller
      */
     public function next(LearningObjective $objective, Request $request)
     {
-        $data = $request->validate(['user_id' => 'required|integer|exists:users,id']);
-        $userId = (int) $data['user_id'];
+        $request->validate(['user_id' => 'prohibited']);
+        $userId = (int) $request->user()->id;
 
         $selection = $this->selector->next($objective, $userId);
         abort_if($selection === null, 404, 'El objetivo no tiene ítems de práctica');
@@ -67,7 +68,7 @@ class PracticeController extends Controller
     }
 
     /**
-     * POST /api/v1/practice/items/{item}/attempts — {user_id, answer, time_ms?}
+     * POST /api/v1/practice/items/{item}/attempts — {answer, time_ms?}
      *
      * El servidor re-deriva la semilla del intento en curso, re-instancia los
      * parámetros y evalúa la expresión de solución con tolerancia. Cualquier
@@ -76,11 +77,11 @@ class PracticeController extends Controller
     public function submitAttempt(PracticeItem $item, Request $request)
     {
         $data = $request->validate([
-            'user_id' => 'required|integer|exists:users,id',
+            'user_id' => 'prohibited',
             'answer' => 'required|numeric',
             'time_ms' => 'nullable|integer|min:0',
         ]);
-        $userId = (int) $data['user_id'];
+        $userId = (int) $request->user()->id;
 
         $attemptNo = $item->attempts()->where('user_id', $userId)->count() + 1;
         $seed = $this->engine->seedFor($item->id, $userId, $attemptNo);
@@ -104,13 +105,9 @@ class PracticeController extends Controller
 
         // Si el alumno llegó por LTI con AGS, se re-publica su mastery en el
         // gradebook de Moodle (cola con backoff; una consulta fija por intento).
-        // SOLO si la petición viene del propio dueño autenticado: mientras esta API
-        // siga aceptando user_id en el payload sin auth (deuda que cierra el frontend),
-        // publicar por user_id crudo permitiría a un anónimo corromper la nota de
-        // cualquier alumno LTI en Moodle. La nota solo sale de una sesión LTI real.
-        if (auth()->check() && (int) auth()->id() === $userId) {
-            $this->queueLtiScore($userId, $item->objective_id);
-        }
+        // $userId ES el usuario autenticado — el cinturón defensivo de la
+        // auditoría LTI sobra desde que la ruta exige auth.
+        $this->queueLtiScore($userId, $item->objective_id);
 
         // `expected` se revela solo DESPUÉS de responder (retroalimentación);
         // el siguiente intento trae números nuevos, así que no regala nada.
@@ -158,15 +155,16 @@ class PracticeController extends Controller
     }
 
     /**
-     * GET /api/v1/practice/mastery?user_id=… — estado de dominio por destreza.
+     * GET /api/v1/practice/mastery — el dominio POR DESTREZA del alumno de la
+     * sesión (no existe parámetro para pedir el de otro).
      * Orden estable: última práctica primero, con desempate por objective_id.
      */
     public function mastery(Request $request)
     {
-        $data = $request->validate(['user_id' => 'required|integer|exists:users,id']);
+        $request->validate(['user_id' => 'prohibited']);
 
         return ObjectiveMastery::query()
-            ->where('user_id', (int) $data['user_id'])
+            ->where('user_id', (int) $request->user()->id)
             ->with('objective:id,native_code,statement,version_id')
             ->orderByDesc('last_attempt_at')
             ->orderBy('objective_id')
@@ -185,15 +183,15 @@ class PracticeController extends Controller
     }
 
     /**
-     * GET /api/v1/practice/progress?user_id=…&track=… — resumen por fase del
-     * track: destrezas dominadas / en progreso / no iniciadas. Consultas
-     * acotadas (fases, enlaces y masteries en bulk): el coste no crece con el
-     * número de fases ni de destrezas.
+     * GET /api/v1/practice/progress?track=… — resumen por fase del track PARA
+     * EL ALUMNO DE LA SESIÓN: destrezas dominadas / en progreso / no iniciadas.
+     * Consultas acotadas (fases, enlaces y masteries en bulk): el coste no
+     * crece con el número de fases ni de destrezas.
      */
     public function progress(Request $request)
     {
         $data = $request->validate([
-            'user_id' => 'required|integer|exists:users,id',
+            'user_id' => 'prohibited',
             'track' => 'required|string|exists:tracks,code',
         ]);
 
@@ -205,7 +203,7 @@ class PracticeController extends Controller
             ->get(['phase_id', 'objective_id']);
 
         $masteries = ObjectiveMastery::query()
-            ->where('user_id', (int) $data['user_id'])
+            ->where('user_id', (int) $request->user()->id)
             ->whereIn('objective_id', $links->pluck('objective_id')->unique())
             ->get()
             ->keyBy('objective_id');

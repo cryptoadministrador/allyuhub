@@ -7,7 +7,6 @@ use App\Models\LearningObjective;
 use App\Models\LtiPlatform;
 use App\Models\LtiResourceLink;
 use App\Models\Resource;
-use App\Models\ResourceVersion;
 use App\Models\User;
 use App\Services\Lti\LtiCache;
 use App\Services\Lti\LtiCookie;
@@ -33,10 +32,12 @@ use Packback\Lti1p3\OidcException;
 use UnexpectedValueException;
 
 /**
- * Endpoints LTI 1.3 de la Tool. Van por el grupo de middleware `lti`
- * (sesión + cookies SIN cifrar — la cookie de state tiene nombre dinámico —
- * y sin CSRF de Laravel: el POST viene cross-site desde Moodle y la
- * protección real es state+nonce del propio protocolo).
+ * Endpoints LTI 1.3 de la Tool. Van por el grupo `web` completo (sesión y
+ * cookies cifradas, compartidas con la app Inertia) con una única excepción:
+ * sin CSRF de Laravel en lti/* — el POST viene cross-site desde Moodle y la
+ * protección real es state+nonce del propio protocolo. El launch validado
+ * REDIRIGE a la app; aquí solo queda Blade para el deep linking (un
+ * formulario de un solo uso de vuelta a Moodle).
  */
 class LtiController extends Controller
 {
@@ -114,7 +115,33 @@ class LtiController extends Controller
 
         $this->rememberAgsContext($body, $user);
 
-        return $this->resourceView($body, $user);
+        // El launch NO renderiza nada: redirige (302) a la app Inertia, que
+        // vive en el grupo web completo (con CSRF) y usa esta misma sesión.
+        return $this->redirectToContent($body);
+    }
+
+    /** A dónde aterriza el resource link: destreza, simulador o el progreso. */
+    private function redirectToContent(array $body)
+    {
+        $custom = $body[Claim::CUSTOM] ?? [];
+        $type = $custom['allyu_type'] ?? null;
+        $id = $custom['allyu_id'] ?? null;
+
+        // El claim custom lo configura el admin de Moodle (semi-confiable): si no
+        // es un UUID, PostgreSQL revienta el whereKey con «invalid input syntax
+        // for type uuid» y el launch responde 500. Se filtra antes de consultar.
+        if (! is_string($id) || ! Str::isUuid($id)) {
+            return redirect()->route('progreso');
+        }
+
+        if ($type === 'objective' && LearningObjective::whereKey($id)->exists()) {
+            return redirect()->route('practicar', $id);
+        }
+        if ($type === 'resource' && Resource::query()->published()->whereKey($id)->exists()) {
+            return redirect()->route('recurso', $id);
+        }
+
+        return redirect()->route('progreso');
     }
 
     /**
@@ -280,37 +307,5 @@ class LtiController extends Controller
                 ->where('lti_sub', $body['sub'])
                 ->firstOrFail();
         }
-    }
-
-    /** Vista mínima del resource link: destreza (con enlace a práctica) o simulador. */
-    private function resourceView(array $body, User $user)
-    {
-        $custom = $body[Claim::CUSTOM] ?? [];
-        $objective = null;
-        $resource = null;
-        $bundleUrl = null;
-        $practiceUrl = null;
-
-        if (($custom['allyu_type'] ?? null) === 'objective' && isset($custom['allyu_id'])) {
-            $objective = LearningObjective::find($custom['allyu_id']);
-            if ($objective !== null && $objective->practiceItems()->exists()) {
-                // El usuario va DE LA SESIÓN, no del payload (provisional hasta
-                // que la API de práctica se fusione con esta autenticación).
-                $practiceUrl = url("/api/v1/objectives/{$objective->id}/practice/next").'?user_id='.$user->id;
-            }
-        } elseif (($custom['allyu_type'] ?? null) === 'resource' && isset($custom['allyu_id'])) {
-            $resource = Resource::query()->published()->find($custom['allyu_id']);
-            $bundleUrl = $resource?->current_version_id
-                ? ResourceVersion::find($resource->current_version_id)?->bundle_url
-                : null;
-        }
-
-        return view('lti.launch', [
-            'user' => $user,
-            'objective' => $objective,
-            'resource' => $resource,
-            'bundleUrl' => $bundleUrl,
-            'practiceUrl' => $practiceUrl,
-        ]);
     }
 }

@@ -11,9 +11,10 @@ use Packback\Lti1p3\Interfaces\ICookie;
  * La cookie de state ata el apretón OIDC al NAVEGADOR (anti-CSRF): un launch
  * forjado desde otro navegador no la tiene y muere en validateState.
  * SameSite=None + Secure porque el POST del launch llega cross-site desde
- * Moodle (y dentro de un iframe). Las rutas /lti/* van en un grupo de
- * middleware SIN EncryptCookies: el nombre de la cookie lleva el state
- * (dinámico) y no puede excluirse del cifrado por nombre.
+ * Moodle (y dentro de un iframe). Las rutas /lti/* van en el grupo `web`
+ * completo: EncryptCookies cifra la cookie al salir y la descifra al volver
+ * (mismo grupo en ambos pasos), y la sesión del launch es la misma que usan
+ * las páginas de la app.
  */
 class LtiCookie implements ICookie
 {

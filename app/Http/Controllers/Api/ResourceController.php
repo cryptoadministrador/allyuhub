@@ -20,9 +20,13 @@ class ResourceController extends Controller
             ->paginate(24);
     }
 
-    /** GET /api/v1/resources/{slug} */
+    /** GET /api/v1/resources/{slug} — solo publicados: un borrador no existe. */
     public function show(Resource $resource)
     {
+        // Sin esto, la API filtraba el bundle_url de simuladores en borrador
+        // (index() sí filtraba; show() no). La página /recurso ya lo hacía bien.
+        abort_unless($resource->status === 'published', 404);
+
         return $resource->load([
             'currentVersion',
             'objectives:id,native_code,statement,node_id',

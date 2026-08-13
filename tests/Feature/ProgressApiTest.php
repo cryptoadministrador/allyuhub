@@ -14,8 +14,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * GET /api/v1/practice/progress?user_id=…&track=… — resumen por fase del track:
- * destrezas dominadas / en progreso / no iniciadas.
+ * GET /api/v1/practice/progress?track=… — resumen por fase del track para el
+ * alumno de la SESIÓN: destrezas dominadas / en progreso / no iniciadas.
  */
 class ProgressApiTest extends TestCase
 {
@@ -84,7 +84,7 @@ class ProgressApiTest extends TestCase
             'mastery' => 0.35, 'streak' => 1, 'attempts_count' => 1,
         ]);
 
-        $this->getJson("/api/v1/practice/progress?user_id={$this->ana->id}&track=PCEI-BI")
+        $this->actingAs($this->ana)->getJson('/api/v1/practice/progress?track=PCEI-BI')
             ->assertOk()
             ->assertJsonPath('track', 'PCEI-BI')
             ->assertJsonCount(2, 'phases')
@@ -106,7 +106,7 @@ class ProgressApiTest extends TestCase
     {
         $luis = User::factory()->create();
 
-        $this->getJson("/api/v1/practice/progress?user_id={$luis->id}&track=PCEI-BI")
+        $this->actingAs($luis)->getJson('/api/v1/practice/progress?track=PCEI-BI')
             ->assertOk()
             ->assertJsonPath('phases.0.not_started', 2)
             ->assertJsonPath('phases.1.not_started', 1)
@@ -115,9 +115,11 @@ class ProgressApiTest extends TestCase
 
     public function test_validaciones(): void
     {
-        $this->getJson('/api/v1/practice/progress?track=PCEI-BI')->assertStatus(422);
-        $this->getJson("/api/v1/practice/progress?user_id={$this->ana->id}")->assertStatus(422);
-        $this->getJson("/api/v1/practice/progress?user_id={$this->ana->id}&track=NO-EXISTE")
-            ->assertStatus(422);
+        // Sin sesión → 401 (la identidad ya no viaja en la petición).
+        $this->getJson('/api/v1/practice/progress?track=PCEI-BI')->assertUnauthorized();
+
+        $this->actingAs($this->ana);
+        $this->getJson('/api/v1/practice/progress')->assertStatus(422);   // falta track
+        $this->getJson('/api/v1/practice/progress?track=NO-EXISTE')->assertStatus(422);
     }
 }
