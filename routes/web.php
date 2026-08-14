@@ -16,6 +16,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/practicar/{objective}', [PageController::class, 'practicar'])->name('practicar');
     Route::get('/recurso/{resource}', [PageController::class, 'recurso'])->name('recurso');
     Route::get('/progreso', [PageController::class, 'progreso'])->name('progreso');
+
+    // El catálogo navegable del currículo (misión ANTY).
+    Route::get('/catalogo', [PageController::class, 'catalogo'])->name('catalogo');
+    Route::get('/catalogo/{node}', [PageController::class, 'catalogoNodo'])->name('catalogo.nodo');
+    Route::get('/destreza/{objective}', [PageController::class, 'destreza'])->name('destreza');
+    Route::get('/buscar', [PageController::class, 'buscar'])->name('buscar');
 });
 
 /*

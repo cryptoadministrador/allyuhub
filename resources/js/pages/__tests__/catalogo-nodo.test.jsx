@@ -1,0 +1,112 @@
+import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { axe } from 'vitest-axe';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import CatalogoNodo from '../catalogo-nodo';
+import { respuestaJson, violacionesGraves } from '../../test/helpers';
+
+vi.mock('@inertiajs/react', () => ({
+    Head: () => null,
+    usePage: () => ({ props: { auth: { user: { id: 1, name: 'Ana' } } } }),
+    Link: ({ href, children, ...rest }) => (
+        <a href={href} {...rest}>
+            {children}
+        </a>
+    ),
+}));
+
+const NODE = { id: 'nodo-1', node_type: 'bloque', native_code: null, title: 'Movimiento y fuerza' };
+const MIGAS = [
+    { id: 'n1', title: 'Bachillerato', node_type: 'nivel' },
+    { id: 'n2', title: 'Física', node_type: 'asignatura' },
+];
+
+const VERIFICADA = {
+    id: 'd1', native_code: 'CN.F.5.1.12',
+    statement: 'Determinar el coeficiente de rozamiento.',
+    is_verified: true, has_items: true,
+};
+const MARCADOR = {
+    id: 'd2', native_code: 'CN.F.5.9.99',
+    statement: 'Reconocer los contenidos del bloque…',
+    is_verified: false, has_items: false,
+};
+
+function props(overrides = {}) {
+    return {
+        node: NODE,
+        breadcrumbs: MIGAS,
+        children: [],
+        objectives: { data: [VERIFICADA, MARCADOR], total: 2, current_page: 1, last_page: 1, per_page: 50 },
+        ...overrides,
+    };
+}
+
+beforeEach(() => vi.unstubAllGlobals());
+
+describe('catalogo-nodo — ORÁCULO 4: honestidad del catálogo', () => {
+    it('una verificada y un marcador producen DOM DISTINTO, con el estado en texto', () => {
+        render(<CatalogoNodo {...props()} />);
+
+        // El distintivo es texto legible, no un color — y está EN la destreza
+        // correcta (una mutación que invierta la condición debe morir aquí).
+        const filaVerificada = screen.getByText('CN.F.5.1.12').closest('li');
+        const filaMarcador = screen.getByText('CN.F.5.9.99').closest('li');
+
+        expect(within(filaVerificada).getByText('Verificada con el currículo oficial')).toBeInTheDocument();
+        expect(within(filaVerificada).getByText('Con ejercicios de práctica.')).toBeInTheDocument();
+        expect(within(filaVerificada).queryByText(/provisional/i)).not.toBeInTheDocument();
+
+        expect(within(filaMarcador).getByText(/provisional: texto de relleno/i)).toBeInTheDocument();
+        expect(within(filaMarcador).getByText('Aún sin ejercicios de práctica.')).toBeInTheDocument();
+        expect(within(filaMarcador).queryByText(/verificada con el currículo/i)).not.toBeInTheDocument();
+    });
+
+    it('anuncia cuántas destrezas se muestran (aria-live)', () => {
+        render(<CatalogoNodo {...props()} />);
+
+        expect(screen.getByRole('status')).toHaveTextContent('Mostrando 2 de 2 destrezas.');
+    });
+});
+
+describe('catalogo-nodo — paginación real', () => {
+    it('«Cargar más» trae la página siguiente de la API y la añade', async () => {
+        const pagina1 = Array.from({ length: 50 }, (_, i) => ({
+            ...MARCADOR, id: `p1-${i}`, native_code: `CN.X.${i}`,
+        }));
+        const fetchMock = vi.fn().mockResolvedValueOnce(respuestaJson(200, {
+            data: [{ id: 'p2-1', native_code: 'CN.EXTRA.61', statement: { es: 'La 61' }, is_verified: false, has_items: false }],
+            current_page: 2, last_page: 2, total: 51,
+        }));
+        vi.stubGlobal('fetch', fetchMock);
+
+        const user = userEvent.setup();
+        render(<CatalogoNodo {...props({
+            objectives: { data: pagina1, total: 51, current_page: 1, last_page: 2, per_page: 50 },
+        })} />);
+
+        expect(screen.getByRole('status')).toHaveTextContent('Mostrando 50 de 51');
+
+        await user.click(screen.getByRole('button', { name: /cargar más/i }));
+
+        expect(await screen.findByText('CN.EXTRA.61')).toBeInTheDocument();
+        expect(screen.getByRole('status')).toHaveTextContent('Mostrando 51 de 51');
+        expect(fetchMock).toHaveBeenCalledWith(
+            '/api/v1/nodes/nodo-1/objectives?page=2',
+            expect.anything(),
+        );
+        // Al completar el total, el botón desaparece (enlace que no muere).
+        expect(screen.queryByRole('button', { name: /cargar más/i })).not.toBeInTheDocument();
+    });
+});
+
+describe('catalogo-nodo — accesibilidad', () => {
+    it.each([
+        ['con datos', props()],
+        ['vacío', props({ objectives: { data: [], total: 0, current_page: 1, last_page: 1, per_page: 50 } })],
+    ])('estado %s sin violaciones serias', async (_nombre, p) => {
+        const { container } = render(<CatalogoNodo {...p} />);
+
+        expect(violacionesGraves(await axe(container))).toEqual([]);
+    });
+});

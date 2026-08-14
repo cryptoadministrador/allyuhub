@@ -52,7 +52,12 @@ class CurriculumController extends Controller
 
         return LearningObjective::whereIn('node_id', $ids)
             ->with('node:id,title,node_type,path')
+            // has_items: el catálogo necesita saber qué se puede practicar
+            // (subconsulta EXISTS: cero N+1). Orden estable para paginar.
+            ->withExists('practiceItems as has_items')
             ->when($request->boolean('verified'), fn ($q) => $q->where('is_verified', true))
+            ->orderBy('native_code')
+            ->orderBy('id')
             ->paginate(50);
     }
 
@@ -63,6 +68,7 @@ class CurriculumController extends Controller
 
         return LearningObjective::search($request->query('q'))
             ->with('node:id,title,path,node_type')
+            ->withExists('practiceItems as has_items')
             ->limit(40)
             ->get();
     }
@@ -71,12 +77,12 @@ class CurriculumController extends Controller
     public function objective(LearningObjective $objective)
     {
         return $objective->load([
-            'node:id,title,path,node_type',
+            'node:id,title,path,node_type,version_id',
             'resources' => fn ($q) => $q->published()
                 ->select('resources.id', 'slug', 'kind', 'title', 'duration_min', 'status'),
         ])->setAttribute('alignments', Alignment::query()
             ->where(fn ($q) => $q->where('source_id', $objective->id)
-                                 ->orWhere('target_id', $objective->id))
+                ->orWhere('target_id', $objective->id))
             ->production()
             ->with(['source:id,native_code,version_id', 'target:id,native_code,version_id'])
             ->get());
