@@ -102,3 +102,4 @@ En un curso de prueba, con un docente y un alumno de prueba:
 | 403 «Unable to find deployment» | Deployment id nuevo: añadirlo con `--deployment=` |
 | Launch entra pero sin nota en Moodle | Falta el servicio AGS en la config de la herramienta, o el queue worker está caído (`failed_jobs`) |
 | La sesión se pierde dentro del iframe | Falta `SESSION_SAME_SITE=none` + `SESSION_SECURE_COOKIE=true` |
+| El alumno practica y la nota NO se mueve | **No es un fallo.** El motor adaptativo lo desvió a un prerrequisito (o al escalón siguiente): el ejercicio ya no es de la destreza del resource link, así que AGS no publica. La cabecera de la página muestra a qué destreza pertenece el ejercicio y un aviso ámbar («Repasemos algo anterior…»). La nota vuelve a moverse en cuanto el alumno retoma la destreza lanzada desde Moodle. |

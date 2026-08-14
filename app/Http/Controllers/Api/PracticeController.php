@@ -54,9 +54,18 @@ class PracticeController extends Controller
         $seed = $this->engine->seedFor($item->id, $userId, $attemptNo);
         $params = $this->engine->sampleParams($item->params, $seed);
 
+        // El objetivo DEVUELTO puede no ser el pedido: con las aristas de
+        // prerrequisito intra-MINEDEC el selector desvía a un refuerzo o al
+        // siguiente escalón. El cliente necesita saber a qué destreza
+        // pertenece el ítem para no rotular el ejercicio con la destreza
+        // equivocada (nada sensible: código y enunciado son públicos).
+        $shown = $selection['objective'];
+
         return response()->json([
             'item_id' => $item->id,
-            'objective_id' => $selection['objective']->id,
+            'objective_id' => $shown->id,
+            'objective_code' => $shown->native_code,
+            'objective_statement' => $shown->statement['es'] ?? null,
             'attempt_no' => $attemptNo,
             'statement' => $this->engine->renderStatement($item->statement, $params),
             'params' => $params,
@@ -120,7 +129,17 @@ class PracticeController extends Controller
         ], 201);
     }
 
-    /** Despacha el push AGS si el alumno tiene un resource link LTI para esta destreza. */
+    /**
+     * Despacha el push AGS si el alumno tiene un resource link LTI para esta destreza.
+     *
+     * DECISIÓN DELIBERADA: mientras el selector desvía al alumno a un
+     * prerrequisito (o al escalón siguiente), el ítem pertenece a OTRA destreza
+     * y esa no tiene resource link, así que la nota del gradebook de Moodle se
+     * queda quieta. Es lo correcto —la nota de «coeficiente de rozamiento» no
+     * debe subir por practicar el plano inclinado— pero desde que existen las
+     * aristas intra-MINEDEC el docente lo va a ver: un alumno trabajando sin
+     * que se mueva la nota. Está documentado en docs/lti-moodle.md.
+     */
     private function queueLtiScore(int $userId, string $objectiveId): void
     {
         $linkId = LtiResourceLink::query()

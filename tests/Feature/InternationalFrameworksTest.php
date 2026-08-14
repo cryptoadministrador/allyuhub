@@ -9,6 +9,7 @@ use App\Models\Framework;
 use App\Models\FrameworkVersion;
 use App\Models\LearningObjective;
 use Database\Seeders\CrosswalkSeeder;
+use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\InternationalFrameworksSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use RuntimeException;
@@ -228,6 +229,48 @@ class InternationalFrameworksTest extends TestCase
             ->whereIn('source_id', $dp)->whereIn('target_id', $asa)->count());
         $this->assertSame(0, Alignment::where('relation', 'prerequisite')
             ->whereIn('source_id', $asa)->whereIn('target_id', $dp)->count());
+    }
+
+    /**
+     * REGRESIÓN (auditoría): `mineduc:import` REPLICA cada destreza de un
+     * subnivel en sus tres grados (ImportMineduc::SUBNIVEL_GRADOS). El día que
+     * se importe el PDF oficial de Ciencias Naturales, `CN.4.3.5` existirá en
+     * g8, g9 y g10 y `CrosswalkSeeder::objective()` abortaría por ambigüedad
+     * (regla 2: la clave es (marco, versión, código), nunca el código solo).
+     * Este test simula esa importación sobre la semilla COMPLETA y exige que
+     * el seeder siga resembrando y que ancle en el grado correcto.
+     *
+     * Es el único test que corre el DatabaseSeeder entero a propósito: lo que
+     * se prueba es justo lo que los datos mínimos esconden.
+     */
+    public function test_el_seeder_sobrevive_a_la_replicacion_por_grado_del_importador(): void
+    {
+        $this->seed(DatabaseSeeder::class);
+
+        foreach ([['CN.4.3.5', ['g9', 'g10']], ['CN.4.3.10', ['g8', 'g9']]] as [$code, $grados]) {
+            $original = LearningObjective::where('native_code', $code)->firstOrFail();
+            foreach ($grados as $gid) {
+                $bloque = CurNode::where('node_type', 'bloque')
+                    ->where('path', 'like', '%.'.$gid.'.cn.%')->firstOrFail();
+                LearningObjective::create([
+                    'node_id' => $bloque->id, 'version_id' => $original->version_id,
+                    'native_code' => $code, 'statement' => $original->statement,
+                    'is_verified' => true,
+                ]);
+            }
+        }
+        $this->assertSame(3, LearningObjective::where('native_code', 'CN.4.3.5')->count());
+
+        $this->seed(CrosswalkSeeder::class);   // sin el prefijo de path, RuntimeException
+
+        $usada = Alignment::query()
+            ->where('relation', 'prerequisite')
+            ->whereIn('target_id', LearningObjective::where('native_code', 'CN.4.3.5')->pluck('id'))
+            ->with('target.node')->firstOrFail();
+        $this->assertStringContainsString(
+            '.g8.', $usada->target->node->path,
+            'la arista debe anclar en el grado donde el currículo introduce la destreza'
+        );
     }
 
     public function test_el_crosswalk_falla_ruidosamente_si_faltan_los_marcos(): void

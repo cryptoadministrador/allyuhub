@@ -128,16 +128,28 @@ export default function Practicar({ objective, mastery: masteryInicial }) {
     const razon = item && RAZONES[item.reason];
     const porcentaje = mastery === null || mastery === undefined ? 0 : Math.round(mastery * 100);
 
-    return (
-        <AppLayout title={`Practicar ${objective.native_code}`}>
-            <Head title={`Practicar ${objective.native_code}`} />
+    // El selector adaptativo puede DESVIAR a otra destreza (refuerzo de un
+    // prerrequisito o avance). La cabecera tiene que hablar de la destreza del
+    // ítem que se está resolviendo, no de la de la URL: si no, el alumno lee
+    // «Determinar el coeficiente de rozamiento» sobre un ejercicio de plano
+    // inclinado, y la barra de dominio (que sí sigue a item.objective_id)
+    // salta bajo una etiqueta que no le corresponde.
+    const codigo = item?.objective_code ?? objective.native_code;
+    const enunciado = item?.objective_statement ?? objective.statement;
+    const desviado = Boolean(item && item.objective_id !== objective.id);
 
-            <p className="mb-4 text-sm text-slate-600">{objective.statement}</p>
+    return (
+        <AppLayout title={`Practicar ${codigo}`}>
+            <Head title={`Practicar ${codigo}`} />
+
+            <p className="mb-4 text-sm text-slate-600">{enunciado}</p>
 
             {/* Barra de dominio: progressbar real, con texto además del color. */}
             <div className="mb-6">
                 <div className="mb-1 flex justify-between text-sm">
-                    <span id="etiqueta-dominio">Dominio de la destreza</span>
+                    <span id="etiqueta-dominio">
+                        Dominio de {desviado ? codigo : 'la destreza'}
+                    </span>
                     <span aria-hidden="true">{porcentaje} %</span>
                 </div>
                 <div

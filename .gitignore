@@ -28,3 +28,11 @@ Thumbs.db
 
 # PDFs oficiales del currículo: pesados y con copyright — se descargan localmente
 storage/curriculo/*.pdf
+
+# Documentos de trabajo que NO son el repo. El plan maestro y la arquitectura
+# viven en el proyecto Claude «e-skool» (ver CLAUDE.md); las misiones de
+# Antigravity son de un solo uso y quedan obsoletas en cuanto se mergea el PR.
+# Si se versionan, el repo empieza a tener dos fuentes de verdad divergentes.
+/goal-anty-*.md
+/allyuhub-plan-maestro.md
+/e-skool-arquitectura.md

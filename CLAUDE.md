@@ -133,9 +133,16 @@ modalidades y 2025-00031-A regula el Bachillerato Técnico EPJA (100 días/ciclo
    (retroceso/avance con aristas manual/revisadas, campo `reason` en next),
    banco de 17 ítems sobre las 8 destrezas verificadas (seeder IDEMPOTENTE por
    objetivo+seq) y `GET practice/mastery` + `GET practice/progress?track=`.
-   **Falta**: aristas prerequisite intra-MINEDEC (hoy solo hay progresión entre
-   marcos internacionales, así que el retroceso no actúa dentro de EC-MINEDEC),
-   más ítems al verificar áreas nuevas y retroalimentación gradual (issue #1).
+   La progresión de prerrequisitos DENTRO de EC-MINEDEC ya está sembrada
+   (CrosswalkSeeder, 6 aristas sobre las 8 destrezas con ítems: fuerzas → F = ma
+   → sistemas → plano inclinado → rozamiento, y lentes → aumento lateral), así
+   que el retroceso y el avance disparan de verdad en producción y no solo en
+   los tests de política (`MineducProgressionTest`). Regla que impone el motor:
+   **una arista prerequisite entre destrezas SIN ítems es decorativa** — el
+   selector la descarta y el motor vuelve a «práctica normal» en silencio.
+   **Falta**: más ítems al verificar áreas nuevas (cada área nueva del importador
+   oficial trae destrezas que hay que encadenar igual) y retroalimentación
+   gradual (issue #1).
    El `user_id` provisional del payload ya NO existe: identidad por sesión.
 5. ~~LTI 1.3~~ **HECHO (Tool completa; pendiente de Moodle real)**: OIDC login +
    launch validado con `packbackbooks/lti-1p3-tool` v6.4 (API MessageFactory —
