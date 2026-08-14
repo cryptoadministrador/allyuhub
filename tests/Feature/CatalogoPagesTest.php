@@ -159,10 +159,6 @@ class CatalogoPagesTest extends TestCase
     {
         $this->actingAs($this->ana);
 
-        $consultas = fn () => tap(0, function (&$n) {
-            // countQueries manual: DB::listen acumula en el closure.
-        });
-
         $contar = function (string $url): int {
             $n = 0;
             DB::listen(function () use (&$n) {
@@ -323,6 +319,62 @@ class CatalogoPagesTest extends TestCase
     }
 
     // ---------- /buscar ----------
+
+    /** Auditoría: una arista prerequisite REVISADA no es una «equivalencia». */
+    public function test_prerrequisito_revisado_no_se_disfraza_de_equivalencia(): void
+    {
+        Alignment::create([
+            'source_id' => $this->verificada->id, 'target_id' => $this->marcador->id,
+            'relation' => 'prerequisite', 'method' => 'manual', 'confidence' => 0.9,
+            'reviewed_by' => $this->ana->id, 'reviewed_at' => now(),   // firmada por docente
+        ]);
+
+        $this->actingAs($this->ana)->get("/destreza/{$this->verificada->id}")
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('alignments', 0)      // NO es una equivalencia entre marcos
+                ->has('prerequisites', 1)   // sigue siendo lo que es: un prerrequisito
+            );
+    }
+
+    /** Auditoría: q manipulada (array) o desmedida no revienta ni expulsa de la app. */
+    public function test_buscar_aguanta_queries_hostiles(): void
+    {
+        $this->actingAs($this->ana);
+
+        // q[] como array: 200 con el buscador vacío, jamás un 500.
+        $this->get('/buscar?q[]=rozamiento')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->component('buscar')->where('results', null));
+
+        // q de 500 caracteres: 200 con resultados nulos, jamás un redirect fuera.
+        $this->get('/buscar?q='.str_repeat('a', 500))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->component('buscar')->where('results', null));
+    }
+
+    /** Auditoría (regresión de intención del PR #10): orden NATURAL, no lexicográfico. */
+    public function test_las_destrezas_se_ordenan_naturalmente_no_lexicograficamente(): void
+    {
+        LearningObjective::create([
+            'node_id' => $this->bloque->id, 'version_id' => $this->version->id,
+            'native_code' => 'CN.F.5.1.2', 'statement' => ['es' => 'La dos'],
+        ]);
+        LearningObjective::create([
+            'node_id' => $this->bloque->id, 'version_id' => $this->version->id,
+            'native_code' => 'CN.F.5.1.10', 'statement' => ['es' => 'La diez'],
+        ]);
+
+        $data = $this->actingAs($this->ana)
+            ->get("/catalogo/{$this->bloque->id}")
+            ->inertiaPage()['props']['objectives']['data'];
+
+        $codigos = array_column($data, 'native_code');
+        $this->assertLessThan(
+            array_search('CN.F.5.1.10', $codigos),
+            array_search('CN.F.5.1.2', $codigos),
+            'CN.F.5.1.2 debe listarse ANTES que CN.F.5.1.10 (orden curricular, no de cadena)',
+        );
+    }
 
     public function test_buscar_renderiza_resultados_del_servidor(): void
     {

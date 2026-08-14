@@ -8,6 +8,13 @@ import DistintivoVerificacion from '../components/DistintivoVerificacion';
  * anterior (AbortController) y la URL siempre lleva el q (compartible).
  * Dos estados vacíos distintos: «escribe al menos 3 letras» y «sin resultados».
  */
+
+/** Recorta a 160 puntos de código (sin partir pares sustitutos) con elipsis. */
+function recortar(texto) {
+    const puntos = Array.from(texto);
+
+    return puntos.length > 160 ? puntos.slice(0, 159).join('') + '…' : texto;
+}
 export default function Buscar({ q: qInicial, results: resultadosIniciales }) {
     const [q, setQ] = useState(qInicial ?? '');
     const [resultados, setResultados] = useState(resultadosIniciales);
@@ -26,8 +33,15 @@ export default function Buscar({ q: qInicial, results: resultadosIniciales }) {
         }
 
         // La URL acompaña al tecleo: un resultado se puede compartir y recargar.
+        // OJO (auditoría): se PRESERVA window.history.state — Inertia guarda ahí
+        // su página, y pisarlo con null rompe el botón Atrás dentro del iframe.
         const url = q.trim().length > 0 ? `/buscar?q=${encodeURIComponent(q.trim())}` : '/buscar';
-        window.history.replaceState(null, '', url);
+        window.history.replaceState(window.history.state, '', url);
+
+        // Cualquier cambio de q invalida lo que esté en vuelo: sin esto, bajar
+        // de 3 letras dejaba resolverse un fetch viejo y pintaba resultados
+        // obsoletos bajo el mensaje de «escribe al menos 3 letras» (auditoría).
+        abortRef.current?.abort();
 
         if (q.trim().length < 3) {
             setResultados(null);
@@ -41,7 +55,6 @@ export default function Buscar({ q: qInicial, results: resultadosIniciales }) {
         setFallo(false);
 
         debounceRef.current = setTimeout(async () => {
-            abortRef.current?.abort();
             abortRef.current = new AbortController();
             try {
                 const r = await fetch(
@@ -63,7 +76,7 @@ export default function Buscar({ q: qInicial, results: resultadosIniciales }) {
                 setResultados(filas.map((o) => ({
                     id: o.id,
                     native_code: o.native_code,
-                    statement: (o.statement?.es ?? '').slice(0, 160),
+                    statement: recortar(o.statement?.es ?? ''),
                     is_verified: Boolean(o.is_verified),
                     has_items: Boolean(o.has_items),
                     node_title: o.node?.title?.es ?? '',
@@ -94,6 +107,7 @@ export default function Buscar({ q: qInicial, results: resultadosIniciales }) {
                         value={q}
                         onChange={(e) => setQ(e.target.value)}
                         placeholder="rozamiento, CN.F.5.1.12…"
+                        maxLength={120}
                         className="w-full max-w-md rounded border border-slate-300 px-3 py-2 focus:outline-2 focus:outline-indigo-600"
                     />
                 </label>

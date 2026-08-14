@@ -53,9 +53,14 @@ class CurriculumController extends Controller
         return LearningObjective::whereIn('node_id', $ids)
             ->with('node:id,title,node_type,path')
             // has_items: el catálogo necesita saber qué se puede practicar
-            // (subconsulta EXISTS: cero N+1). Orden estable para paginar.
+            // (subconsulta EXISTS: cero N+1). Orden CURRICULAR estable para
+            // paginar: longitud+alfabético ≈ orden natural dentro de una misma
+            // familia de códigos (CN.F.5.1.2 antes que CN.F.5.1.10) — el orden
+            // de cadena puro era la regresión de intención que el PR #10 ya
+            // corrigió en el selector. LENGTH existe en sqlite y pgsql.
             ->withExists('practiceItems as has_items')
             ->when($request->boolean('verified'), fn ($q) => $q->where('is_verified', true))
+            ->orderByRaw('LENGTH(native_code)')
             ->orderBy('native_code')
             ->orderBy('id')
             ->paginate(50);

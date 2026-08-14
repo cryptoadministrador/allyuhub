@@ -153,7 +153,10 @@ class PageController extends Controller
         $detalle = (new CurriculumController)->objective($objective);
 
         // El otro extremo de cada alineación revisada, con su marco (en bulk).
+        // Las aristas `prerequisite` NO son equivalencias entre marcos: aunque
+        // un docente las firme, se muestran solo en su sección (auditoría).
         $alignments = collect($detalle->getAttribute('alignments'))
+            ->reject(fn ($a) => $a->relation === 'prerequisite')
             ->map(fn ($a) => [
                 'relation' => $a->relation,
                 'other' => $a->source_id === $objective->id ? $a->target : $a->source,
@@ -211,10 +214,13 @@ class PageController extends Controller
      */
     public function buscar(Request $request)
     {
-        $q = trim((string) $request->query('q', ''));
+        // q hostil (array, >120 chars) no revienta ni expulsa de la app:
+        // se trata como «sin búsqueda» y la página lo explica (auditoría).
+        $crudo = $request->query('q', '');
+        $q = is_string($crudo) ? trim($crudo) : '';
 
         $results = null;
-        if (mb_strlen($q) >= 3) {
+        if (mb_strlen($q) >= 3 && mb_strlen($q) <= 120) {
             $results = (new CurriculumController)->search($request)
                 ->map(fn (LearningObjective $o) => [
                     'id' => $o->id,

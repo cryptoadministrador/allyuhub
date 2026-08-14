@@ -12,6 +12,7 @@ import Migas from '../components/Migas';
 export default function CatalogoNodo({ node, breadcrumbs, children, objectives }) {
     const [filas, setFilas] = useState(objectives.data);
     const [pagina, setPagina] = useState(objectives.current_page);
+    const [ultimaPagina, setUltimaPagina] = useState(objectives.last_page);
     const [cargando, setCargando] = useState(false);
     const [error, setError] = useState(false);
     const total = objectives.total;
@@ -26,17 +27,26 @@ export default function CatalogoNodo({ node, breadcrumbs, children, objectives }
             });
             if (!r.ok) throw new Error('respuesta no OK');
             const json = await r.json();
-            setFilas((previas) => [
-                ...previas,
-                ...json.data.map((o) => ({
-                    id: o.id,
-                    native_code: o.native_code,
-                    statement: o.statement?.es ?? '',
-                    is_verified: Boolean(o.is_verified),
-                    has_items: Boolean(o.has_items),
-                })),
-            ]);
+            setFilas((previas) => {
+                // Dedupe por id: si el total cambió entre páginas (import en
+                // caliente), el corte por offset puede repetir filas (auditoría).
+                const vistas = new Set(previas.map((p) => p.id));
+
+                return [
+                    ...previas,
+                    ...json.data
+                        .filter((o) => !vistas.has(o.id))
+                        .map((o) => ({
+                            id: o.id,
+                            native_code: o.native_code,
+                            statement: o.statement?.es ?? '',
+                            is_verified: Boolean(o.is_verified),
+                            has_items: Boolean(o.has_items),
+                        })),
+                ];
+            });
             setPagina(json.current_page);
+            setUltimaPagina(json.last_page ?? ultimaPagina);
         } catch {
             setError(true);
         } finally {
@@ -103,7 +113,10 @@ export default function CatalogoNodo({ node, breadcrumbs, children, objectives }
                     </p>
                 )}
 
-                {filas.length < total && (
+                {/* pagina < ultimaPagina: con un ?page desbordado el servidor
+                    devuelve data=[] y sin este guard el botón pediría páginas
+                    vacías para siempre (auditoría). */}
+                {filas.length < total && pagina < ultimaPagina && (
                     <button
                         type="button"
                         onClick={cargarMas}
