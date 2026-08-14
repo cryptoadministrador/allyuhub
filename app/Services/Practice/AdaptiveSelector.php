@@ -27,9 +27,12 @@ use Illuminate\Support\Collection;
  * además confidence ≥ 0.8, pensado para el crosswalk de EQUIVALENCIAS que ven
  * los docentes; aquí una arista `manual` ya es de autoría humana (progresión
  * estructural del marco, no propuesta de IA) y solo se usa para NAVEGAR, no se
- * muestra como equivalencia. Auditar esta decisión cuando existan practice_items
- * sobre marcos internacionales: hoy el retroceso/avance no dispara en producción
- * porque las aristas prerequisite son inter-marco y solo hay ítems EC-MINEDEC.
+ * muestran como equivalencias. Auditar esta decisión cuando existan practice_items
+ * sobre marcos internacionales. Desde la progresión INTERNA de EC-MINEDEC
+ * (CrosswalkSeeder, sección «DENTRO de EC-MINEDEC») el retroceso y el avance sí
+ * disparan en producción: antes todas las aristas prerequisite eran inter-marco y
+ * ningún objetivo Cambridge/IB tiene ítems, así que el motor era estructuralmente
+ * inerte. Lo vigila MineducProgressionTest sobre el grafo REAL del seeder.
  * Semántica (CrosswalkSeeder): alignment(source=A, target=B) = «para intentar A,
  * domina antes B»; retroceder = seguir targets, avanzar = seguir sources.
  *
@@ -180,11 +183,24 @@ class AdaptiveSelector
         );
         $pool = $sameFramework->isNotEmpty() ? $sameFramework : $pool;
 
-        $chosen = $pool->sort(fn ($a, $b) => [
-            (float) (($masteries[$a->id] ?? null)?->mastery ?? 0.0), $a->native_code ?? '', $a->id,
-        ] <=> [
-            (float) (($masteries[$b->id] ?? null)?->mastery ?? 0.0), $b->native_code ?? '', $b->id,
-        ])->first();
+        $chosen = $pool->sort(function ($a, $b) use ($masteries) {
+            $porMastery = (float) (($masteries[$a->id] ?? null)?->mastery ?? 0.0)
+                <=> (float) (($masteries[$b->id] ?? null)?->mastery ?? 0.0);
+            if ($porMastery !== 0) {
+                return $porMastery;
+            }
+
+            // Desempate por código en orden NATURAL, no lexicográfico. Con dos
+            // sucesores (CN.4.3.7 de 8.º y CN.4.3.10 de 10.º) el orden de
+            // cadenas pone «CN.4.3.10» antes que «CN.4.3.7» porque compara
+            // '1' < '7', y mandaba al alumno dos grados hacia adelante
+            // saltándose la destreza del suyo. En EC-MINEDEC el código es
+            // ÁREA.subnivel.bloque.n, así que el orden natural ES el orden
+            // curricular. Ver MineducProgressionTest.
+            $porCodigo = strnatcmp($a->native_code ?? '', $b->native_code ?? '');
+
+            return $porCodigo !== 0 ? $porCodigo : ($a->id <=> $b->id);
+        })->first();
 
         $pick = $this->pickItem($chosen, $userId);
         if ($pick === null) {

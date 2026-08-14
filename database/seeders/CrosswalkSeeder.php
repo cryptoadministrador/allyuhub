@@ -54,6 +54,24 @@ use RuntimeException;
  */
 class CrosswalkSeeder extends Seeder
 {
+    /**
+     * Prefijos de `path` que desambiguan una destreza MINEDEC por grado.
+     *
+     * Hoy la semilla trae cada destreza una sola vez, pero `mineduc:import`
+     * REPLICA la destreza de un subnivel en sus tres grados (ImportMineduc,
+     * SUBNIVEL_GRADOS). En cuanto se importe el PDF oficial de Ciencias
+     * Naturales, `CN.4.3.5` existiría en g8, g9 y g10 y `objective()` abortaría
+     * el seeder por ambigüedad (regla 2 de CLAUDE.md: la clave es
+     * (marco, versión, código), nunca el código solo). Se ancla desde ya el
+     * grado en el que el currículo la introduce, para que el importador no
+     * rompa nada al pasar.
+     */
+    private const GRADO_8 = 'educacion_general_basica.basica_superior.g8';
+
+    private const GRADO_10 = 'educacion_general_basica.basica_superior.g10';
+
+    private const GRADO_11 = 'bachillerato.bgu.g11';
+
     /** slug => [label_es, dominio, banda] */
     private const CONCEPTS = [
         'fuerzas-y-diagramas-de-cuerpo-libre' => ['Fuerzas y diagramas de cuerpo libre', 'fisica', 'superior'],
@@ -79,7 +97,7 @@ class CrosswalkSeeder extends Seeder
     private const CROSSWALK = [
         // CN.4.3.5 — «Explicar las fuerzas que actúan sobre los objetos e interpretar
         // sus efectos mediante diagramas y experimentación» (8.º EGB).
-        ['fuerzas-y-diagramas-de-cuerpo-libre', ['EC-MINEDEC', 'CN.4.3.5'], [
+        ['fuerzas-y-diagramas-de-cuerpo-libre', ['EC-MINEDEC', 'CN.4.3.5', self::GRADO_8], [
             [['CAIE-LSEC', '8Pf.03'], 'exact', 0.80],
             [['CAIE-IGCSE', '0625.1.5.1'], 'broader', 0.80],
             [['CAIE-ASA', '9709.4.1'], 'broader', 0.60],
@@ -89,7 +107,7 @@ class CrosswalkSeeder extends Seeder
         ]],
         // CN.4.3.7 — «Analizar las formas de energía y sus transformaciones, e inferir
         // la conservación de la energía en sistemas mecánicos sencillos» (8.º EGB).
-        ['conservacion-energia-mecanica', ['EC-MINEDEC', 'CN.4.3.7'], [
+        ['conservacion-energia-mecanica', ['EC-MINEDEC', 'CN.4.3.7', self::GRADO_8], [
             [['CAIE-LSEC', '7Pf.01'], 'narrower', 0.70],
             [['CAIE-LSEC', '9Pf.03'], 'exact', 0.85],
             [['CAIE-IGCSE', '0625.1.7.1'], 'exact', 0.85],
@@ -101,7 +119,7 @@ class CrosswalkSeeder extends Seeder
         // aceleración, y comunicar los resultados con gráficas y tablas» (10.º EGB).
         // Lower Secondary no llega a F = ma: lo más cercano es 8Pf.03, y la parte
         // experimental engancha en Thinking and Working Scientifically.
-        ['segunda-ley-de-newton', ['EC-MINEDEC', 'CN.4.3.10'], [
+        ['segunda-ley-de-newton', ['EC-MINEDEC', 'CN.4.3.10', self::GRADO_10], [
             [['CAIE-LSEC', '8Pf.03'], 'narrower', 0.60],
             [['CAIE-IGCSE', '0625.1.5.1'], 'exact', 0.80],
             [['CAIE-ASA', '9702.3.1'], 'broader', 0.80],
@@ -111,7 +129,7 @@ class CrosswalkSeeder extends Seeder
             [['IB-MYP', 'MYP.SCI.3.C.ii'], 'related', 0.55],
         ]],
         // CN.F.5.1.9 — plano inclinado y descomposición del peso (1.º BGU).
-        ['plano-inclinado', ['EC-MINEDEC', 'CN.F.5.1.9'], [
+        ['plano-inclinado', ['EC-MINEDEC', 'CN.F.5.1.9', self::GRADO_11], [
             [['CAIE-ASA', '9709.4.1'], 'exact', 0.85],
             [['CAIE-ASA', '9702.4.2'], 'exact', 0.85],
             [['IB-DP', 'DP.PHY.A.2'], 'exact', 0.80],
@@ -120,7 +138,7 @@ class CrosswalkSeeder extends Seeder
         // CN.F.5.1.12 — coeficiente de rozamiento a partir del ángulo crítico (1.º BGU).
         // Ningún marco internacional pide la DETERMINACIÓN EXPERIMENTAL de μ, así que
         // ninguna arista es 'exact': todas cubren el modelo F = μR, no el experimento.
-        ['coeficiente-de-rozamiento', ['EC-MINEDEC', 'CN.F.5.1.12'], [
+        ['coeficiente-de-rozamiento', ['EC-MINEDEC', 'CN.F.5.1.12', self::GRADO_11], [
             [['CAIE-ASA', '9709.4.1'], 'broader', 0.75],
             [['IB-DP', 'DP.PHY.A.2'], 'broader', 0.75],
             [['CAIE-ASA', '9702.3.1'], 'broader', 0.70],
@@ -128,30 +146,67 @@ class CrosswalkSeeder extends Seeder
             [['CAIE-LSEC', '8Pf.03'], 'narrower', 0.50],
         ]],
         // CN.F.5.1.4 — leyes de Newton en sistemas de cuerpos (1.º BGU).
-        ['leyes-de-newton-sistemas', ['EC-MINEDEC', 'CN.F.5.1.4'], [
+        ['leyes-de-newton-sistemas', ['EC-MINEDEC', 'CN.F.5.1.4', self::GRADO_11], [
             [['CAIE-ASA', '9709.4.4'], 'exact', 0.90],
             [['IB-DP', 'DP.PHY.A.2'], 'exact', 0.85],
             [['CAIE-ASA', '9702.3.1'], 'exact', 0.85],
             [['CAIE-IGCSE', '0625.1.5.1'], 'narrower', 0.75],
         ]],
         // CN.F.5.3.7 — formación de imágenes en lentes delgadas (1.º BGU).
-        ['optica-lentes-delgadas', ['EC-MINEDEC', 'CN.F.5.3.7'], [
+        ['optica-lentes-delgadas', ['EC-MINEDEC', 'CN.F.5.3.7', self::GRADO_11], [
             [['CAIE-IGCSE', '0625.3.2.3'], 'exact', 0.90],
             [['CAIE-LSEC', '8Ps.02'], 'narrower', 0.60],
             [['IB-DP', 'DP.PHY.C.2'], 'related', 0.55],
         ]],
         // CN.F.5.3.8 — aumento lateral. En 0625 vive DENTRO de 3.2.3 Thin lenses,
         // no en 3.2.4 (que es dispersión), así que apunta al mismo objetivo.
-        ['aumento-lateral', ['EC-MINEDEC', 'CN.F.5.3.8'], [
+        ['aumento-lateral', ['EC-MINEDEC', 'CN.F.5.3.8', self::GRADO_11], [
             [['CAIE-IGCSE', '0625.3.2.3'], 'broader', 0.85],
         ]],
     ];
 
     /**
-     * Progresión: [source, target_prerrequisito, concepto|null].
+     * Progresión: [source, target_prerrequisito, concepto|null, confianza?].
      * Se lee «para intentar SOURCE hay que dominar antes TARGET».
+     * La confianza es documental (el AdaptiveSelector no la filtra en aristas
+     * `manual`); sirve para que la revisión docente sepa dónde mirar primero.
      */
     private const PREREQUISITES = [
+        // ---------------------------------------------------------------
+        // DENTRO de EC-MINEDEC. Son las ÚNICAS que hoy hacen que el motor
+        // adaptativo actúe de verdad: el retroceso y el avance exigen que el
+        // candidato tenga practice_items, y todos los ítems del banco cuelgan
+        // de estas 8 destrezas verificadas. Las aristas inter-marco de abajo
+        // son correctas pero inertes hasta que existan ítems Cambridge/IB.
+        //
+        // La cadena sigue el orden del propio currículo (Acuerdo 2016-00020-A):
+        // 8.º EGB fuerzas → 10.º EGB F = ma → 1.º BGU sistemas → plano
+        // inclinado → rozamiento; y en óptica, lentes → aumento lateral.
+        // ---------------------------------------------------------------
+        // Conservación de la energía: se infiere sobre sistemas mecánicos, y
+        // para eso hay que saber ya qué fuerzas actúan. Es la arista más débil
+        // de las seis —mismo grado, mismo bloque, misma unidad: es orden de
+        // secuencia, no dependencia— y la primera que un docente debería
+        // discutir. Esa reserva va AQUÍ, en el comentario, y no bajando la
+        // confianza: `confidence` es el umbral de producción (regla 5, ≥ 0.8),
+        // así que un 0.75 la dejaría fuera del crosswalk revisado PARA SIEMPRE
+        // mientras el AdaptiveSelector la navegaría igual por ser `manual`.
+        [['EC-MINEDEC', 'CN.4.3.7', self::GRADO_8], ['EC-MINEDEC', 'CN.4.3.5', self::GRADO_8], 'conservacion-energia-mecanica', 0.80],
+        // F = ma (10.º) sobre el diagrama de fuerzas (8.º): sin identificar la
+        // fuerza neta no hay relación fuerza-masa-aceleración que indagar.
+        [['EC-MINEDEC', 'CN.4.3.10', self::GRADO_10], ['EC-MINEDEC', 'CN.4.3.5', self::GRADO_8], 'segunda-ley-de-newton'],
+        // Leyes de Newton en sistemas de cuerpos (1.º BGU) sobre la segunda ley
+        // ya establecida experimentalmente en 10.º.
+        [['EC-MINEDEC', 'CN.F.5.1.4', self::GRADO_11], ['EC-MINEDEC', 'CN.4.3.10', self::GRADO_10], 'leyes-de-newton-sistemas'],
+        // El plano inclinado es el caso particular con el que el currículo
+        // aterriza las leyes de Newton: primero el marco general, luego el caso.
+        [['EC-MINEDEC', 'CN.F.5.1.9', self::GRADO_11], ['EC-MINEDEC', 'CN.F.5.1.4', self::GRADO_11], 'plano-inclinado'],
+        // μ se determina por el ÁNGULO CRÍTICO, es decir, sobre un plano
+        // inclinado: sin descomponer el peso no hay experimento que montar.
+        [['EC-MINEDEC', 'CN.F.5.1.12', self::GRADO_11], ['EC-MINEDEC', 'CN.F.5.1.9', self::GRADO_11], 'coeficiente-de-rozamiento'],
+        // El aumento lateral se calcula con la posición de la imagen que da la
+        // ecuación de las lentes delgadas: es literalmente el paso siguiente.
+        [['EC-MINEDEC', 'CN.F.5.3.8', self::GRADO_11], ['EC-MINEDEC', 'CN.F.5.3.7', self::GRADO_11], 'aumento-lateral'],
         // Física: fuerzas y segunda ley.
         [['CAIE-IGCSE', '0625.1.5.1'], ['CAIE-LSEC', '8Pf.03'], 'fuerzas-y-diagramas-de-cuerpo-libre'],
         [['CAIE-ASA', '9702.3.1'], ['CAIE-IGCSE', '0625.1.5.1'], 'segunda-ley-de-newton'],
@@ -225,7 +280,8 @@ class CrosswalkSeeder extends Seeder
                 }
             }
 
-            foreach (self::PREREQUISITES as [$source, $target, $slug]) {
+            foreach (self::PREREQUISITES as $edge) {
+                [$source, $target, $slug] = $edge;
                 Alignment::updateOrCreate(
                     [
                         'source_id' => $this->objective($source),
@@ -234,7 +290,7 @@ class CrosswalkSeeder extends Seeder
                     ],
                     [
                         'concept_id' => $slug ? $concepts[$slug] : null,
-                        'confidence' => 0.90,
+                        'confidence' => $edge[3] ?? 0.90,
                         'method' => 'manual',
                     ],
                 );
@@ -282,11 +338,18 @@ class CrosswalkSeeder extends Seeder
             );
         }
 
-        if (isset($ref[2])) {
-            $candidates = array_values(array_filter(
+        // El prefijo de path DESAMBIGUA; no filtra. Si solo hay un candidato se
+        // usa tal cual aunque el path no case: los tests siembran las anclas en
+        // un nodo sintético, y la semilla actual todavía no replica por grado.
+        // Solo cuando el importador oficial crea varias copias entra en juego.
+        if (isset($ref[2]) && count($candidates) > 1) {
+            $filtered = array_values(array_filter(
                 $candidates,
                 fn ($c) => str_starts_with($c->path, $ref[2]),
             ));
+            if ($filtered !== []) {
+                $candidates = $filtered;
+            }
         }
 
         if (count($candidates) > 1) {
