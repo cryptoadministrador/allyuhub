@@ -1,6 +1,7 @@
 import { Head } from '@inertiajs/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import AppLayout from '../layouts/AppLayout';
+import { RAZONES_DESVIO } from '../lib/razones';
 
 /**
  * El bucle de práctica: pide el siguiente ítem a la API (misma sesión),
@@ -10,16 +11,9 @@ import AppLayout from '../layouts/AppLayout';
  * revela `expected` DESPUÉS de responder.
  */
 
-const RAZONES = {
-    'refuerzo de prerrequisito': {
-        icono: '↩',
-        texto: 'Repasemos algo anterior: dominar esta destreza te destrabará la que estabas practicando.',
-    },
-    avance: {
-        icono: '↗',
-        texto: '¡A por lo siguiente! Ya dominas esta destreza, así que subimos un escalón.',
-    },
-};
+// Los textos viven en lib/razones.js: los comparte con /inicio para que el
+// alumno no lea dos explicaciones distintas de la misma decisión del motor.
+const RAZONES = RAZONES_DESVIO;
 
 function tokenXsrf() {
     const par = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/);

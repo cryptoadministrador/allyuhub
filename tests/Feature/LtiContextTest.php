@@ -67,7 +67,7 @@ class LtiContextTest extends TestCase
 
     public function test_el_launch_persiste_contexto_y_membership_de_learner(): void
     {
-        $this->launch([Claim::CONTEXT => self::CONTEXT_101])->assertRedirect('/progreso');
+        $this->launch([Claim::CONTEXT => self::CONTEXT_101])->assertRedirect('/inicio');
 
         $this->assertDatabaseHas('lti_contexts', [
             'platform_id' => $this->moodle->platform->id,
@@ -176,7 +176,7 @@ class LtiContextTest extends TestCase
         $this->launch([
             Claim::CONTEXT => self::CONTEXT_101,
             Claim::ROLES => [],
-        ])->assertRedirect('/progreso');
+        ])->assertRedirect('/inicio');
         $this->assertDatabaseHas('lti_context_memberships', ['role' => 'learner']);
 
         LtiContextMembership::query()->delete();
@@ -186,7 +186,7 @@ class LtiContextTest extends TestCase
         $this->launch([
             Claim::CONTEXT => self::CONTEXT_101,
             Claim::ROLES => ['basura-total', 'TeachingAssistant'],
-        ])->assertRedirect('/progreso');
+        ])->assertRedirect('/inicio');
         $this->assertDatabaseHas('lti_context_memberships', ['role' => 'learner']);
     }
 
@@ -196,7 +196,7 @@ class LtiContextTest extends TestCase
         $this->launch([
             Claim::CONTEXT => self::CONTEXT_101,
             Claim::ROLES => ['http://purl.imsglobal.org/vocab/lis/v2/system/person#Administrator'],
-        ])->assertRedirect('/progreso');
+        ])->assertRedirect('/inicio');
 
         $this->assertDatabaseHas('lti_context_memberships', ['role' => 'learner']);
     }
@@ -245,7 +245,7 @@ class LtiContextTest extends TestCase
 
     public function test_un_launch_sin_contexto_no_rompe_ni_persiste(): void
     {
-        $this->launch()->assertRedirect('/progreso');   // el idToken base no lleva context
+        $this->launch()->assertRedirect('/inicio');   // el idToken base no lleva context
 
         $this->assertSame(0, LtiContext::count());
         $this->assertSame(0, LtiContextMembership::count());
@@ -277,7 +277,7 @@ class LtiContextTest extends TestCase
             ]);
         });
 
-        $this->launch([Claim::CONTEXT => self::CONTEXT_101])->assertRedirect('/progreso');
+        $this->launch([Claim::CONTEXT => self::CONTEXT_101])->assertRedirect('/inicio');
 
         LtiContext::flushEventListeners();
 
@@ -303,7 +303,7 @@ class LtiContextTest extends TestCase
         $this->launch([
             Claim::CONTEXT => self::CONTEXT_101,
             Claim::ROLES => ['http://evil.example/x/membership#Instructor-falsificado'],
-        ])->assertRedirect('/progreso');
+        ])->assertRedirect('/inicio');
 
         $this->assertDatabaseHas('lti_context_memberships', ['role' => 'learner']);
     }

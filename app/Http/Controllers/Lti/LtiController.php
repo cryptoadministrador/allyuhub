@@ -235,7 +235,7 @@ class LtiController extends Controller
         // es un UUID, PostgreSQL revienta el whereKey con «invalid input syntax
         // for type uuid» y el launch responde 500. Se filtra antes de consultar.
         if (! is_string($id) || ! Str::isUuid($id)) {
-            return redirect()->route('progreso');
+            return redirect()->route('inicio');
         }
 
         if ($type === 'objective' && LearningObjective::whereKey($id)->exists()) {
@@ -245,7 +245,7 @@ class LtiController extends Controller
             return redirect()->route('recurso', $id);
         }
 
-        return redirect()->route('progreso');
+        return redirect()->route('inicio');
     }
 
     /**
