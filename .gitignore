@@ -13,6 +13,7 @@
 /.vscode
 /.zed
 /auth.json
+/coverage
 /node_modules
 /public/build
 /public/fonts-manifest.dev.json
@@ -36,3 +37,6 @@ storage/curriculo/*.pdf
 /goal-anty-*.md
 /allyuhub-plan-maestro.md
 /e-skool-arquitectura.md
+
+# Informe HTML de cobertura de Vitest: artefacto de build, se regenera con
+# `npm run test:js -- --coverage`. Son ~25 ficheros que ensucian cada diff.

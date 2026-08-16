@@ -17,9 +17,18 @@ function recortar(texto) {
 }
 export default function Buscar({ q: qInicial, results: resultadosIniciales }) {
     const [q, setQ] = useState(qInicial ?? '');
-    const [resultados, setResultados] = useState(resultadosIniciales);
+    // Los resultados viajan CON la consulta que los produjo. Sin esto, al
+    // abortar una petición el `finally` apagaba «Buscando…» y la región viva
+    // leía el recuento anterior junto a la q nueva: «3 resultados para
+    // «rozami»» cuando los 3 eran de «roza» (auditoría).
+    const [resultados, setResultados] = useState(
+        resultadosIniciales === null || resultadosIniciales === undefined
+            ? null
+            : { q: (qInicial ?? '').trim(), filas: resultadosIniciales },
+    );
     const [buscando, setBuscando] = useState(false);
     const [fallo, setFallo] = useState(false);
+    const [rechazada, setRechazada] = useState(false);
     const abortRef = useRef(null);
     const debounceRef = useRef(null);
     const primeraCarga = useRef(true);
@@ -36,12 +45,24 @@ export default function Buscar({ q: qInicial, results: resultadosIniciales }) {
         // OJO (auditoría): se PRESERVA window.history.state — Inertia guarda ahí
         // su página, y pisarlo con null rompe el botón Atrás dentro del iframe.
         const url = q.trim().length > 0 ? `/buscar?q=${encodeURIComponent(q.trim())}` : '/buscar';
-        window.history.replaceState(window.history.state, '', url);
+        const estado = window.history.state;
+        window.history.replaceState(
+            // Y dentro del estado, la url de la PÁGINA de Inertia: si solo se
+            // cambia la barra de direcciones, al volver con Atrás/Adelante
+            // Inertia restaura page.url = '/buscar' y el q se pierde.
+            estado?.page && typeof estado.page === 'object'
+                ? { ...estado, page: { ...estado.page, url } }
+                : estado,
+            '',
+            url,
+        );
 
         // Cualquier cambio de q invalida lo que esté en vuelo: sin esto, bajar
         // de 3 letras dejaba resolverse un fetch viejo y pintaba resultados
         // obsoletos bajo el mensaje de «escribe al menos 3 letras» (auditoría).
         abortRef.current?.abort();
+
+        setRechazada(false);
 
         if (q.trim().length < 3) {
             setResultados(null);
@@ -53,6 +74,8 @@ export default function Buscar({ q: qInicial, results: resultadosIniciales }) {
         clearTimeout(debounceRef.current);
         setBuscando(true);
         setFallo(false);
+
+        const consulta = q.trim();
 
         debounceRef.current = setTimeout(async () => {
             abortRef.current = new AbortController();
@@ -66,25 +89,34 @@ export default function Buscar({ q: qInicial, results: resultadosIniciales }) {
                     },
                 );
                 if (r.status === 422) {
-                    // Por debajo del mínimo: es un mensaje, no un error.
+                    // El servidor rechaza la consulta (menos de 3 caracteres o
+                    // más de 120). El maxLength del input evita lo segundo al
+                    // teclear, pero no al pegar ni al llegar por URL, y
+                    // enmudecer deja al alumno mirando su texto sin explicación.
                     setResultados(null);
+                    setRechazada(true);
 
                     return;
                 }
+                setRechazada(false);
                 if (!r.ok) throw new Error('respuesta no OK');
                 const filas = await r.json();
-                setResultados(filas.map((o) => ({
+                setResultados({ q: consulta, filas: filas.map((o) => ({
                     id: o.id,
                     native_code: o.native_code,
                     statement: recortar(o.statement?.es ?? ''),
                     is_verified: Boolean(o.is_verified),
                     has_items: Boolean(o.has_items),
                     node_title: o.node?.title?.es ?? '',
-                })));
+                })) });
             } catch (e) {
-                if (e.name !== 'AbortError') setFallo(true);
+                if (e.name === 'AbortError') return;   // otra consulta tomó el relevo
+                setFallo(true);
             } finally {
-                setBuscando(false);
+                // Solo apaga «Buscando…» si sigue siendo ESTA la consulta viva:
+                // al abortar, el finally del fetch muerto llegaba después del
+                // setBuscando(true) del efecto nuevo y descubría el recuento viejo.
+                if (abortRef.current?.signal.aborted !== true) setBuscando(false);
             }
         }, 300);
 
@@ -92,6 +124,8 @@ export default function Buscar({ q: qInicial, results: resultadosIniciales }) {
     }, [q]);
 
     const corto = q.trim().length > 0 && q.trim().length < 3;
+    const largo = q.trim().length > 120;
+    const filas = resultados === null ? null : resultados.filas;
 
     return (
         <AppLayout title="Buscar destrezas">
@@ -117,8 +151,12 @@ export default function Buscar({ q: qInicial, results: resultadosIniciales }) {
             <p role="status" aria-live="polite" className="mb-4 text-sm text-slate-600">
                 {buscando && 'Buscando…'}
                 {!buscando && corto && 'Escribe al menos 3 letras para buscar.'}
-                {!buscando && !corto && resultados !== null
-                    && `${resultados.length} resultado${resultados.length === 1 ? '' : 's'} para «${q.trim()}».`}
+                {!buscando && largo && 'La búsqueda admite hasta 120 caracteres: acorta el texto.'}
+                {!buscando && rechazada && !corto && !largo
+                    && 'La búsqueda no admite ese texto: prueba con una palabra del enunciado.'}
+                {/* El recuento SOLO se anuncia si es el de la consulta actual. */}
+                {!buscando && !corto && !largo && filas !== null && resultados.q === q.trim()
+                    && `${filas.length} resultado${filas.length === 1 ? '' : 's'} para «${q.trim()}».`}
             </p>
 
             {fallo && (
@@ -127,16 +165,16 @@ export default function Buscar({ q: qInicial, results: resultadosIniciales }) {
                 </p>
             )}
 
-            {resultados !== null && resultados.length === 0 && !buscando && (
+            {filas !== null && filas.length === 0 && !buscando && (
                 <p className="text-slate-600">
                     Sin resultados. Prueba con otra palabra del enunciado o con el código de la
                     destreza.
                 </p>
             )}
 
-            {resultados !== null && resultados.length > 0 && (
+            {filas !== null && filas.length > 0 && (
                 <ul className="space-y-3">
-                    {resultados.map((destreza) => (
+                    {filas.map((destreza) => (
                         <li key={destreza.id} className="rounded border border-slate-200 p-3">
                             <p>
                                 <Link href={`/destreza/${destreza.id}`} className="font-medium underline">

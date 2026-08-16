@@ -90,6 +90,68 @@ class CatalogoPagesTest extends TestCase
         ]);
     }
 
+    /**
+     * REGRESIÓN (auditoría): solo `/catalogo` tenía oráculo de sesión, y estaba
+     * escondido dentro de un test que se llama «…monta el árbol hasta grado».
+     * Se podían sacar `/catalogo/{node}`, `/destreza/{id}` y `/buscar` del grupo
+     * `auth` y las 154 pruebas seguían verdes. Aquí van TODAS las páginas de la
+     * app, para que abrir cualquiera al mundo se ponga rojo.
+     */
+    public function test_toda_pagina_de_la_app_exige_sesion(): void
+    {
+        $recurso = Resource::create([
+            'slug' => 'sim', 'kind' => 'lab', 'title' => ['es' => 'Sim'], 'status' => 'published',
+        ]);
+
+        foreach ([
+            '/catalogo',
+            "/catalogo/{$this->grado->id}",
+            "/destreza/{$this->verificada->id}",
+            '/buscar',
+            '/buscar?q=rozamiento',
+            '/progreso',
+            "/recurso/{$recurso->id}",
+            "/practicar/{$this->verificada->id}",
+        ] as $url) {
+            $this->get($url)->assertRedirect('/entrar', "{$url} no exige sesión");
+        }
+    }
+
+    /**
+     * REGRESIÓN (auditoría): el filtro «manual o revisada» de los prerrequisitos
+     * —la misma política que navega el AdaptiveSelector— se podía borrar entero
+     * sin un solo test rojo, porque todos los fixtures creaban aristas
+     * `manual`. La primera tanda de prerrequisitos propuestos por IA habría
+     * aparecido en la ficha del alumno como hecho consumado, saltándose la
+     * regla 5.
+     */
+    public function test_un_prerrequisito_propuesto_por_ia_sin_revisar_no_se_muestra(): void
+    {
+        $previa = LearningObjective::create([
+            'node_id' => $this->bloque->id, 'version_id' => $this->version->id,
+            'native_code' => 'CN.F.5.1.9', 'statement' => ['es' => 'Plano inclinado'],
+            'is_verified' => true,
+        ]);
+        $propuesta = Alignment::create([
+            'source_id' => $this->verificada->id, 'target_id' => $previa->id,
+            'relation' => 'prerequisite', 'method' => 'llm-assisted', 'confidence' => 0.95,
+        ]);
+
+        $this->actingAs($this->ana)->get("/destreza/{$this->verificada->id}")
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->has('prerequisites', 0));
+
+        // Firmada por un docente, sí entra.
+        $propuesta->update(['reviewed_at' => now(), 'reviewed_by' => $this->ana->id]);
+
+        $this->actingAs($this->ana)->get("/destreza/{$this->verificada->id}")
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('prerequisites', 1)
+                ->where('prerequisites.0.native_code', 'CN.F.5.1.9')
+            );
+    }
+
     // ---------- /catalogo ----------
 
     public function test_catalogo_exige_sesion_y_monta_el_arbol_hasta_grado(): void

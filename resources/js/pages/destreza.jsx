@@ -46,12 +46,22 @@ export default function Destreza({ objective, breadcrumbs, resources, alignments
                     </Link>
                 ) : (
                     <>
-                        {/* Un botón que lleva a un 404 es peor que un botón ausente. */}
+                        {/*
+                          * Un botón que lleva a un 404 es peor que un botón ausente.
+                          * Y `disabled` a secas es peor todavía: un botón nativo
+                          * deshabilitado NO es enfocable, así que quien navega con
+                          * teclado o lector de pantalla nunca aterriza en él y nunca
+                          * oye el aria-describedby que explica por qué. Como esta es
+                          * LA interacción de la ficha en 1001 de las 1010 destrezas,
+                          * se usa aria-disabled: sigue en el orden de tabulación y
+                          * anuncia «no disponible» junto a su explicación (auditoría).
+                          */}
                         <button
                             type="button"
-                            disabled
+                            aria-disabled="true"
+                            onClick={(e) => e.preventDefault()}
                             aria-describedby="sin-ejercicios"
-                            className="rounded bg-slate-300 px-4 py-2 font-medium text-slate-600"
+                            className="cursor-not-allowed rounded bg-slate-300 px-4 py-2 font-medium text-slate-600 focus:outline-2 focus:outline-offset-2 focus:outline-indigo-600"
                         >
                             Practicar esta destreza
                         </button>

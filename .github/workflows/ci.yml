@@ -37,6 +37,18 @@ jobs:
       # Que un JSX roto tumbe el CI es la mitad del valor de este job.
       - name: Build frontend
         run: npm run build
+      # El glob de páginas llegó a arrastrar los __tests__ al bundle de
+      # producción: 333 KB -> 861 KB con testing-library y axe dentro, y
+      # `vite build` salía con código 0. Ni Vitest ni el build lo detectan,
+      # así que el guardián va aquí.
+      - name: El bundle no puede contener las herramientas de prueba
+        run: |
+          if grep -rlq "testing-library\|axe-core\|vitest" public/build/assets/*.js; then
+            echo "El bundle contiene código de pruebas: revisa el glob de app.jsx"; exit 1
+          fi
+          bytes=$(stat -c%s public/build/assets/app-*.js)
+          echo "bundle: $bytes bytes"
+          test "$bytes" -lt 450000
 
   postgres:
     name: Migraciones + seed (PostgreSQL 16 + ltree)
@@ -68,9 +80,26 @@ jobs:
           sed -i 's/^DB_CONNECTION=.*/DB_CONNECTION=pgsql/' .env
           echo -e "DB_HOST=127.0.0.1\nDB_PORT=5432\nDB_DATABASE=allyuhub\nDB_USERNAME=allyu\nDB_PASSWORD=allyu" >> .env
       - name: Create extensions
-        run: PGPASSWORD=allyu psql -h 127.0.0.1 -U allyu -d allyuhub -c "CREATE EXTENSION IF NOT EXISTS ltree; CREATE EXTENSION IF NOT EXISTS pg_trgm;"
+        run: |
+          PGPASSWORD=allyu psql -h 127.0.0.1 -U allyu -d allyuhub -c "CREATE EXTENSION IF NOT EXISTS ltree; CREATE EXTENSION IF NOT EXISTS pg_trgm;"
+          PGPASSWORD=allyu createdb -h 127.0.0.1 -U allyu allyuhub_test
+          PGPASSWORD=allyu psql -h 127.0.0.1 -U allyu -d allyuhub_test -c "CREATE EXTENSION IF NOT EXISTS ltree; CREATE EXTENSION IF NOT EXISTS pg_trgm;"
       - name: Migrate + seed (el grafo completo contra pgsql real)
         run: php artisan migrate --seed --force
+      # `migrate --seed` valida el ESQUEMA, no el COMPORTAMIENTO. Sin este
+      # paso, un desajuste de tipos entre columnas (alignments.reviewed_by uuid
+      # contra users.id bigint) pasaba los 154 tests en SQLite —que no tipa— y
+      # solo reventaba en producción. La suite entera tiene que correr contra
+      # la base de datos real.
+      - name: Suite completa contra PostgreSQL
+        run: php artisan test
+        env:
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_DATABASE: allyuhub_test
+          DB_USERNAME: allyu
+          DB_PASSWORD: allyu
       - name: Smoke test de la API
         run: |
           php artisan serve --port=8080 &
