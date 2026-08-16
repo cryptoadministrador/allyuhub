@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\BlueprintController;
 use App\Http\Controllers\Api\CurriculumController;
 use App\Http\Controllers\Api\ResourceController;
 use App\Http\Controllers\Api\TrackController;
@@ -18,6 +19,8 @@ Route::prefix('v1')->group(function () {
     Route::get('frameworks/{code}/tree', [CurriculumController::class, 'tree']);
     Route::get('nodes/{node}', [CurriculumController::class, 'node']);
     Route::get('nodes/{node}/objectives', [CurriculumController::class, 'nodeObjectives']);
+    // Blueprint del curso para el compilador de cursos-moodle (e-learnium).
+    Route::get('nodes/{node}/blueprint', [BlueprintController::class, 'show']);
     Route::get('objectives/search', [CurriculumController::class, 'search']);
     Route::get('objectives/{objective}', [CurriculumController::class, 'objective']);
 

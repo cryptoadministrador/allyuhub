@@ -168,11 +168,27 @@ modalidades y 2025-00031-A regula el Bachillerato Técnico EPJA (100 días/ciclo
    El launch redirige a la app Inertia con la MISMA sesión, y la API de
    práctica ya identifica por esa sesión (deuda del user_id CERRADA).
    **Falta**: validarlo contra un Moodle real y mapear curso Moodle → track.
+6. ~~Puente con el pipeline de cursos Moodle (e-learnium)~~ **HECHO (blueprint)**:
+   `App\Services\Blueprint\*` + `php artisan curso:blueprint <nodo> --grado= --track= --out=`
+   y `GET /api/v1/nodes/{node}/blueprint`. Exporta el contrato
+   `allyuhub/curso-blueprint@1` (`curso.yaml` + esqueleto de `COBERTURA.md`) para
+   que el repo `cursos-moodle` NO copie las DCD a mano: unidades desde los
+   bloques, orden curricular, prerrequisitos con el mismo criterio que el motor
+   (manual o revisada), `practica_url` por destreza practicable, `peso`/`fase`
+   si se pasa `--track`, `idnumber` estable `AH-<codigo>-<grado>` (la clave de
+   enlace con EduPlat) y `fingerprint` que solo se mueve si cambia el currículo.
+   Contrato y reglas en `docs/cursos-moodle.md`. El YAML se emite a mano
+   (todo escalar por `json_encode`, que es YAML 1.2 válido) y el test lo
+   reparsea con symfony/yaml (dev) como oráculo.
+   **Falta**: del lado de e-learnium, que el compilador consuma `curso.yaml`.
 
 ## Qué NO hacer
 
 - No añadir un chat-tutor IA antes de que el motor de práctica exista e instrumente datos.
 - No editar el grafo por API ni por Tinker en producción: todo entra por importadores.
 - No usar el email como identidad de usuario LTI (usa `lti_iss` + `lti_sub` de `users`).
+- No copiar destrezas a mano en el repo de cursos Moodle: se generan con
+  `curso:blueprint` (el grafo es la verdad). Y AllyuHub no escribe en Moodle:
+  eso es del compilador, con sandbox y human gate.
 - No usar matter.js en los simuladores (abandonado): integrador ODE propio o Rapier
   `-deterministic`. Nunca `Math.random()` en simuladores.
