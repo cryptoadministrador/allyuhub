@@ -58,10 +58,15 @@ echo '== 7/7 · Fachada nginx del host + certificado =='
 cp deploy/nginx-host-allyu.conf /etc/nginx/sites-available/allyu
 ln -sf /etc/nginx/sites-available/allyu /etc/nginx/sites-enabled/allyu
 nginx -t && systemctl reload nginx
-if [ ! -d /etc/letsencrypt/live/allyu.cuysoft.io ]; then
-    certbot --nginx -d allyu.cuysoft.io --non-interactive --agree-tos \
-        --email sistemas@neueschule.edu.ec --redirect
-fi
+# certbot corre SIEMPRE, no solo la primera vez: el cp de arriba machaca el
+# bloque 443 que certbot inyecta en el vhost, y con el guard `[ ! -d live ]`
+# el redeploy del 2026-08-16 dejó allyu solo en :80 — el HTTPS caía en el
+# server block del Moodle con 404 y certificado ajeno. `--reinstall` reusa el
+# certificado vigente (no gasta cuota de Let's Encrypt) y vuelve a cablear 443.
+certbot --nginx -d allyu.cuysoft.io --non-interactive --agree-tos \
+    --email sistemas@neueschule.edu.ec --redirect --reinstall
+curl -sf -o /dev/null https://allyu.cuysoft.io/up \
+    || { echo '✗ el /up por HTTPS no responde tras el deploy'; exit 6; }
 
 echo
 echo '✔ LISTO. Comprueba: curl -sI https://allyu.cuysoft.io/up'
