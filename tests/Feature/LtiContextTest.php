@@ -6,8 +6,10 @@ use App\Models\LtiContext;
 use App\Models\LtiContextMembership;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Packback\Lti1p3\Claims\Claim;
 use Packback\Lti1p3\LtiOidcLogin;
 use Tests\Support\FakeLtiPlatform;
@@ -102,9 +104,11 @@ class LtiContextTest extends TestCase
 
         LtiContextMembership::query()->delete();
 
+        // Roles reales que NO son de instructor de curso (la forma corta
+        // legítima «Instructor» se cubre en su propio test).
         $this->launch([
             Claim::CONTEXT => self::CONTEXT_101,
-            Claim::ROLES => ['basura-total', 'Instructor'],   // sin el URI de membership
+            Claim::ROLES => ['basura-total', 'TeachingAssistant'],
         ])->assertRedirect('/progreso');
         $this->assertDatabaseHas('lti_context_memberships', ['role' => 'learner']);
     }
@@ -168,6 +172,63 @@ class LtiContextTest extends TestCase
 
         $this->assertSame(0, LtiContext::count());
         $this->assertSame(0, LtiContextMembership::count());
+    }
+
+    /**
+     * Auditoría (carrera de concurrencia): dos launches simultáneos del mismo
+     * curso nuevo (dos alumnos entrando a la vez, o dos pestañas) no pueden dar
+     * un 500. Se simula el rival insertando la fila en el hueco SELECT→INSERT
+     * del updateOrCreate — el mismo blindaje que ya tiene provisionUser.
+     */
+    public function test_launch_concurrente_del_mismo_contexto_no_revienta(): void
+    {
+        $platformId = $this->moodle->platform->id;
+
+        // El "otro request" gana el INSERT del contexto justo antes que el nuestro.
+        LtiContext::creating(function (LtiContext $ctx) use ($platformId) {
+            static $yaCorrio = false;
+            if ($yaCorrio) {
+                return;
+            }
+            $yaCorrio = true;
+            DB::table('lti_contexts')->insert([
+                'id' => (string) Str::uuid(),
+                'platform_id' => $platformId,
+                'context_id' => $ctx->context_id,
+                'title' => 'Insertado por el rival',
+                'created_at' => now(), 'updated_at' => now(),
+            ]);
+        });
+
+        $this->launch([Claim::CONTEXT => self::CONTEXT_101])->assertRedirect('/progreso');
+
+        LtiContext::flushEventListeners();
+
+        // Un solo contexto y la membership quedó registrada pese a la carrera.
+        $this->assertSame(1, LtiContext::count());
+        $this->assertDatabaseHas('lti_context_memberships', ['role' => 'learner']);
+    }
+
+    /** Auditoría: interoperabilidad — la forma corta del rol también cuenta. */
+    public function test_forma_corta_del_rol_instructor_cuenta(): void
+    {
+        $this->launch([
+            Claim::CONTEXT => self::CONTEXT_101,
+            Claim::ROLES => ['Instructor'],   // vocabulario LTI en forma corta
+        ])->assertRedirect('/docente/'.LtiContext::firstOrFail()->id);
+
+        $this->assertDatabaseHas('lti_context_memberships', ['role' => 'instructor']);
+    }
+
+    /** Auditoría: un URI que solo CONTIENE «membership#Instructor» no infla. */
+    public function test_un_rol_que_imita_el_uri_no_infla(): void
+    {
+        $this->launch([
+            Claim::CONTEXT => self::CONTEXT_101,
+            Claim::ROLES => ['http://evil.example/x/membership#Instructor-falsificado'],
+        ])->assertRedirect('/progreso');
+
+        $this->assertDatabaseHas('lti_context_memberships', ['role' => 'learner']);
     }
 
     /**

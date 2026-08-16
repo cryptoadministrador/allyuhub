@@ -158,32 +158,59 @@ class LtiController extends Controller
             return [null, $role];
         }
 
-        $context = LtiContext::updateOrCreate(
-            ['platform_id' => $platformId, 'context_id' => $contextId],
-            [
-                'title' => is_string($claim['title'] ?? null) ? $claim['title'] : null,
-                'label' => is_string($claim['label'] ?? null) ? $claim['label'] : null,
-                // OJO: track_id no se toca aquí — lo asigna el docente.
-            ],
+        // updateOrCreate no es atómico (SELECT y luego INSERT): dos launches
+        // simultáneos del mismo curso/alumno chocarían en el unique y darían un
+        // 500. Se blinda con el mismo patrón de provisionUser — un reintento
+        // basta: tras la violación la fila existe y el segundo pasa por UPDATE.
+        $context = $this->upsert(
+            fn () => LtiContext::updateOrCreate(
+                ['platform_id' => $platformId, 'context_id' => $contextId],
+                [
+                    'title' => is_string($claim['title'] ?? null) ? $claim['title'] : null,
+                    'label' => is_string($claim['label'] ?? null) ? $claim['label'] : null,
+                    // OJO: track_id no se toca aquí — lo asigna el docente.
+                ],
+            ),
         );
 
-        LtiContextMembership::updateOrCreate(
-            ['lti_context_id' => $context->id, 'user_id' => $user->id],
-            ['role' => $role, 'last_launched_at' => now()],
+        $this->upsert(
+            fn () => LtiContextMembership::updateOrCreate(
+                ['lti_context_id' => $context->id, 'user_id' => $user->id],
+                ['role' => $role, 'last_launched_at' => now()],
+            ),
         );
 
         return [$context, $role];
     }
 
-    /** El rol EN ESTE curso a partir del claim roles del id_token validado. */
+    /** updateOrCreate resistente a la carrera SELECT→INSERT (un reintento). */
+    private function upsert(callable $upsert)
+    {
+        try {
+            return $upsert();
+        } catch (UniqueConstraintViolationException) {
+            return $upsert();
+        }
+    }
+
+    /**
+     * El rol EN ESTE curso a partir del claim roles del id_token validado.
+     * LTI admite la URI completa del vocabulario de contexto y su forma corta;
+     * se comparan por igualdad EXACTA (str_contains inflaba con URIs que solo
+     * imitaban el sufijo, p. ej. «…/membership#Instructor-falso», y descartaba
+     * la forma corta legítima «Instructor»).
+     */
     private function roleForContext(array $roles): string
     {
+        $instructor = [
+            'http://purl.imsglobal.org/vocab/lis/v2/membership#Instructor',
+            'http://purl.imsglobal.org/vocab/lis/v2/membership#ContentDeveloper',
+            'Instructor',
+            'ContentDeveloper',
+        ];
+
         foreach ($roles as $rol) {
-            if (! is_string($rol)) {
-                continue;
-            }
-            if (str_contains($rol, 'membership#Instructor')
-                || str_contains($rol, 'membership#ContentDeveloper')) {
+            if (is_string($rol) && in_array($rol, $instructor, true)) {
                 return 'instructor';
             }
         }

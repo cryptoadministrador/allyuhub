@@ -257,4 +257,43 @@ class DocentePanelTest extends TestCase
             ->get('/docente/00000000-0000-0000-0000-000000000000')
             ->assertNotFound();
     }
+
+    /**
+     * Auditoría: un {context} o {user} MALFORMADO en la URL es 404, no 500.
+     * En SQLite el binding ya da 404 (no tipa); el whereUuid/whereNumber de la
+     * ruta es lo que garantiza el 404 también en el PostgreSQL del CI, donde un
+     * id no-uuid revienta el binding con «invalid input syntax».
+     */
+    public function test_ids_malformados_en_la_url_son_404_no_500(): void
+    {
+        $this->actingAs($this->profe);
+        $this->get('/docente/no-es-uuid')->assertNotFound();
+        $this->get("/docente/{$this->cursoA->id}/alumno/no-es-numero")->assertNotFound();
+        $this->post('/docente/no-es-uuid/track', ['track_id' => $this->track->id])->assertNotFound();
+    }
+
+    /** Auditoría: cerrar los huecos de la matriz — anónimo en POST y en alumno. */
+    public function test_anonimo_en_post_track_y_en_alumno(): void
+    {
+        auth()->logout();
+        $this->flushSession();
+
+        $this->post("/docente/{$this->cursoA->id}/track", ['track_id' => $this->track->id])
+            ->assertRedirect('/entrar');
+        $this->get("/docente/{$this->cursoA->id}/alumno/{$this->alumno1->id}")
+            ->assertRedirect('/entrar');
+    }
+
+    /** Auditoría: aunque una prop trajera un campo de más, no llega al HTML. */
+    public function test_ningun_dato_sensible_de_alumno_en_el_html(): void
+    {
+        $this->cursoA->update(['track_id' => $this->track->id]);
+        $this->alumno1->update(['email' => 'ana.secreta@colegio.test']);
+
+        $html = $this->actingAs($this->profe)->get("/docente/{$this->cursoA->id}")->getContent();
+
+        $this->assertStringNotContainsString('ana.secreta@colegio.test', $html);
+        $this->assertStringNotContainsString('lti_sub', $html);
+        $this->assertStringNotContainsString('@colegio.test', $html);
+    }
 }

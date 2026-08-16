@@ -84,7 +84,10 @@ export default function Docente({ context, track, tracks, objectives_summary: re
     const [trackElegido, setTrackElegido] = useState(track?.id ?? '');
     const [abierto, setAbierto] = useState(null);
     const conTrack = track !== null;
-    const columnas = conTrack ? 6 : 3;
+    // Columnas de la tabla, para el colSpan del detalle: con track son 6
+    // (alumno, dominadas, en progreso, sin empezar, acceso, detalle); sin
+    // track son 2 (alumno, acceso) — aunque el detalle solo existe con track.
+    const columnas = conTrack ? 6 : 2;
 
     function asignarTrack(e) {
         e.preventDefault();

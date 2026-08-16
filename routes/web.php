@@ -22,9 +22,15 @@ Route::middleware('auth')->group(function () {
 
     // El panel del docente (misión vista-docente): autorización dura por
     // membership de instructor EN ESE contexto, dentro del controlador.
-    Route::get('/docente/{context}', [DocenteController::class, 'panel'])->name('docente');
-    Route::post('/docente/{context}/track', [DocenteController::class, 'asignarTrack'])->name('docente.track');
-    Route::get('/docente/{context}/alumno/{user}', [DocenteController::class, 'alumno'])->name('docente.alumno');
+    // whereUuid/whereNumber: un id malformado es 404 en el router, ANTES de
+    // tocar la BD — en PostgreSQL el binding con un id no-uuid revienta con
+    // «invalid input syntax» (500). En SQLite no se ve porque no tipa.
+    Route::get('/docente/{context}', [DocenteController::class, 'panel'])
+        ->whereUuid('context')->name('docente');
+    Route::post('/docente/{context}/track', [DocenteController::class, 'asignarTrack'])
+        ->whereUuid('context')->name('docente.track');
+    Route::get('/docente/{context}/alumno/{user}', [DocenteController::class, 'alumno'])
+        ->whereUuid('context')->whereNumber('user')->name('docente.alumno');
 
     // El catálogo navegable del currículo (misión ANTY).
     Route::get('/catalogo', [PageController::class, 'catalogo'])->name('catalogo');
