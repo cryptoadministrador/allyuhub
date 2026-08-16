@@ -4,9 +4,11 @@ use App\Http\Controllers\Api\PracticeController;
 use App\Http\Controllers\App\PageController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+// La portada ES el catálogo. El welcome de fábrica referenciaba
+// resources/js/app.js — borrado al pasar a Inertia (app.jsx) — así que con
+// el manifest de Vite presente (producción) la raíz daba 500. Los tests no
+// lo veían: withoutVite() y ninguno visitaba '/'.
+Route::redirect('/', '/catalogo');
 
 // Sesión caducada o acceso sin launch: la única puerta de entrada es Moodle.
 Route::view('/entrar', 'entrar')->name('entrar');

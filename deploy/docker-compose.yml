@@ -35,6 +35,10 @@ services:
     restart: unless-stopped
     command: ['php', '/var/www/html/artisan', 'queue:work', '--tries=3', '--backoff=10', '--max-time=3600']
     stop_signal: SIGTERM
+    # La imagen trae un healthcheck HTTP; un worker no sirve HTTP y quedaría
+    # «unhealthy» para siempre (tumbó el primer `up --wait` del despliegue).
+    healthcheck:
+      disable: true
     volumes:
       - ../:/var/www/html
     depends_on:

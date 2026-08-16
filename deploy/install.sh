@@ -27,16 +27,21 @@ if [ ! -f .env ]; then
 fi
 
 echo '== 4/7 · Contenedores =='
-docker compose -f deploy/docker-compose.yml --env-file deploy/.env.db up -d --wait
+# Primero SOLO la BD: la app aún no tiene vendor/ y su healthcheck fallaría.
+docker compose -f deploy/docker-compose.yml --env-file deploy/.env.db up -d --wait db
 
 echo '== 5/7 · Dependencias y build (contenedores efímeros) =='
 docker compose -f deploy/docker-compose.yml --env-file deploy/.env.db \
-    run --rm --no-deps app composer install --no-dev --no-interaction --optimize-autoloader
+    run --rm -T --no-deps --user root app composer install --no-dev --no-interaction --optimize-autoloader
+# -T: sin TTY (permite correr desatendido); --user root: el código montado es
+# de root y composer corre como www-data en la imagen — el chown final deja
+# storage/ para el usuario de ejecución.
 docker run --rm -v "$REPO_DIR":/app -w /app node:22-alpine \
     sh -c 'npm ci --no-audit --no-fund && npm run build'
 
 echo '== 6/7 · Laravel: clave, migraciones, semilla, claves LTI =='
-APP() { docker compose -f deploy/docker-compose.yml --env-file deploy/.env.db exec -T app "$@"; }
+docker compose -f deploy/docker-compose.yml --env-file deploy/.env.db up -d app worker
+APP() { docker compose -f deploy/docker-compose.yml --env-file deploy/.env.db exec -T --user root app "$@"; }
 grep -q '^APP_KEY=.\+' .env || APP php artisan key:generate --force
 APP php artisan migrate --seed --force
 APP php artisan lti:keys

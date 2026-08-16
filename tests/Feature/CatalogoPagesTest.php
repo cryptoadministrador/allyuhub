@@ -152,6 +152,17 @@ class CatalogoPagesTest extends TestCase
             );
     }
 
+    /**
+     * REGRESIÓN (despliegue): la raíz servía el welcome de fábrica, que pedía
+     * un resources/js/app.js inexistente y daba 500 EN PRODUCCIÓN (con
+     * manifest de Vite). La raíz es el catálogo, sin vistas de fábrica.
+     */
+    public function test_la_raiz_lleva_al_catalogo(): void
+    {
+        $this->get('/')->assertRedirect('/catalogo');
+        $this->assertFileDoesNotExist(resource_path('views/welcome.blade.php'));
+    }
+
     // ---------- /catalogo ----------
 
     public function test_catalogo_exige_sesion_y_monta_el_arbol_hasta_grado(): void
