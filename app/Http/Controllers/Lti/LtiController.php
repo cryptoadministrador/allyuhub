@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Lti;
 
 use App\Http\Controllers\Controller;
 use App\Models\LearningObjective;
+use App\Models\LtiContext;
+use App\Models\LtiContextMembership;
 use App\Models\LtiPlatform;
 use App\Models\LtiResourceLink;
 use App\Models\Resource;
@@ -109,15 +111,84 @@ class LtiController extends Controller
             'ags' => $body[Claim::AGS_ENDPOINT] ?? null,
         ]]);
 
+        // Los claims context y roles se persisten SIEMPRE (también en deep
+        // linking): el rol es por contexto y aquí nace la membership.
+        [$context, $role] = $this->rememberContextMembership($body, $user);
+
         if ($message instanceof DeepLinkingRequest) {
             return $this->deepLinkingSelection();
         }
 
         $this->rememberAgsContext($body, $user);
 
+        // Un instructor aterriza en SU panel; un learner sigue yendo donde iba.
+        if ($role === 'instructor' && $context !== null) {
+            return redirect()->route('docente', $context);
+        }
+
         // El launch NO renderiza nada: redirige (302) a la app Inertia, que
         // vive en el grupo web completo (con CSRF) y usa esta misma sesión.
         return $this->redirectToContent($body);
+    }
+
+    /**
+     * Upsert del curso (claim context) y de la membership con su rol.
+     * Solo membership#Instructor o membership#ContentDeveloper convierten en
+     * instructor DE ESE CURSO: los roles de sistema/institución no cuentan,
+     * y roles vacíos o basura degradan a learner (jamás se infla).
+     *
+     * @return array{0: ?LtiContext, 1: string}
+     */
+    private function rememberContextMembership(array $body, User $user): array
+    {
+        $roles = $body[Claim::ROLES] ?? [];
+        $role = $this->roleForContext(is_array($roles) ? $roles : []);
+
+        $claim = $body[Claim::CONTEXT] ?? null;
+        $contextId = is_array($claim) ? ($claim['id'] ?? null) : null;
+        if (! is_string($contextId) || $contextId === '') {
+            return [null, $role];   // launch sin curso: nada que persistir
+        }
+
+        $platformId = LtiPlatform::query()->active()
+            ->where('issuer', $body['iss'])
+            ->where('client_id', is_array($body['aud']) ? $body['aud'][0] : $body['aud'])
+            ->value('id');
+        if ($platformId === null) {
+            return [null, $role];
+        }
+
+        $context = LtiContext::updateOrCreate(
+            ['platform_id' => $platformId, 'context_id' => $contextId],
+            [
+                'title' => is_string($claim['title'] ?? null) ? $claim['title'] : null,
+                'label' => is_string($claim['label'] ?? null) ? $claim['label'] : null,
+                // OJO: track_id no se toca aquí — lo asigna el docente.
+            ],
+        );
+
+        LtiContextMembership::updateOrCreate(
+            ['lti_context_id' => $context->id, 'user_id' => $user->id],
+            ['role' => $role, 'last_launched_at' => now()],
+        );
+
+        return [$context, $role];
+    }
+
+    /** El rol EN ESTE curso a partir del claim roles del id_token validado. */
+    private function roleForContext(array $roles): string
+    {
+        foreach ($roles as $rol) {
+            if (! is_string($rol)) {
+                continue;
+            }
+            if (str_contains($rol, 'membership#Instructor')
+                || str_contains($rol, 'membership#ContentDeveloper')) {
+                return 'instructor';
+            }
+        }
+
+        return 'learner';
     }
 
     /** A dónde aterriza el resource link: destreza, simulador o el progreso. */
