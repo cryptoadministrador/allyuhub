@@ -13,6 +13,7 @@
 /.vscode
 /.zed
 /auth.json
+/*.patch
 /coverage
 /deploy/.env.db
 /node_modules

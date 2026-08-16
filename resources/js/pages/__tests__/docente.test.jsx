@@ -130,4 +130,42 @@ describe('docente — el panel', () => {
 
         expect(violacionesGraves(await axe(container))).toEqual([]);
     });
+    /**
+     * REGRESIÓN (auditoría PR #17): «sin avance todavía» exige dominadas=0 Y
+     * en_progreso=0. Mutar la condición a solo dominadas dejaba la suite en
+     * verde y etiquetaba de rezagado a quien SÍ está practicando.
+     */
+    it('quien está en progreso sin dominar aún NO es rezagado', () => {
+        render(<Docente {...props({
+            students: [{
+                id: 9, name: 'Carlos Empezando', dominadas: 0, en_progreso: 2,
+                sin_empezar: 1, last_launched_at: '2026-08-15T10:00:00Z',
+            }],
+        })} />);
+
+        expect(screen.queryByText('sin avance todavía')).not.toBeInTheDocument();
+    });
+
+    /**
+     * REGRESIÓN (auditoría PR #17): el colSpan del detalle acompaña al número
+     * de columnas (6 con track, 2 sin él). Fijarlo en 2 rompía el layout del
+     * detalle expandido y ningún test lo veía.
+     */
+    it('el detalle expandido abarca TODAS las columnas de la tabla', async () => {
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+            ok: true, status: 200,
+            json: () => Promise.resolve({ destrezas: [{ objective_id: 'o1', native_code: 'CN.F.5.1.9', mastery: 0.5 }] }),
+        }));
+
+        const user = userEvent.setup();
+        render(<Docente {...props()} />);
+        const cols = screen.getAllByRole('columnheader').length;
+
+        await user.click(screen.getAllByRole('button', { name: /ver detalle/i })[0]);
+        const detalle = await screen.findByText('CN.F.5.1.9');
+        const celda = detalle.closest('td[colspan]');
+        expect(celda).not.toBeNull();
+        expect(Number(celda.getAttribute('colspan'))).toBe(cols);
+    });
+
 });

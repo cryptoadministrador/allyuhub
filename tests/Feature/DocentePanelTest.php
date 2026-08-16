@@ -125,6 +125,77 @@ class DocentePanelTest extends TestCase
         ]);
     }
 
+    /**
+     * REGRESIÓN (auditoría PR #17): el filtro whereIn(objective_id) de la
+     * agregación de masteries se podía BORRAR con la suite en verde, porque
+     * ningún fixture tenía alumnos compartidos entre contextos ni masteries
+     * fuera del track. Este es el escenario real: un alumno matriculado en
+     * dos cursos, con avance solo en las destrezas del OTRO track — su panel
+     * en A tiene que decir cero, no heredar el mastery de B.
+     */
+    public function test_el_avance_de_otro_track_no_infla_el_panel(): void
+    {
+        // alumno1 también es learner del curso B, cuyo track cubre OTRA destreza
+        // que él ya dominó. Ese dominio no pertenece al panel de A... y las
+        // destrezas del track de A tampoco al panel de B.
+        $this->membership($this->cursoB, $this->alumno1, 'learner');
+        $otra = LearningObjective::create([
+            'node_id' => $this->conItems->node_id, 'version_id' => $this->conItems->version_id,
+            'native_code' => 'M.5.1.1', 'statement' => ['es' => 'Otra área'],
+        ]);
+        $trackB = Track::create(['code' => 'PCEI-BI', 'label' => ['es' => 'BI']]);
+        $faseB = TrackPhase::create(['track_id' => $trackB->id, 'seq' => 1, 'label' => ['es' => 'F']]);
+        $faseB->objectives()->attach([$otra->id => ['source' => 'mapeo-interno']]);
+        ObjectiveMastery::create([
+            'user_id' => $this->alumno1->id, 'objective_id' => $otra->id,
+            'mastery' => 0.95, 'streak' => 5, 'attempts_count' => 6, 'mastered_at' => now(),
+        ]);
+        $this->cursoA->update(['track_id' => $this->track->id]);
+        $this->cursoB->update(['track_id' => $trackB->id]);
+
+        // En A: su dominada del track de A (1), jamás la de B. El orden es
+        // «rezagados primero», así que se busca la fila por nombre.
+        $enPanel = function (string $curso) {
+            $props = $this->actingAs($curso === 'A' ? $this->profe : $this->profeB)
+                ->get('/docente/'.($curso === 'A' ? $this->cursoA->id : $this->cursoB->id))
+                ->assertOk()
+                ->viewData('page')['props'];
+
+            return collect($props['students'])->firstWhere('name', $this->alumno1->name);
+        };
+
+        $filaA = $enPanel('A');
+        $this->assertSame(1, $filaA['dominadas'], 'en A cuenta SOLO el track de A');
+        $this->assertSame(1, $filaA['en_progreso']);
+
+        $filaB = $enPanel('B');
+        $this->assertSame(1, $filaB['dominadas'], 'en B cuenta SOLO el track de B');
+        $this->assertSame(0, $filaB['en_progreso'], 'el en-progreso de A no cruza a B');
+    }
+
+    /**
+     * REGRESIÓN (auditoría PR #17): una destreza puede vivir en DOS fases del
+     * mismo track (caso real: la fase 0 propedéutica PCEI repite destrezas).
+     * Sin el distinct, total y sin_empezar se inflaban y el porcentaje del
+     * panel mentía.
+     */
+    public function test_una_destreza_en_dos_fases_cuenta_una_sola_vez(): void
+    {
+        $fase2 = TrackPhase::create([
+            'track_id' => $this->track->id, 'seq' => 0,
+            'label' => ['es' => 'Propedéutica'], 'is_propedeutic' => true,
+        ]);
+        $fase2->objectives()->attach([$this->conItems->id => ['source' => 'mapeo-interno']]);
+        $this->cursoA->update(['track_id' => $this->track->id]);
+
+        $this->actingAs($this->profe)->get("/docente/{$this->cursoA->id}")
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('objectives_summary.total', 3)
+                ->where('students.1.dominadas', 1)
+            );
+    }
+
     /** ORÁCULO 1: la matriz completa del panel. */
     public function test_matriz_de_acceso_al_panel(): void
     {

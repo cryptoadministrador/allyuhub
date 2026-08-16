@@ -122,7 +122,13 @@ class LtiController extends Controller
         $this->rememberAgsContext($body, $user);
 
         // Un instructor aterriza en SU panel; un learner sigue yendo donde iba.
-        if ($role === 'instructor' && $context !== null) {
+        // El panel es el destino por DEFECTO del instructor, no una cárcel:
+        // si el launch trae un destino elegido por Deep Linking (allyu_type),
+        // ese manda. Sin esto, el docente que hace clic en la actividad
+        // «Práctica: destreza X» que él mismo configuró caía SIEMPRE en el
+        // panel y jamás podía previsualizar lo que asigna (auditoría PR #17).
+        $custom = $body[Claim::CUSTOM] ?? [];
+        if ($role === 'instructor' && $context !== null && ! isset($custom['allyu_type'])) {
             return redirect()->route('docente', $context);
         }
 

@@ -2,8 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Models\CurNode;
+use App\Models\Framework;
+use App\Models\FrameworkVersion;
+use App\Models\LearningObjective;
 use App\Models\LtiContext;
 use App\Models\LtiContextMembership;
+use App\Models\PracticeItem;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -91,6 +96,78 @@ class LtiContextTest extends TestCase
         ])->assertRedirect('/docente/'.LtiContext::firstOrFail()->id);
 
         $this->assertDatabaseHas('lti_context_memberships', ['role' => 'instructor']);
+    }
+
+    /**
+     * REGRESIÓN (auditoría PR #17): el panel es el destino por DEFECTO del
+     * instructor, no una cárcel. Con un destino elegido por Deep Linking
+     * (custom allyu_type) el redirect anterior lo pisaba: el docente que
+     * hacía clic en la actividad «Práctica: destreza X» que él mismo
+     * configuró caía SIEMPRE en el panel y no podía previsualizarla.
+     */
+    public function test_un_instructor_con_deep_link_va_al_destino_elegido(): void
+    {
+        $objective = $this->objetivoConItem();
+
+        $this->launch([
+            Claim::CONTEXT => self::CONTEXT_101,
+            Claim::ROLES => [self::INSTRUCTOR],
+            Claim::CUSTOM => ['allyu_type' => 'objective', 'allyu_id' => $objective->id],
+            'sub' => 'moodle-teacher-1',
+        ])->assertRedirect('/practicar/'.$objective->id);
+
+        // Y la membership se registró igual: el panel sigue siendo suyo.
+        $this->assertDatabaseHas('lti_context_memberships', ['role' => 'instructor']);
+    }
+
+    /**
+     * REGRESIÓN (auditoría PR #17): membership#ContentDeveloper también es
+     * rol docente según la spec, en URI completa y en forma corta. Estaba
+     * implementado pero NINGÚN test lo ejercitaba: quitarlo dejaba la suite
+     * en verde.
+     */
+    public function test_content_developer_es_instructor_en_ambas_formas(): void
+    {
+        foreach ([
+            'http://purl.imsglobal.org/vocab/lis/v2/membership#ContentDeveloper',
+            'ContentDeveloper',
+        ] as $i => $rol) {
+            $this->launch([
+                Claim::CONTEXT => ['id' => "curso-cd-{$i}", 'title' => 'Curso', 'label' => 'C'],
+                Claim::ROLES => [$rol],
+                'sub' => "moodle-cd-{$i}",
+            ]);
+        }
+
+        $this->assertSame(
+            2,
+            LtiContextMembership::where('role', 'instructor')->count(),
+            'ContentDeveloper (URI y forma corta) debe contar como instructor'
+        );
+    }
+
+    private function objetivoConItem(): LearningObjective
+    {
+        $fw = Framework::create([
+            'code' => 'EC-MINEDEC', 'authority' => 'MINEDEC', 'kind' => 'national',
+            'country' => 'EC', 'label' => ['es' => 'CN'],
+        ]);
+        $ver = FrameworkVersion::create(['framework_id' => $fw->id, 'label' => '2016']);
+        $node = CurNode::create([
+            'version_id' => $ver->id, 'node_type' => 'bloque',
+            'title' => ['es' => 'B'], 'path' => 'b',
+        ]);
+        $objective = LearningObjective::create([
+            'node_id' => $node->id, 'version_id' => $ver->id,
+            'native_code' => 'CN.F.5.1.9', 'statement' => ['es' => '…'],
+        ]);
+        PracticeItem::create([
+            'objective_id' => $objective->id,
+            'statement' => ['es' => 'm={m}'], 'params' => ['m' => ['min' => 1, 'max' => 2, 'step' => 1]],
+            'solution_expr' => 'm', 'tolerance' => 0.02, 'tolerance_kind' => 'rel',
+        ]);
+
+        return $objective;
     }
 
     /** ORÁCULO 3a: roles vacíos o basura JAMÁS inflan a instructor. */
