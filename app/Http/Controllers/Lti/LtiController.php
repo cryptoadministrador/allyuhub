@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Lti;
 
 use App\Http\Controllers\Controller;
 use App\Models\LearningObjective;
+use App\Models\LtiContext;
+use App\Models\LtiContextMembership;
 use App\Models\LtiPlatform;
 use App\Models\LtiResourceLink;
 use App\Models\Resource;
@@ -109,15 +111,117 @@ class LtiController extends Controller
             'ags' => $body[Claim::AGS_ENDPOINT] ?? null,
         ]]);
 
+        // Los claims context y roles se persisten SIEMPRE (también en deep
+        // linking): el rol es por contexto y aquí nace la membership.
+        [$context, $role] = $this->rememberContextMembership($body, $user);
+
         if ($message instanceof DeepLinkingRequest) {
             return $this->deepLinkingSelection();
         }
 
         $this->rememberAgsContext($body, $user);
 
+        // Un instructor aterriza en SU panel; un learner sigue yendo donde iba.
+        // El panel es el destino por DEFECTO del instructor, no una cárcel:
+        // si el launch trae un destino elegido por Deep Linking (allyu_type),
+        // ese manda. Sin esto, el docente que hace clic en la actividad
+        // «Práctica: destreza X» que él mismo configuró caía SIEMPRE en el
+        // panel y jamás podía previsualizar lo que asigna (auditoría PR #17).
+        $custom = $body[Claim::CUSTOM] ?? [];
+        if ($role === 'instructor' && $context !== null && ! isset($custom['allyu_type'])) {
+            return redirect()->route('docente', $context);
+        }
+
         // El launch NO renderiza nada: redirige (302) a la app Inertia, que
         // vive en el grupo web completo (con CSRF) y usa esta misma sesión.
         return $this->redirectToContent($body);
+    }
+
+    /**
+     * Upsert del curso (claim context) y de la membership con su rol.
+     * Solo membership#Instructor o membership#ContentDeveloper convierten en
+     * instructor DE ESE CURSO: los roles de sistema/institución no cuentan,
+     * y roles vacíos o basura degradan a learner (jamás se infla).
+     *
+     * @return array{0: ?LtiContext, 1: string}
+     */
+    private function rememberContextMembership(array $body, User $user): array
+    {
+        $roles = $body[Claim::ROLES] ?? [];
+        $role = $this->roleForContext(is_array($roles) ? $roles : []);
+
+        $claim = $body[Claim::CONTEXT] ?? null;
+        $contextId = is_array($claim) ? ($claim['id'] ?? null) : null;
+        if (! is_string($contextId) || $contextId === '') {
+            return [null, $role];   // launch sin curso: nada que persistir
+        }
+
+        $platformId = LtiPlatform::query()->active()
+            ->where('issuer', $body['iss'])
+            ->where('client_id', is_array($body['aud']) ? $body['aud'][0] : $body['aud'])
+            ->value('id');
+        if ($platformId === null) {
+            return [null, $role];
+        }
+
+        // updateOrCreate no es atómico (SELECT y luego INSERT): dos launches
+        // simultáneos del mismo curso/alumno chocarían en el unique y darían un
+        // 500. Se blinda con el mismo patrón de provisionUser — un reintento
+        // basta: tras la violación la fila existe y el segundo pasa por UPDATE.
+        $context = $this->upsert(
+            fn () => LtiContext::updateOrCreate(
+                ['platform_id' => $platformId, 'context_id' => $contextId],
+                [
+                    'title' => is_string($claim['title'] ?? null) ? $claim['title'] : null,
+                    'label' => is_string($claim['label'] ?? null) ? $claim['label'] : null,
+                    // OJO: track_id no se toca aquí — lo asigna el docente.
+                ],
+            ),
+        );
+
+        $this->upsert(
+            fn () => LtiContextMembership::updateOrCreate(
+                ['lti_context_id' => $context->id, 'user_id' => $user->id],
+                ['role' => $role, 'last_launched_at' => now()],
+            ),
+        );
+
+        return [$context, $role];
+    }
+
+    /** updateOrCreate resistente a la carrera SELECT→INSERT (un reintento). */
+    private function upsert(callable $upsert)
+    {
+        try {
+            return $upsert();
+        } catch (UniqueConstraintViolationException) {
+            return $upsert();
+        }
+    }
+
+    /**
+     * El rol EN ESTE curso a partir del claim roles del id_token validado.
+     * LTI admite la URI completa del vocabulario de contexto y su forma corta;
+     * se comparan por igualdad EXACTA (str_contains inflaba con URIs que solo
+     * imitaban el sufijo, p. ej. «…/membership#Instructor-falso», y descartaba
+     * la forma corta legítima «Instructor»).
+     */
+    private function roleForContext(array $roles): string
+    {
+        $instructor = [
+            'http://purl.imsglobal.org/vocab/lis/v2/membership#Instructor',
+            'http://purl.imsglobal.org/vocab/lis/v2/membership#ContentDeveloper',
+            'Instructor',
+            'ContentDeveloper',
+        ];
+
+        foreach ($roles as $rol) {
+            if (is_string($rol) && in_array($rol, $instructor, true)) {
+                return 'instructor';
+            }
+        }
+
+        return 'learner';
     }
 
     /** A dónde aterriza el resource link: destreza, simulador o el progreso. */
