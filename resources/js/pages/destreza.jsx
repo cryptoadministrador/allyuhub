@@ -1,0 +1,146 @@
+import { Head, Link } from '@inertiajs/react';
+import AppLayout from '../layouts/AppLayout';
+import DistintivoVerificacion from '../components/DistintivoVerificacion';
+import Migas from '../components/Migas';
+
+const RELACIONES = {
+    exact: 'equivalente a',
+    narrower: 'más acotada que',
+    broader: 'más amplia que',
+    related: 'relacionada con',
+};
+
+/**
+ * La ficha de una destreza: migas, estado de verificación (en texto),
+ * práctica (o el porqué de que no la haya), recursos publicados,
+ * equivalencias REVISADAS y prerrequisitos.
+ */
+export default function Destreza({ objective, breadcrumbs, resources, alignments, prerequisites }) {
+    return (
+        <AppLayout title={objective.native_code}>
+            <Head title={objective.native_code} />
+            <Migas breadcrumbs={breadcrumbs} actual={objective.native_code} />
+
+            <p className="mb-2">
+                <DistintivoVerificacion verificada={objective.is_verified} conExplicacion />
+            </p>
+            {!objective.is_verified && (
+                <p className="mb-4 text-sm text-slate-600">
+                    El enunciado de abajo es un marcador provisional, no la redacción del
+                    currículo oficial.
+                </p>
+            )}
+
+            <p className="mb-6 text-lg">{objective.statement}</p>
+
+            <section aria-labelledby="practica" className="mb-8">
+                <h2 id="practica" className="mb-2 text-lg font-medium">
+                    Práctica
+                </h2>
+                {objective.has_items ? (
+                    <Link
+                        href={`/practicar/${objective.id}`}
+                        className="inline-block rounded bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700 focus:outline-2 focus:outline-offset-2 focus:outline-indigo-600"
+                    >
+                        Practicar esta destreza
+                    </Link>
+                ) : (
+                    <>
+                        {/*
+                          * Un botón que lleva a un 404 es peor que un botón ausente.
+                          * Y `disabled` a secas es peor todavía: un botón nativo
+                          * deshabilitado NO es enfocable, así que quien navega con
+                          * teclado o lector de pantalla nunca aterriza en él y nunca
+                          * oye el aria-describedby que explica por qué. Como esta es
+                          * LA interacción de la ficha en 1001 de las 1010 destrezas,
+                          * se usa aria-disabled: sigue en el orden de tabulación y
+                          * anuncia «no disponible» junto a su explicación (auditoría).
+                          */}
+                        <button
+                            type="button"
+                            aria-disabled="true"
+                            onClick={(e) => e.preventDefault()}
+                            aria-describedby="sin-ejercicios"
+                            className="cursor-not-allowed rounded bg-slate-300 px-4 py-2 font-medium text-slate-600 focus:outline-2 focus:outline-offset-2 focus:outline-indigo-600"
+                        >
+                            Practicar esta destreza
+                        </button>
+                        <p id="sin-ejercicios" className="mt-2 text-sm text-slate-600">
+                            Esta destreza todavía no tiene ejercicios de práctica: el banco de
+                            ítems crece a medida que se verifica el currículo oficial.
+                        </p>
+                    </>
+                )}
+            </section>
+
+            <section aria-labelledby="recursos" className="mb-8">
+                <h2 id="recursos" className="mb-2 text-lg font-medium">
+                    Laboratorios y recursos
+                </h2>
+                {resources.length === 0 ? (
+                    <p role="status" className="text-sm text-slate-600">
+                        Ningún recurso publicado está alineado con esta destreza todavía.
+                    </p>
+                ) : (
+                    <ul className="list-disc space-y-1 pl-5">
+                        {resources.map((recurso) => (
+                            <li key={recurso.id}>
+                                <Link href={`/recurso/${recurso.id}`} className="underline">
+                                    {recurso.title}
+                                </Link>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </section>
+
+            <section aria-labelledby="equivalencias" className="mb-8">
+                <h2 id="equivalencias" className="mb-2 text-lg font-medium">
+                    Equivalencias con Cambridge e IB
+                </h2>
+                {alignments.length === 0 ? (
+                    // Estado vacío HONESTO: hoy hay 0 alineaciones revisadas, y es correcto.
+                    <p role="status" className="text-sm text-slate-600">
+                        Las equivalencias con Cambridge e IB están propuestas pero aún no
+                        revisadas por un docente. No se muestran hasta que alguien las firme.
+                    </p>
+                ) : (
+                    <ul className="list-disc space-y-1 pl-5">
+                        {alignments.map((eq) => (
+                            <li key={`${eq.framework}-${eq.native_code}`}>
+                                <Link href={`/destreza/${eq.objective_id}`} className="underline">
+                                    {eq.framework} · {eq.native_code}
+                                </Link>{' '}
+                                <span className="text-sm text-slate-600">
+                                    ({RELACIONES[eq.relation] ?? eq.relation})
+                                </span>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </section>
+
+            <section aria-labelledby="prerrequisitos">
+                <h2 id="prerrequisitos" className="mb-2 text-lg font-medium">
+                    Antes de esta destreza
+                </h2>
+                {prerequisites.length === 0 ? (
+                    <p role="status" className="text-sm text-slate-600">
+                        Sin prerrequisitos registrados.
+                    </p>
+                ) : (
+                    <ul className="list-disc space-y-1 pl-5">
+                        {prerequisites.map((previa) => (
+                            <li key={previa.id}>
+                                <Link href={`/destreza/${previa.id}`} className="underline">
+                                    {previa.native_code}
+                                </Link>{' '}
+                                <span className="text-sm text-slate-600">{previa.statement}</span>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </section>
+        </AppLayout>
+    );
+}

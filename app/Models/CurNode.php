@@ -47,6 +47,34 @@ class CurNode extends Model
         return $this->hasMany(LearningObjective::class, 'node_id');
     }
 
+    /**
+     * Los ancestros del nodo en orden raíz → padre, reconstruidos desde el
+     * path materializado (las migas de pan del catálogo). Una sola consulta.
+     */
+    public function ancestors()
+    {
+        $segments = explode('.', $this->path);
+        array_pop($segments);   // el propio nodo no es su ancestro
+
+        $prefixes = [];
+        $acc = null;
+        foreach ($segments as $segment) {
+            $acc = $acc === null ? $segment : $acc.'.'.$segment;
+            $prefixes[] = $acc;
+        }
+
+        if ($prefixes === []) {
+            return collect();
+        }
+
+        return static::query()
+            ->where('version_id', $this->version_id)
+            ->whereIn('path', $prefixes)
+            ->get()
+            ->sortBy(fn (self $n) => strlen($n->path))
+            ->values();
+    }
+
     /** Todo el subárbol bajo este nodo (usa ltree en pgsql, LIKE en sqlite). */
     public function scopeDescendantsOf($query, self $node)
     {

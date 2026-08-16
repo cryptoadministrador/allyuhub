@@ -8,10 +8,12 @@ use App\Models\CurNode;
 use App\Models\Framework;
 use App\Models\FrameworkVersion;
 use App\Models\LearningObjective;
+use App\Models\User;
 use Database\Seeders\CrosswalkSeeder;
 use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\InternationalFrameworksSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Schema;
 use RuntimeException;
 use Tests\TestCase;
 
@@ -271,6 +273,37 @@ class InternationalFrameworksTest extends TestCase
             '.g8.', $usada->target->node->path,
             'la arista debe anclar en el grado donde el currículo introduce la destreza'
         );
+    }
+
+    /**
+     * REGRESIÓN DE ESQUEMA (auditoría del catálogo): `alignments.reviewed_by`
+     * nació como `foreignUuid` mientras `users.id` es un `bigint`. SQLite no
+     * tipa, así que la suite entera pasaba; en PostgreSQL firmar una alineación
+     * revienta con «invalid input syntax for type uuid». Nadie lo vio porque
+     * hasta la rama del catálogo NADIE escribía esa columna: el mecanismo
+     * central de la regla 5 —quién revisó— nunca se había ejercido.
+     *
+     * Este test es dual a propósito: compara los dos tipos entre sí en vez de
+     * exigir uno concreto, así que se pone rojo en SQLite igual que en pgsql.
+     */
+    public function test_un_docente_puede_firmar_una_alineacion(): void
+    {
+        $this->assertSame(
+            Schema::getColumnType('users', 'id'),
+            Schema::getColumnType('alignments', 'reviewed_by'),
+            'reviewed_by tiene que ser del mismo tipo que la clave de users'
+        );
+
+        $this->seedMineducAnchors();
+        $this->seed(InternationalFrameworksSeeder::class);
+        $this->seed(CrosswalkSeeder::class);
+
+        $docente = User::factory()->create();
+        $arista = Alignment::where('relation', 'exact')->firstOrFail();
+        $arista->update(['reviewed_by' => $docente->id, 'reviewed_at' => now()]);
+
+        $this->assertSame($docente->id, $arista->fresh()->reviewed_by);
+        $this->assertSame(1, Alignment::production()->count());
     }
 
     public function test_el_crosswalk_falla_ruidosamente_si_faltan_los_marcos(): void

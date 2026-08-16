@@ -19,10 +19,17 @@ Léelos antes de tomar decisiones de arquitectura.
   y layouts en `resources/js/layouts` — TODO EN MINÚSCULA: es el default de Inertia 3
   (`resource_path('js/pages')`). En Windows/macOS da igual porque el sistema de archivos
   no distingue mayúsculas, pero en Linux (CI y producción) `Pages` NO se encuentra y
-  `assertInertia` falla. Rutas: `/practicar/{objective}`, `/recurso/{resource}`,
-  `/progreso`, en español y aptas para el iframe de Moodle (CSP frame-ancestors
-  construida con los issuers de las Platforms activas, normalizados con `parse_url`).
-  Los tests NUNCA compilan el frontend: `withoutVite()` + `assertInertia`.
+  `assertInertia` falla. Rutas: `/catalogo`, `/catalogo/{node}`, `/destreza/{objective}`,
+  `/buscar`, `/practicar/{objective}`, `/recurso/{resource}`, `/progreso`, en español y
+  aptas para el iframe de Moodle (CSP frame-ancestors construida con los issuers de las
+  Platforms activas, normalizados con `parse_url`).
+- **Dos suites, y ninguna sustituye a la otra.** `php artisan test` NO compila el
+  frontend (`withoutVite()` + `assertInertia`): solo verifica que llegan las props
+  correctas. El COMPORTAMIENTO de React lo prueba `npm run test:js` (Vitest + Testing
+  Library + axe, con `vitest-axe` como oráculo de accesibilidad). Un bug que vive en el
+  JSX —como la cabecera que rotulaba el ejercicio del prerrequisito con la destreza
+  pedida— es invisible para la suite PHP. Y el bundle no puede contener los `__tests__`:
+  el glob los arrastró una vez y `vite build` salió con código 0 (guardián en el CI).
 - **La práctica es ABIERTA por diseño**: un alumno puede practicar cualquier destreza
   con ítems, esté o no en su track (modelo Khan). No es un agujero — la nota siempre es
   suya y la verificación es en servidor — pero si el colegio quiere restringirla, el
@@ -58,7 +65,13 @@ php artisan test                  # SQLite en memoria, no toca tu BD
 5. **El crosswalk (alignments) solo entra a producción revisado**: `reviewed_at NOT NULL`
    y `confidence >= 0.8` (scope `Alignment::production()`). La IA propone, el docente dispone.
 6. **Compatibilidad dual pgsql/sqlite en migraciones y scopes.** Lo específico de PostgreSQL
-   (ltree, GIN, tsvector) va detrás de `DriverName === 'pgsql'`. Los tests corren en SQLite.
+   (ltree, GIN, tsvector) va detrás de `DriverName === 'pgsql'`. Los tests corren en SQLite
+   **y también contra PostgreSQL 16 en el CI** — esto último desde que se descubrió que
+   `alignments.reviewed_by` era `uuid` contra un `users.id` `bigint`: SQLite no tipa, así
+   que 154 tests pasaban mientras firmar una alineación era imposible en producción.
+   `migrate --seed` valida el esquema; solo la suite valida el comportamiento.
+   **Un tipo de columna que referencia a otra tabla se comprueba comparándolos entre sí**
+   (`Schema::getColumnType`), nunca exigiendo un tipo concreto: así el test es dual.
 
 ## Convenciones
 
