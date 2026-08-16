@@ -377,7 +377,11 @@ class CourseBlueprintTest extends TestCase
 
         $out = storage_path('framework/testing/blueprint-'.uniqid());
 
-        $this->artisan("curso:blueprint M --grado=g11 --out={$out}")
+        // Sintaxis de ARRAY a propósito: con el comando en string, StringInput
+        // se come los backslashes del path de Windows como si fueran escapes
+        // de shell (--out se pierde y el comando "triunfa" imprimiendo a
+        // consola). En Linux/CI nunca se vio porque storage_path no lleva \.
+        $this->artisan('curso:blueprint', ['nodo' => 'M', '--grado' => 'g11', '--out' => $out])
             ->assertSuccessful();
 
         $yaml = Yaml::parse(file_get_contents($out.'/curso.yaml'));
@@ -391,7 +395,8 @@ class CourseBlueprintTest extends TestCase
 
         // Idempotente: repetir no cambia un byte.
         $before = file_get_contents($out.'/curso.yaml');
-        $this->artisan("curso:blueprint M --grado=g11 --out={$out}")->assertSuccessful();
+        $this->artisan('curso:blueprint', ['nodo' => 'M', '--grado' => 'g11', '--out' => $out])
+            ->assertSuccessful();
         $this->assertSame($before, file_get_contents($out.'/curso.yaml'));
 
         array_map('unlink', glob($out.'/*'));
