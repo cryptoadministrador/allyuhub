@@ -26,6 +26,14 @@ return Application::configure(basePath: dirname(__DIR__))
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // En despliegue la app vive DETRÁS del nginx del host (deploy/):
+        // el TLS termina ahí y a PHP le llega http. Sin confiar en el proxy,
+        // Laravel cree que la petición es insegura, las cookies pierden
+        // `Secure` y la sesión muere dentro del iframe de Moodle — justo lo
+        // que el piloto tiene que probar. El proxy es NUESTRO nginx en la
+        // misma máquina (127.0.0.1), por eso el '*' no abre nada a terceros.
+        $middleware->trustProxies(at: '*');
+
         $middleware->validateCsrfTokens(except: ['lti/*']);
 
         // Sin sesión, las páginas redirigen a /entrar («vuelve desde Moodle»);

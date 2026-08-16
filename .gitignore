@@ -14,6 +14,7 @@
 /.zed
 /auth.json
 /coverage
+/deploy/.env.db
 /node_modules
 /public/build
 /public/fonts-manifest.dev.json

@@ -1,0 +1,65 @@
+# AllyuHub en el droplet `elearnium`, CONVIVIENDO con el Moodle beta
+# (que tiene su propio compose en /root/moodle-docker — no se toca).
+#
+# Topología: el nginx del HOST termina TLS para allyu.cuysoft.io y hace
+# proxy a 127.0.0.1:8090 → contenedor app (nginx+php-fpm 8.4). PostgreSQL
+# y el worker de colas solo existen en la red interna del compose.
+#
+# El puerto se publica SOLO en 127.0.0.1: nada de esto es alcanzable
+# desde fuera sin pasar por el nginx del host.
+name: allyuhub
+
+services:
+  app:
+    image: serversideup/php:8.4-fpm-nginx
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:8090:8080'
+    environment:
+      SSL_MODE: 'off'                # el TLS es del nginx del host
+      PHP_OPCACHE_ENABLE: '1'
+      AUTORUN_ENABLED: 'false'       # las migraciones se corren a mano, con juicio
+    volumes:
+      - ../:/var/www/html
+    depends_on:
+      db:
+        condition: service_healthy
+    # 2 GB de RAM compartidos con el Moodle beta: límites explícitos para
+    # que un pico de PHP no se lleve por delante al vecino.
+    mem_limit: 384m
+
+  # PushLtiScore corre en cola: sin worker, la nota JAMÁS llega a Moodle
+  # y el piloto daría un falso negativo en AGS.
+  worker:
+    image: serversideup/php:8.4-fpm-nginx
+    restart: unless-stopped
+    command: ['php', '/var/www/html/artisan', 'queue:work', '--tries=3', '--backoff=10', '--max-time=3600']
+    stop_signal: SIGTERM
+    volumes:
+      - ../:/var/www/html
+    depends_on:
+      db:
+        condition: service_healthy
+    mem_limit: 192m
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: allyuhub
+      POSTGRES_USER: allyu
+      # La contraseña vive en deploy/.env.db (NO versionado); install.sh la genera.
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?falta DB_PASSWORD - ejecuta install.sh}
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+      # ltree y pg_trgm se crean al inicializar el volumen (solo la 1.ª vez).
+      - ./initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U allyu -d allyuhub']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    mem_limit: 256m
+
+volumes:
+  dbdata:
