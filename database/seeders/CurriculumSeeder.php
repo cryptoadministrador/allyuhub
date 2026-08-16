@@ -25,6 +25,19 @@ class CurriculumSeeder extends Seeder
 {
     public function run(): void
     {
+        // IDEMPOTENTE por guarda, no por updateOrCreate — a propósito: si el
+        // marco ya existe, lo que hay en la BD puede ser el import OFICIAL
+        // (`mineduc:import --official`), y resembrar con updateOrCreate lo
+        // machacaría con los marcadores de la semilla. Un `migrate --seed`
+        // sobre una BD viva (deploy/install.sh se re-ejecuta en cada
+        // actualización) tiene que ser un no-op, no un duplicate key que
+        // aborta el script antes de recachear las rutas.
+        if (Framework::where('code', 'EC-MINEDEC')->exists()) {
+            $this->command?->warn('EC-MINEDEC ya existe: CurriculumSeeder no toca nada (la semilla nunca pisa un import).');
+
+            return;
+        }
+
         $data = json_decode(file_get_contents(database_path('data/curriculo-semilla.json')), true);
 
         DB::transaction(function () use ($data) {
@@ -131,7 +144,7 @@ class CurriculumSeeder extends Seeder
                     'modality' => 'semipresencial', 'min_age' => $minAge,
                     'min_gap_years' => 3, 'module_days' => 100,
                     'attrs' => ['normativa' => ['MINEDUC-2024-00046-A', 'MINEDUC-2025-00010-A',
-                                                'MINEDUC-2025-00032-A', 'MINEDUC-2025-00034-A']],
+                        'MINEDUC-2025-00032-A', 'MINEDUC-2025-00034-A']],
                 ]);
                 // Fase 0: propedéutica obligatoria para quien ingresa por primera vez,
                 // ADICIONAL al ciclo: 5 días hábiles en semipresencial, 10 a distancia
@@ -164,9 +177,9 @@ class CurriculumSeeder extends Seeder
             // ---------- Los dos simuladores reales del prototipo ----------
             $sims = [
                 ['plano-inclinado', 'Laboratorio: plano inclinado con rozamiento',
-                 ['CN.F.5.1.9', 'CN.F.5.1.12', 'CN.4.3.5', 'CN.4.3.10'], 25],
+                    ['CN.F.5.1.9', 'CN.F.5.1.12', 'CN.4.3.5', 'CN.4.3.10'], 25],
                 ['lente-delgada', 'Laboratorio: banco óptico de lente delgada',
-                 ['CN.F.5.3.7', 'CN.F.5.3.8'], 20],
+                    ['CN.F.5.3.7', 'CN.F.5.3.8'], 20],
             ];
             foreach ($sims as [$slug, $title, $codes, $dur]) {
                 $res = Resource::create([

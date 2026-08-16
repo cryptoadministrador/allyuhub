@@ -45,6 +45,11 @@ APP() { docker compose -f deploy/docker-compose.yml --env-file deploy/.env.db ex
 grep -q '^APP_KEY=.\+' .env || APP php artisan key:generate --force
 APP php artisan migrate --seed --force
 APP php artisan lti:keys
+# Limpiar ANTES de recachear: el 2026-08-16 un seeder no idempotente abortó el
+# script justo aquí y la caché de rutas quedó vieja — el endpoint nuevo daba 404
+# con el código ya desplegado. Los seeders ya son idempotentes, pero la caché
+# rancia no debe depender de que todo lo anterior salga bien a la primera.
+APP php artisan optimize:clear
 APP php artisan config:cache
 APP php artisan route:cache
 chown -R www-data:www-data storage bootstrap/cache
