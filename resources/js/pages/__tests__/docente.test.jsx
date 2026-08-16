@@ -112,13 +112,22 @@ describe('docente — el panel', () => {
     });
 
     it('ORÁCULO 5: nada sensible en el DOM', () => {
-        render(<Docente {...props()} />);
+        // Un alumno con email real en las props (que el servidor JAMÁS manda,
+        // pero el oráculo defiende el caso) no puede acabar pintado.
+        render(<Docente {...props({
+            students: [{ ...ALUMNOS[0], email: 'beatriz.privada@colegio.test', lti_sub: 'moodle-sub-99' }],
+        })} />);
 
         const html = document.body.innerHTML;
-        expect(html).not.toContain('email');
+        expect(html).not.toContain('beatriz.privada');
+        expect(html).not.toContain('moodle-sub-99');
         expect(html).not.toContain('lti_sub');
         expect(html).not.toContain('solution_expr');
-        expect(html).not.toContain('@');   // ni un correo colado
+
+        // Ningún correo salvo el de soporte del pie (el `not.toContain('@')`
+        // de antes era un oráculo vacío: el fixture no tenía ni un arroba).
+        const correos = [...html.matchAll(/[\w.+-]+@[\w.-]+\.\w+/g)].map((m) => m[0]);
+        expect(new Set(correos)).toEqual(new Set(['soporte@allyuhub.edu.ec']));
     });
 
     it.each([

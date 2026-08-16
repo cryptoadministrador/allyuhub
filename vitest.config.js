@@ -9,7 +9,7 @@ export default defineConfig({
         environment: 'jsdom',
         globals: true,
         setupFiles: ['resources/js/test/setup.js'],
-        include: ['resources/js/**/__tests__/*.test.jsx'],
+        include: ['resources/js/**/__tests__/*.test.{js,jsx}'],
         coverage: {
             provider: 'v8',
             include: ['resources/js/**/*.jsx'],
