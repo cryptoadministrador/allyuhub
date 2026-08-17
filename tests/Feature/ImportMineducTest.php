@@ -310,4 +310,85 @@ class ImportMineducTest extends TestCase
         // Una por grado del subnivel 5 (g11, g12, g13) y por código.
         $this->assertSame(3, LearningObjective::where('native_code', 'CN.F.5.1.9')->count());
     }
+
+    /**
+     * REGRESIÓN (auditoría PR #18, hallazgo 1 — el peor de nueve): el purgado
+     * de marcadores corría DENTRO del bucle y borraba destrezas que el propio
+     * documento traía, recreándolas con OTRO UUID — y la cascada se llevaba
+     * fases, aristas, ítems y masteries del UUID viejo. La regla: un código
+     * que el documento trae JAMÁS se borra; se actualiza en su sitio.
+     */
+    public function test_importar_conserva_el_uuid_de_todo_codigo_presente_en_el_documento(): void
+    {
+        // Dos marcadores del seeder, como los reales: sin imported_from.
+        $m1 = $this->marcador('CN.F.5.1.2');
+        $m2 = $this->marcador('CN.F.5.1.3');
+        // Y uno que el documento NO trae: ese sí debe retirarse.
+        $huerfano = $this->marcador('CN.F.5.9.9');
+
+        $fixture = $this->fixtureConDosDestrezas();   // trae CN.F.5.1.2 y CN.F.5.1.3
+
+        $this->artisan('mineduc:import', ['file' => $fixture, '--official' => true, '--force-coverage' => true])
+            ->assertSuccessful();
+
+        $this->assertNotNull($m1->fresh(), 'CN.F.5.1.2 debe conservar su UUID');
+        $this->assertNotNull($m2->fresh(), 'CN.F.5.1.3 debe conservar su UUID — el purgado lo borraba');
+        $this->assertTrue($m2->fresh()->is_verified);
+        $this->assertNull($huerfano->fresh(), 'el código ausente del documento sí se retira');
+    }
+
+    /**
+     * REGRESIÓN (auditoría PR #18, hallazgo 3): el oráculo mide PRECISIÓN, no
+     * COBERTURA. Un layout que pierda CÓDIGOS importaría una fracción del área
+     * con «calidad 100 %» y retiraría todos los marcadores igual. Si lo
+     * rescatado no llega a lo que se retira, --official aborta.
+     */
+    public function test_official_aborta_si_rescata_menos_de_lo_que_retira(): void
+    {
+        foreach (['CN.F.5.1.2', 'CN.F.5.1.3', 'CN.F.5.1.4', 'CN.F.5.2.1', 'CN.F.5.2.2'] as $code) {
+            $this->marcador($code);
+        }
+        $fixture = $this->fixtureConUnaDestreza();   // rescata 1, retiraría 4
+
+        $this->artisan('mineduc:import', ['file' => $fixture, '--official' => true])
+            ->assertFailed();
+        $this->assertSame(5, LearningObjective::count(), 'el abort no puede dejar parciales');
+
+        // Con --force-coverage sí pasa (currículos priorizados legítimos).
+        $this->artisan('mineduc:import', ['file' => $fixture, '--official' => true, '--force-coverage' => true])
+            ->assertSuccessful();
+        // La destreza de subnivel se replica en los 3 grados del subnivel (g11-13).
+        $this->assertSame(3, LearningObjective::count());
+    }
+
+    private function marcador(string $code): LearningObjective
+    {
+        $bloque = CurNode::where('node_type', 'bloque')->orderBy('path')->firstOrFail();
+
+        return LearningObjective::create([
+            'node_id' => $bloque->id, 'version_id' => $bloque->version_id,
+            'native_code' => $code,
+            'statement' => ['es' => 'Marcador generado para la navegación.'],
+            'is_verified' => false,
+        ]);
+    }
+
+    private function fixtureConDosDestrezas(): string
+    {
+        $texto = "CN.F.5.1.2. Observar y describir el ciclo vital de las plantas y de los animales, y comunicar los resultados con recursos pertinentes.\n\n"
+            ."CN.F.5.1.3. Experimentar sobre las necesidades esenciales de las plantas y explicar la importancia del agua y de la luz para su desarrollo.\n";
+        $ruta = storage_path('app/fixture-dos.txt');
+        file_put_contents($ruta, $texto);
+
+        return $ruta;
+    }
+
+    private function fixtureConUnaDestreza(): string
+    {
+        $texto = "CN.F.5.1.2. Observar y describir el ciclo vital de las plantas y de los animales, y comunicar los resultados con recursos pertinentes.\n";
+        $ruta = storage_path('app/fixture-una.txt');
+        file_put_contents($ruta, $texto);
+
+        return $ruta;
+    }
 }

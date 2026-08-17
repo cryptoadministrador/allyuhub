@@ -172,4 +172,26 @@ class LayoutSharedPropsTest extends TestCase
 
         return $profe;
     }
+
+    /**
+     * REGRESIÓN (auditoría PR #18, hallazgo 5): desconectar el Moodle de un
+     * colegio (is_active=false) debe apagar también el «Panel del curso» del
+     * nav — coherente con el launch y la CSP, que exigen la Platform activa.
+     */
+    public function test_una_platform_desactivada_apaga_el_panel_del_nav(): void
+    {
+        $profe = User::factory()->create();
+        $this->membership($this->contexto('curso-101', 'Física'), $profe, 'instructor');
+
+        $this->actingAs($profe)->get('/inicio')
+            ->assertInertia(fn (Assert $page) => $page->where('auth.es_docente', true));
+
+        LtiPlatform::query()->update(['is_active' => false]);
+
+        $this->actingAs($profe)->get('/inicio')
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('auth.es_docente', false)
+                ->where('auth.contextos', [])
+            );
+    }
 }

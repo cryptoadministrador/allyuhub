@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\LtiContext;
 use App\Models\LtiContextMembership;
+use App\Models\LtiPlatform;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -66,6 +67,10 @@ class HandleInertiaRequests extends Middleware
         }
 
         return $this->contextosDocente = LtiContext::query()
+            // Un Moodle desactivado (lti:platform desconectada) no debe seguir
+            // encendiendo el panel en el nav: coherente con el launch y la CSP,
+            // que también exigen la Platform activa (auditoría PR #18).
+            ->whereIn('platform_id', LtiPlatform::query()->active()->select('id'))
             ->whereIn('id', LtiContextMembership::query()
                 ->where('user_id', $user->id)
                 ->where('role', 'instructor')

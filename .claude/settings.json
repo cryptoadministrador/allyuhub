@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell($tmp = \"C:\\\\Users\\\\Carlos\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-Carlos-Desktop-allyuhub\\\\73d08872-2cd0-451c-99fa-b75aa0ea44f2\\\\scratchpad\" ; $dir = \"c:\\\\Users\\\\Carlos\\\\Desktop\\\\allyuhub\\\\tests\\\\fixtures\\\\curriculo\" ; New-Item -ItemType Directory -Force $dir | Out-Null ; $R = Get-Content \"$tmp\\\\ccnn-raw.txt\" ; $L = Get-Content \"$tmp\\\\ccnn-layout.txt\" ; \\($R[5065..5090] -join \"`n\"\\) | Set-Content \"$dir\\\\ccnn-dcd-raw.txt\" -Encoding UTF8 ; \\($R[5418..5432] -join \"`n\"\\) | Set-Content \"$dir\\\\ccnn-matriz-contaminada-raw.txt\" -Encoding UTF8 ; \\($L[5095..5120] -join \"`n\"\\) | Set-Content \"$dir\\\\ccnn-indicadores-layout.txt\" -Encoding UTF8 ; Get-ChildItem $dir | Select-Object Name, Length ; \"=== matriz \\(primeras 4\\) ===\" ; \\(Get-Content \"$dir\\\\ccnn-matriz-contaminada-raw.txt\" | Select-Object -First 4\\) | ForEach-Object { \"|$_\" })",
+      "PowerShell($env:Path = \"C:\\\\Users\\\\Carlos\\\\.claude\\\\tools\\\\poppler\\\\poppler-26.02.0\\\\Library\\\\bin;$env:Path\" ; & \"C:\\\\Users\\\\Carlos\\\\.claude\\\\tools\\\\php84\\\\php.exe\" artisan mineduc:import storage/curriculo/CCNN_COMPLETO.pdf --dry-run 2>&1 | Select-Object -First 26)"
+    ]
+  }
+}

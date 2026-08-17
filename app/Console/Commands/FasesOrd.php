@@ -57,11 +57,24 @@ class FasesOrd extends Command
         // atadas, alguien las mapeó a mano y borrarlas perdería ese trabajo.
         $sobrantes = $track->phases()->whereNotIn('seq', array_keys(self::SUBNIVELES))->get();
         $conDatos = $sobrantes->filter(fn (TrackPhase $f) => $f->objectives()->exists());
-        if ($conDatos->isNotEmpty() && ! $this->option('force')) {
+
+        // AUDITORÍA PR #18 (hallazgo 2): la guarda solo miraba las fases que se
+        // BORRAN (seq fuera de 1-5), pero las fases seq 1-5 se reciclan con
+        // sync(), que pisa en silencio cualquier mapeo hecho a mano. Un pivote
+        // cuyo `source` no sea 'mapeo-interno' es trabajo humano: también
+        // bloquea, con el mismo --force como única salida.
+        $recicladasConTrabajoHumano = $track->phases()
+            ->whereIn('seq', array_keys(self::SUBNIVELES))->get()
+            ->filter(fn (TrackPhase $f) => $f->objectives()
+                ->wherePivot('source', '!=', 'mapeo-interno')->exists());
+
+        if (($conDatos->isNotEmpty() || $recicladasConTrabajoHumano->isNotEmpty()) && ! $this->option('force')) {
             $this->error(sprintf(
-                'ABORTADO: %d fase(s) antiguas de ORD tienen destrezas atadas (seq: %s). '
-                .'Repite con --force si de verdad quieres retirarlas.',
-                $conDatos->count(), $conDatos->pluck('seq')->implode(', '),
+                'ABORTADO: hay trabajo humano en fases de ORD que este comando pisaría — '
+                .'%d fase(s) antiguas con destrezas (seq: %s) y %d fase(s) 1-5 con mapeos ajenos (seq: %s). '
+                .'Repite con --force si de verdad quieres perderlo.',
+                $conDatos->count(), $conDatos->pluck('seq')->implode(', ') ?: '—',
+                $recicladasConTrabajoHumano->count(), $recicladasConTrabajoHumano->pluck('seq')->implode(', ') ?: '—',
             ));
 
             return self::FAILURE;

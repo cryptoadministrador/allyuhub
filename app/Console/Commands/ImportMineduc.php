@@ -42,7 +42,8 @@ class ImportMineduc extends Command
         {file : Ruta al PDF o TXT del documento curricular}
         {--official : Marca las destrezas como verificadas y registra el sha256}
         {--dry-run : Muestra lo que haría sin escribir en la base}
-        {--min-len=25 : Longitud mínima del enunciado para aceptarlo}';
+        {--min-len=25 : Longitud mínima del enunciado para aceptarlo}
+        {--force-coverage : Permite retirar más marcadores de los que se rescatan (currículos priorizados)}';
 
     protected $description = 'Importa destrezas del currículo oficial MINEDEC al grafo';
 
@@ -149,72 +150,121 @@ class ImportMineduc extends Command
 
         $stats = ['nuevas' => 0, 'actualizadas' => 0, 'sin_nodo' => 0, 'reemplazadas' => 0];
 
-        DB::transaction(function () use ($found, $version, &$stats) {
-            foreach ($found as $d) {
-                $grados = self::SUBNIVEL_GRADOS[$d['subnivel']] ?? [];
-                foreach ($grados as $gid) {
-                    // El bloque destino: primer bloque de la asignatura de ese grado.
-                    // (El PDF trae la destreza por subnivel; la asignación fina a
-                    //  bloques/unidades es trabajo editorial posterior en la plataforma.)
-                    $bloque = CurNode::where('version_id', $version->id)
-                        ->where('node_type', 'bloque')
-                        ->whereHas('parent', fn ($q) => $q->where('native_code', $d['area'])
-                            ->whereHas('parent', fn ($g) => $g->where('native_code', $gid)))
-                        ->orderBy('seq')->first();
+        try {
+            DB::transaction(function () use ($found, $version, &$stats) {
+                foreach ($found as $d) {
+                    $grados = self::SUBNIVEL_GRADOS[$d['subnivel']] ?? [];
+                    foreach ($grados as $gid) {
+                        // El bloque destino: primer bloque de la asignatura de ese grado.
+                        // (El PDF trae la destreza por subnivel; la asignación fina a
+                        //  bloques/unidades es trabajo editorial posterior en la plataforma.)
+                        $bloque = CurNode::where('version_id', $version->id)
+                            ->where('node_type', 'bloque')
+                            ->whereHas('parent', fn ($q) => $q->where('native_code', $d['area'])
+                                ->whereHas('parent', fn ($g) => $g->where('native_code', $gid)))
+                            ->orderBy('seq')->first();
 
-                    if (! $bloque) {
-                        $stats['sin_nodo']++;
+                        if (! $bloque) {
+                            $stats['sin_nodo']++;
 
-                        continue;
-                    }
-
-                    $existing = LearningObjective::where('version_id', $version->id)
-                        ->where('native_code', $d['code'])
-                        ->whereHas('node.parent', fn ($q) => $q
-                            ->whereHas('parent', fn ($g) => $g->where('native_code', $gid)))
-                        ->first();
-
-                    $payload = [
-                        'statement' => ['es' => $d['text']],
-                        'attrs' => ['imported_from' => basename($this->argument('file')),
-                            'imported_at' => now()->toDateString()],
-                    ];
-                    if ($this->option('official')) {
-                        $payload['is_verified'] = true;   // sin --official NUNCA se degrada lo ya verificado
-                    }
-
-                    if ($existing) {
-                        // Una importación no oficial tampoco pisa el enunciado de una destreza verificada.
-                        if (! $existing->is_verified || $this->option('official')) {
-                            $existing->update($payload);
+                            continue;
                         }
-                        $stats['actualizadas']++;
-                    } else {
-                        LearningObjective::create($payload + [
-                            'node_id' => $bloque->id, 'version_id' => $version->id,
-                            'native_code' => $d['code'], 'is_essential' => null,
-                            'is_verified' => (bool) $this->option('official'),
-                        ]);
-                        $stats['nuevas']++;
+
+                        $existing = LearningObjective::where('version_id', $version->id)
+                            ->where('native_code', $d['code'])
+                            ->whereHas('node.parent', fn ($q) => $q
+                                ->whereHas('parent', fn ($g) => $g->where('native_code', $gid)))
+                            ->first();
+
+                        $payload = [
+                            'statement' => ['es' => $d['text']],
+                            'attrs' => ['imported_from' => basename($this->argument('file')),
+                                'imported_at' => now()->toDateString()],
+                        ];
+                        if ($this->option('official')) {
+                            $payload['is_verified'] = true;   // sin --official NUNCA se degrada lo ya verificado
+                        }
+
+                        if ($existing) {
+                            // Una importación no oficial tampoco pisa el enunciado de una destreza verificada.
+                            if (! $existing->is_verified || $this->option('official')) {
+                                $existing->update($payload);
+                            }
+                            $stats['actualizadas']++;
+                        } else {
+                            LearningObjective::create($payload + [
+                                'node_id' => $bloque->id, 'version_id' => $version->id,
+                                'native_code' => $d['code'], 'is_essential' => null,
+                                'is_verified' => (bool) $this->option('official'),
+                            ]);
+                            $stats['nuevas']++;
+                        }
+                    }
+
+                }
+
+                /*
+                 * Retira los marcadores del seeder que el currículo real NO trae —
+                 * UNA sola vez, al FINAL, y excluyendo los códigos del documento.
+                 *
+                 * HALLAZGO 1 de la auditoría del PR #18 (el peor de nueve): este
+                 * purgado vivía DENTRO del bucle y corría en la primera iteración,
+                 * cuando el resto de destrezas del propio documento aún eran
+                 * marcadores sin `imported_from`. Las borraba y el bucle las
+                 * recreaba después CON OTRO UUID — y por cascada se perdía todo lo
+                 * colgado del UUID viejo: track_phase_objectives, alignments,
+                 * resource_objectives, practice_items→attempts, masteries. El
+                 * primer --official real habría churneado la identidad de casi
+                 * toda el área. La regla que este bloque encarna: un código que el
+                 * documento trae JAMÁS se borra — se actualiza en su sitio.
+                 */
+                if ($this->option('official')) {
+                    foreach ($found->pluck('area')->unique() as $area) {
+                        // GUARDA DE COBERTURA (auditoría PR #18): el oráculo de
+                        // calidad mide PRECISIÓN (lo extraído está limpio) pero no
+                        // COBERTURA. Un layout distinto (M, LL) que pierda CÓDIGOS
+                        // importaría una fracción del área con «calidad 100 %» y
+                        // retiraría todos los marcadores igual. Si lo rescatado no
+                        // llega ni a la mitad de lo que se va a retirar, se aborta:
+                        // mejor no importar que dejar el área medio vacía.
+                        $rescatadas = $found->where('area', $area)->count();
+                        $aRetirar = LearningObjective::where('version_id', $version->id)
+                            ->where('is_verified', false)
+                            ->where('native_code', 'like', $area.'.%')
+                            ->whereNotIn('native_code', $found->where('area', $area)->pluck('code'))
+                            ->whereRaw("(attrs->>'imported_from') IS NULL")
+                            ->whereHas('node.parent', fn ($q) => $q->where('native_code', $area))
+                            ->count();
+                        if ($aRetirar > 0 && $rescatadas < $aRetirar && ! $this->option('force-coverage')) {
+                            throw new \RuntimeException(sprintf(
+                                'Cobertura sospechosa en %s: %d destrezas rescatadas contra %d marcadores a retirar. '.
+                                'El layout de este PDF puede estar perdiendo códigos. Revisa con --dry-run; '.
+                                'si la baja cobertura es real (currículo priorizado), repite con --force-coverage.',
+                                $area, $rescatadas, $aRetirar,
+                            ));
+                        }
+
+                        $stats['reemplazadas'] += LearningObjective::where('version_id', $version->id)
+                            ->where('is_verified', false)
+                            ->where('native_code', 'like', $area.'.%')
+                            ->whereNotIn('native_code', $found->where('area', $area)->pluck('code'))
+                            ->whereRaw("(attrs->>'imported_from') IS NULL")
+                            ->whereHas('node.parent', fn ($q) => $q->where('native_code', $area))
+                            ->delete();
                     }
                 }
 
-                // Retira los marcadores del seeder de esa asignatura+subnivel que
-                // nunca existieron en el currículo real (códigos sintéticos g{n}.b{x}.{y}).
                 if ($this->option('official')) {
-                    $stats['reemplazadas'] += LearningObjective::where('version_id', $version->id)
-                        ->where('is_verified', false)
-                        ->where('native_code', 'like', $d['area'].'.%')
-                        ->whereRaw("(attrs->>'imported_from') IS NULL")
-                        ->whereHas('node.parent', fn ($q) => $q->where('native_code', $d['area']))
-                        ->delete();
+                    $version->update(['source_sha256' => hash_file('sha256', $this->argument('file'))]);
                 }
-            }
+            });
+        } catch (\RuntimeException $e) {
+            // La guarda de cobertura aborta DENTRO de la transacción: nada se
+            // escribió. Se reporta como fallo limpio, no como stack trace.
+            $this->error('ABORTADO: '.$e->getMessage());
 
-            if ($this->option('official')) {
-                $version->update(['source_sha256' => hash_file('sha256', $this->argument('file'))]);
-            }
-        });
+            return self::FAILURE;
+        }
 
         $this->info(sprintf(
             'Importación completa: %d nuevas · %d actualizadas · %d marcadores retirados · %d sin nodo destino.',
@@ -377,7 +427,7 @@ class ImportMineduc extends Command
         //    recorte se comía la última frase de todo enunciado de varias.
         //  - el punto de corte exige espacio y luego mayúscula o cifra, para
         //    no partir un decimal («precisión de 0.5 gramos»).
-        if (! preg_match('/[.!?…)]$/u', $stmt)
+        if (! preg_match('/[.!?…)»”"’]$/u', $stmt)
             && preg_match('/^(.*[.!?…])\s+[\p{Lu}\d].*$/su', $stmt, $m)) {
             $stmt = $m[1];
         }
@@ -417,7 +467,7 @@ class ImportMineduc extends Command
         }
 
         // (d) termina donde debe (puntuación) y no a mitad de palabra.
-        if (! preg_match('/[.!?…)]$/u', $stmt)) {
+        if (! preg_match('/[.!?…)»”"’]$/u', $stmt)) {
             return ['valido' => false, 'motivo' => 'no termina en puntuación'];
         }
 
@@ -444,8 +494,15 @@ class ImportMineduc extends Command
 
         foreach ($m[1] as $i => [$code, $offset]) {
             $start = $offset + strlen($m[0][$i][0]);
-            $end = isset($m[0][$i + 1]) ? $m[0][$i + 1][1] : min(strlen($text), $start + 600);
+            $end = isset($m[0][$i + 1]) ? $m[0][$i + 1][1] : strlen($text);
+            // Corte SEGURO en bytes: partir un carácter multibyte deja UTF-8
+            // inválido y preg_replace /u devuelve NULL — la última destreza del
+            // documento se descartaba en silencio (auditoría PR #18).
+            $end = min($end, $start + strlen(mb_strcut($text, $start, 600)));
             $stmt = self::cortarInvasores(trim(substr($text, $start, $end - $start)));
+            // Las ligaduras tipográficas del PDF (ﬁ, ﬂ…) rompen búsquedas y
+            // comparaciones sin cambiar cómo se VE el texto: se normalizan.
+            $stmt = str_replace(["\u{FB00}", "\u{FB01}", "\u{FB02}", "\u{FB03}", "\u{FB04}"], ['ff', 'fi', 'fl', 'ffi', 'ffl'], $stmt);
 
             if (mb_strlen($stmt) < (int) $this->option('min-len')) {
                 continue;

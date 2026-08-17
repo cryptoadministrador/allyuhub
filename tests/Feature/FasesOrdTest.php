@@ -217,4 +217,33 @@ class FasesOrdTest extends TestCase
                 ->where('objectives_summary.total', 5)   // las 5 destrezas del grafo
             );
     }
+
+    /**
+     * REGRESIÓN (auditoría PR #18, hallazgo 2): la guarda solo miraba las
+     * fases que se BORRAN; las fases seq 1-5 se reciclan con sync(), que
+     * pisaba en silencio un mapeo hecho a mano. Un pivote con source ajeno a
+     * 'mapeo-interno' es trabajo humano y también bloquea.
+     */
+    public function test_un_mapeo_manual_en_una_fase_reciclada_tambien_bloquea(): void
+    {
+        $this->artisan('curriculo:fases-ord')->assertSuccessful();
+
+        // Un docente mapeó a mano una destreza en la fase 3 (Media).
+        $fase = Track::where('code', 'ORD')->firstOrFail()
+            ->phases()->where('seq', 3)->firstOrFail();
+        $destreza = LearningObjective::firstOrFail();
+        $fase->objectives()->syncWithoutDetaching([
+            $destreza->id => ['source' => 'mapeo-docente'],
+        ]);
+
+        $this->artisan('curriculo:fases-ord')->assertFailed();
+        // El pivote humano sigue vivo.
+        $this->assertTrue(
+            $fase->objectives()->wherePivot('source', 'mapeo-docente')->exists(),
+            'el mapeo manual no puede desaparecer sin --force'
+        );
+
+        // Con --force, el docente asume la pérdida y el comando pasa.
+        $this->artisan('curriculo:fases-ord', ['--force' => true])->assertSuccessful();
+    }
 }
