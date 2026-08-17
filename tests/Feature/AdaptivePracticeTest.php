@@ -276,4 +276,22 @@ class AdaptivePracticeTest extends TestCase
         }
         $this->assertArrayNotHasKey('solution_expr', $res->json());
     }
+
+    /**
+     * REGRESIÓN (auditoría PR #18, mutación superviviente): la condición de
+     * mastery del retroceso (mastery < 0.4) no tenía test — subir el umbral a
+     * 9.9 dejaba la suite en verde. Un alumno con dominio ALTO que encadena
+     * dos fallos NO debe ser retrocedido: dos tropiezos no borran un dominio.
+     */
+    public function test_dos_fallos_con_mastery_alto_no_disparan_retroceso(): void
+    {
+        ObjectiveMastery::create([
+            'user_id' => $this->ana->id, 'objective_id' => $this->base->id,
+            'mastery' => 0.75, 'streak' => -2, 'attempts_count' => 9,
+        ]);
+
+        $this->next($this->base)->assertOk()
+            ->assertJsonPath('objective_id', $this->base->id)
+            ->assertJsonPath('reason', 'práctica normal');
+    }
 }

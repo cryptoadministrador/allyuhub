@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\PracticeController;
 use App\Http\Controllers\App\DocenteController;
+use App\Http\Controllers\App\InicioController;
 use App\Http\Controllers\App\PageController;
 use Illuminate\Support\Facades\Route;
 
@@ -9,13 +10,18 @@ use Illuminate\Support\Facades\Route;
 // resources/js/app.js — borrado al pasar a Inertia (app.jsx) — así que con
 // el manifest de Vite presente (producción) la raíz daba 500. Los tests no
 // lo veían: withoutVite() y ninguno visitaba '/'.
-Route::redirect('/', '/catalogo');
+// La raíz lleva a la casa del alumno cuando hay sesión; el visitante sin
+// sesión va al catálogo (que a su vez lo manda a /entrar con redirectGuestsTo).
+Route::get('/', fn () => auth()->check() ? redirect('/inicio') : redirect('/catalogo'));
 
 // Sesión caducada o acceso sin launch: la única puerta de entrada es Moodle.
 Route::view('/entrar', 'entrar')->name('entrar');
 
 // Páginas de la app (Inertia + React). La identidad es SIEMPRE la sesión.
 Route::middleware('auth')->group(function () {
+    // La casa del alumno: dónde iba, qué toca y cómo va.
+    Route::get('/inicio', InicioController::class)->name('inicio');
+
     Route::get('/practicar/{objective}', [PageController::class, 'practicar'])->name('practicar');
     Route::get('/recurso/{resource}', [PageController::class, 'recurso'])->name('recurso');
     Route::get('/progreso', [PageController::class, 'progreso'])->name('progreso');

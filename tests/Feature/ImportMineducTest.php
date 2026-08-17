@@ -2,11 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Console\Commands\ImportMineduc;
 use App\Models\CurNode;
 use App\Models\Framework;
 use App\Models\FrameworkVersion;
 use App\Models\LearningObjective;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
+use Symfony\Component\Process\ExecutableFinder;
 use Tests\TestCase;
 
 class ImportMineducTest extends TestCase
@@ -115,5 +118,277 @@ class ImportMineducTest extends TestCase
     {
         $file = $this->fixture(str_repeat('Texto cualquiera sin códigos curriculares. ', 30));
         $this->artisan('mineduc:import', ['file' => $file])->assertFailed();
+    }
+
+    // ---------- El oráculo de calidad en el comando (misión ANTY, frente 2) ----------
+
+    /** Un documento limpio reporta su calidad y entra sin pelear. */
+    public function test_reporta_el_porcentaje_de_calidad(): void
+    {
+        $file = $this->fixture(
+            'CN.F.5.1.9. Explicar el movimiento de un cuerpo sobre un plano inclinado, '
+            ."identificando las fuerzas que actúan sobre él.\n\n"
+            .'CN.F.5.1.12. Determinar experimentalmente el coeficiente de rozamiento entre dos '
+            .'superficies, a partir del ángulo crítico.',
+        );
+
+        $this->artisan('mineduc:import', ['file' => $file, '--dry-run' => true])
+            ->expectsOutputToContain('Calidad de la extracción: 100 %')
+            ->assertSuccessful();
+    }
+
+    /**
+     * EL ORÁCULO QUE PROTEGE AL COLEGIO: si la extracción viene sucia,
+     * --official no importa nada. Mejor no importar que importar basura.
+     */
+    public function test_official_aborta_si_la_calidad_baja_del_umbral(): void
+    {
+        // Una buena y tres podridas (25 % de validez, muy por debajo del 95 %).
+        $file = $this->fixture(
+            'CN.F.5.1.9. Explicar el movimiento de un cuerpo sobre un plano inclinado, '
+            ."identificando las fuerzas que actúan.\n\n"
+            ."CN.F.5.1.4. Aplicar las leyes de Newton al análisis de sistemas y expli- car sus efectos\n\n"
+            ."CN.F.5.3.7. Describir la formación de imágenes en lentes delgadas convergentes y\n\n"
+            .'CN.F.5.3.8. Determinar el aumento lateral de una imagen y la posicionCN del objeto',
+        );
+
+        $this->artisan('mineduc:import', ['file' => $file, '--official' => true])
+            ->expectsOutputToContain('ABORTADO')
+            ->assertFailed();
+
+        // Y no escribió NADA: ni la destreza buena.
+        $this->assertSame(0, LearningObjective::where('native_code', 'CN.F.5.1.9')->count());
+        $this->assertNull($this->version->fresh()->source_sha256);
+    }
+
+    /** Por encima del umbral, las pocas malas se omiten en vez de verificarse. */
+    public function test_official_omite_las_destrezas_que_no_pasan_el_oraculo(): void
+    {
+        $buenas = collect(range(1, 20))->map(fn ($i) => sprintf(
+            'CN.F.5.1.%d. Explicar el fenómeno número %d con sus causas y sus efectos observables '
+            .'en situaciones cotidianas del entorno.', $i, $i,
+        ))->implode("\n\n");
+
+        $file = $this->fixture($buenas."\n\nCN.F.5.2.1. Describir el fenómeno y la posicionCN del objeto");
+
+        $this->artisan('mineduc:import', ['file' => $file, '--official' => true])
+            ->expectsOutputToContain('Se omiten 1 destreza(s)')
+            ->assertSuccessful();
+
+        $this->assertSame(0, LearningObjective::where('native_code', 'CN.F.5.2.1')->count());
+        $this->assertGreaterThan(0, LearningObjective::where('native_code', 'CN.F.5.1.1')->count());
+    }
+
+    public function test_el_dry_run_jamas_escribe(): void
+    {
+        $antes = LearningObjective::count();
+
+        $file = $this->fixture(
+            'CN.F.5.1.9. Explicar el movimiento de un cuerpo sobre un plano inclinado, '
+            .'identificando las fuerzas que actúan sobre él.',
+        );
+        $this->artisan('mineduc:import', ['file' => $file, '--dry-run' => true])->assertSuccessful();
+        $this->artisan('mineduc:import', ['file' => $file, '--dry-run' => true, '--official' => true])
+            ->assertSuccessful();
+
+        $this->assertSame($antes, LearningObjective::count());
+        $this->assertNull($this->version->fresh()->source_sha256);
+    }
+
+    /**
+     * EL ÚNICO TEST QUE TOCA EL PDF DE VERDAD. Los fixtures son .txt y por eso
+     * ninguno veía el modo de extracción: quitar `-raw` de pdfToText dejaba la
+     * suite en verde mientras el importador entrelazaba columnas (auditoría).
+     *
+     * Se salta si no está el PDF (está en .gitignore, así que el CI no lo
+     * tiene) — en la máquina de quien vaya a importar, corre.
+     */
+    public function test_el_pdf_oficial_se_extrae_con_calidad_suficiente(): void
+    {
+        $pdf = base_path('storage/curriculo/CCNN_COMPLETO.pdf');
+        if (! is_file($pdf)) {
+            $this->markTestSkipped('Sin storage/curriculo/CCNN_COMPLETO.pdf (ver storage/curriculo/README.md).');
+        }
+        if ((new ExecutableFinder)->find('pdftotext') === null) {
+            $this->markTestSkipped('Sin pdftotext (poppler-utils) en el PATH.');
+        }
+
+        $codigo = Artisan::call('mineduc:import', ['file' => $pdf]);
+        $salida = Artisan::output();
+        $this->assertSame(0, $codigo, $salida);
+
+        preg_match('/Calidad de la extracción: ([\d.]+) %/u', $salida, $m);
+        $this->assertNotEmpty($m, 'El comando no reportó la calidad');
+        $this->assertGreaterThanOrEqual(
+            ImportMineduc::UMBRAL_CALIDAD, (float) $m[1],
+            'La extracción del PDF oficial ya no alcanza el umbral de --official',
+        );
+
+        // El % NO basta: con el modo de extracción equivocado la calidad seguía
+        // por encima del umbral y aun así el enunciado era falso. Se comprueba
+        // el CONTENIDO de una destreza concreta contra el texto oficial.
+        $ley = LearningObjective::where('native_code', 'CN.F.5.1.17')->first();
+        $this->assertNotNull($ley, 'No se importó CN.F.5.1.17');
+        $this->assertStringContainsString(
+            'aceleración y fuerza que actúan sobre un objeto y su masa',
+            $ley->statement['es'],
+        );
+        $this->assertStringNotContainsString('relaambiente', $ley->statement['es']);
+
+        // Y una destreza donde el modo de extracción se nota de verdad: por
+        // defecto, pdftotext le encaja texto de la columna de objetivos.
+        $deformacion = LearningObjective::where('native_code', 'CN.F.5.1.30')->first();
+        $this->assertNotNull($deformacion);
+        $this->assertStringContainsString(
+            'fuerzas de compresión o de tracción que causan la deformación',
+            $deformacion->statement['es'],
+        );
+        $this->assertStringNotContainsString('su lugar en el Universo', $deformacion->statement['es']);
+    }
+
+    /**
+     * REGRESIÓN del desempate, por la RUTA REAL (el comando, no una copia de
+     * la comparación dentro del test). Fixture con las DOS ocurrencias reales
+     * del PDF para el mismo código: la limpia de la tabla de destrezas y la
+     * entrelazada con la columna de objetivos. Las dos pasan el oráculo, así
+     * que solo el criterio «entre válidas, la más larga» las distingue.
+     */
+    public function test_entre_dos_ocurrencias_reales_se_queda_la_completa(): void
+    {
+        $fixture = dirname(__DIR__).'/fixtures/curriculo/ccnn-codigo-duplicado.txt';
+
+        $this->artisan('mineduc:import', ['file' => $fixture])->assertSuccessful();
+
+        $ley = LearningObjective::where('native_code', 'CN.F.5.1.17')->first();
+        $this->assertNotNull($ley);
+        $this->assertStringContainsString(
+            'aceleración y fuerza que actúan sobre un objeto y su masa',
+            $ley->statement['es'],
+        );
+        $this->assertStringNotContainsString('relaambiente', $ley->statement['es']);
+        $this->assertStringNotContainsString('curiosidad por explorar', $ley->statement['es']);
+    }
+
+    /**
+     * El desempate, aislado: cuando la MISMA destreza aparece dos veces y AMBAS
+     * versiones pasan el oráculo, se queda la completa. Ocurre cuando la matriz
+     * de criterios solo trae la primera frase y el mobiliario de página se lleva
+     * el resto — el recorte la deja terminada en punto, o sea válida y CORTA.
+     */
+    public function test_entre_dos_variantes_validas_se_queda_la_completa(): void
+    {
+        $file = $this->fixture(
+            'CN.F.5.1.9. Explicar el movimiento de un cuerpo sobre un plano inclinado. '
+            ."156 Educación General Básica Superior CIENCIAS NATURALES\n\n"
+            .'CN.F.5.1.9. Explicar el movimiento de un cuerpo sobre un plano inclinado. '
+            .'Descomponer el peso en sus componentes y calcular la fuerza resultante.',
+        );
+
+        $this->artisan('mineduc:import', ['file' => $file])->assertSuccessful();
+
+        $ley = LearningObjective::where('native_code', 'CN.F.5.1.9')->first();
+        $this->assertNotNull($ley);
+        $this->assertStringContainsString('Descomponer el peso en sus componentes', $ley->statement['es']);
+        $this->assertStringNotContainsString('Educación General Básica', $ley->statement['es']);
+    }
+
+    public function test_reimportar_es_idempotente(): void
+    {
+        $file = $this->fixture(
+            'CN.F.5.1.9. Explicar el movimiento de un cuerpo sobre un plano inclinado, '
+            ."identificando las fuerzas que actúan sobre él.\n\n"
+            .'CN.F.5.1.12. Determinar experimentalmente el coeficiente de rozamiento entre dos '
+            .'superficies, a partir del ángulo crítico.',
+        );
+
+        $this->artisan('mineduc:import', ['file' => $file, '--official' => true])->assertSuccessful();
+        $primera = LearningObjective::count();
+
+        $this->artisan('mineduc:import', ['file' => $file, '--official' => true])->assertSuccessful();
+
+        $this->assertSame($primera, LearningObjective::count(), 'Re-importar duplicó destrezas');
+        // Una por grado del subnivel 5 (g11, g12, g13) y por código.
+        $this->assertSame(3, LearningObjective::where('native_code', 'CN.F.5.1.9')->count());
+    }
+
+    /**
+     * REGRESIÓN (auditoría PR #18, hallazgo 1 — el peor de nueve): el purgado
+     * de marcadores corría DENTRO del bucle y borraba destrezas que el propio
+     * documento traía, recreándolas con OTRO UUID — y la cascada se llevaba
+     * fases, aristas, ítems y masteries del UUID viejo. La regla: un código
+     * que el documento trae JAMÁS se borra; se actualiza en su sitio.
+     */
+    public function test_importar_conserva_el_uuid_de_todo_codigo_presente_en_el_documento(): void
+    {
+        // Dos marcadores del seeder, como los reales: sin imported_from.
+        $m1 = $this->marcador('CN.F.5.1.2');
+        $m2 = $this->marcador('CN.F.5.1.3');
+        // Y uno que el documento NO trae: ese sí debe retirarse.
+        $huerfano = $this->marcador('CN.F.5.9.9');
+
+        $fixture = $this->fixtureConDosDestrezas();   // trae CN.F.5.1.2 y CN.F.5.1.3
+
+        $this->artisan('mineduc:import', ['file' => $fixture, '--official' => true, '--force-coverage' => true])
+            ->assertSuccessful();
+
+        $this->assertNotNull($m1->fresh(), 'CN.F.5.1.2 debe conservar su UUID');
+        $this->assertNotNull($m2->fresh(), 'CN.F.5.1.3 debe conservar su UUID — el purgado lo borraba');
+        $this->assertTrue($m2->fresh()->is_verified);
+        $this->assertNull($huerfano->fresh(), 'el código ausente del documento sí se retira');
+    }
+
+    /**
+     * REGRESIÓN (auditoría PR #18, hallazgo 3): el oráculo mide PRECISIÓN, no
+     * COBERTURA. Un layout que pierda CÓDIGOS importaría una fracción del área
+     * con «calidad 100 %» y retiraría todos los marcadores igual. Si lo
+     * rescatado no llega a lo que se retira, --official aborta.
+     */
+    public function test_official_aborta_si_rescata_menos_de_lo_que_retira(): void
+    {
+        foreach (['CN.F.5.1.2', 'CN.F.5.1.3', 'CN.F.5.1.4', 'CN.F.5.2.1', 'CN.F.5.2.2'] as $code) {
+            $this->marcador($code);
+        }
+        $fixture = $this->fixtureConUnaDestreza();   // rescata 1, retiraría 4
+
+        $this->artisan('mineduc:import', ['file' => $fixture, '--official' => true])
+            ->assertFailed();
+        $this->assertSame(5, LearningObjective::count(), 'el abort no puede dejar parciales');
+
+        // Con --force-coverage sí pasa (currículos priorizados legítimos).
+        $this->artisan('mineduc:import', ['file' => $fixture, '--official' => true, '--force-coverage' => true])
+            ->assertSuccessful();
+        // La destreza de subnivel se replica en los 3 grados del subnivel (g11-13).
+        $this->assertSame(3, LearningObjective::count());
+    }
+
+    private function marcador(string $code): LearningObjective
+    {
+        $bloque = CurNode::where('node_type', 'bloque')->orderBy('path')->firstOrFail();
+
+        return LearningObjective::create([
+            'node_id' => $bloque->id, 'version_id' => $bloque->version_id,
+            'native_code' => $code,
+            'statement' => ['es' => 'Marcador generado para la navegación.'],
+            'is_verified' => false,
+        ]);
+    }
+
+    private function fixtureConDosDestrezas(): string
+    {
+        $texto = "CN.F.5.1.2. Observar y describir el ciclo vital de las plantas y de los animales, y comunicar los resultados con recursos pertinentes.\n\n"
+            ."CN.F.5.1.3. Experimentar sobre las necesidades esenciales de las plantas y explicar la importancia del agua y de la luz para su desarrollo.\n";
+        $ruta = storage_path('app/fixture-dos.txt');
+        file_put_contents($ruta, $texto);
+
+        return $ruta;
+    }
+
+    private function fixtureConUnaDestreza(): string
+    {
+        $texto = "CN.F.5.1.2. Observar y describir el ciclo vital de las plantas y de los animales, y comunicar los resultados con recursos pertinentes.\n";
+        $ruta = storage_path('app/fixture-una.txt');
+        file_put_contents($ruta, $texto);
+
+        return $ruta;
     }
 }

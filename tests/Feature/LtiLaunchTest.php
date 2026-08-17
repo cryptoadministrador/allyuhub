@@ -102,7 +102,7 @@ class LtiLaunchTest extends TestCase
 
         // Sin custom: el launch redirige a la app (grupo web, con CSRF).
         $this->launch($state, $this->moodle->idToken(['nonce' => $nonce]))
-            ->assertRedirect('/progreso');
+            ->assertRedirect('/inicio');
 
         $this->assertDatabaseHas('users', [
             'lti_iss' => FakeLtiPlatform::ISSUER,
@@ -265,11 +265,11 @@ class LtiLaunchTest extends TestCase
                 ->where('objective.native_code', 'CN.F.5.1.9'));
     }
 
-    public function test_launch_sin_custom_redirige_al_progreso(): void
+    public function test_launch_sin_custom_redirige_al_inicio(): void
     {
         [$state, $nonce] = $this->handshake();
 
         $this->launch($state, $this->moodle->idToken(['nonce' => $nonce]))
-            ->assertRedirect('/progreso');
+            ->assertRedirect('/inicio');
     }
 }
