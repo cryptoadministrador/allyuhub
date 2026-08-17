@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Artisan;
 
 class DatabaseSeeder extends Seeder
 {
@@ -14,5 +15,10 @@ class DatabaseSeeder extends Seeder
         $this->call(InternationalFrameworksSeeder::class);
         $this->call(CrosswalkSeeder::class);
         $this->call(PracticeItemSeeder::class);
+
+        // ORD deja de estar vacío: fases por subnivel con SUS destrezas. Va al
+        // final porque necesita el grafo entero, y es idempotente — se puede
+        // repetir después del importador oficial para recoger lo nuevo.
+        Artisan::call('curriculo:fases-ord');
     }
 }

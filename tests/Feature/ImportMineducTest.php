@@ -116,4 +116,98 @@ class ImportMineducTest extends TestCase
         $file = $this->fixture(str_repeat('Texto cualquiera sin códigos curriculares. ', 30));
         $this->artisan('mineduc:import', ['file' => $file])->assertFailed();
     }
+
+    // ---------- El oráculo de calidad en el comando (misión ANTY, frente 2) ----------
+
+    /** Un documento limpio reporta su calidad y entra sin pelear. */
+    public function test_reporta_el_porcentaje_de_calidad(): void
+    {
+        $file = $this->fixture(
+            'CN.F.5.1.9. Explicar el movimiento de un cuerpo sobre un plano inclinado, '
+            ."identificando las fuerzas que actúan sobre él.\n\n"
+            .'CN.F.5.1.12. Determinar experimentalmente el coeficiente de rozamiento entre dos '
+            .'superficies, a partir del ángulo crítico.',
+        );
+
+        $this->artisan('mineduc:import', ['file' => $file, '--dry-run' => true])
+            ->expectsOutputToContain('Calidad de la extracción: 100 %')
+            ->assertSuccessful();
+    }
+
+    /**
+     * EL ORÁCULO QUE PROTEGE AL COLEGIO: si la extracción viene sucia,
+     * --official no importa nada. Mejor no importar que importar basura.
+     */
+    public function test_official_aborta_si_la_calidad_baja_del_umbral(): void
+    {
+        // Una buena y tres podridas (25 % de validez, muy por debajo del 95 %).
+        $file = $this->fixture(
+            'CN.F.5.1.9. Explicar el movimiento de un cuerpo sobre un plano inclinado, '
+            ."identificando las fuerzas que actúan.\n\n"
+            ."CN.F.5.1.4. Aplicar las leyes de Newton al análisis de sistemas y expli- car sus efectos\n\n"
+            ."CN.F.5.3.7. Describir la formación de imágenes en lentes delgadas convergentes y\n\n"
+            .'CN.F.5.3.8. Determinar el aumento lateral de una imagen y la posicionCN del objeto',
+        );
+
+        $this->artisan('mineduc:import', ['file' => $file, '--official' => true])
+            ->expectsOutputToContain('ABORTADO')
+            ->assertFailed();
+
+        // Y no escribió NADA: ni la destreza buena.
+        $this->assertSame(0, LearningObjective::where('native_code', 'CN.F.5.1.9')->count());
+        $this->assertNull($this->version->fresh()->source_sha256);
+    }
+
+    /** Por encima del umbral, las pocas malas se omiten en vez de verificarse. */
+    public function test_official_omite_las_destrezas_que_no_pasan_el_oraculo(): void
+    {
+        $buenas = collect(range(1, 20))->map(fn ($i) => sprintf(
+            'CN.F.5.1.%d. Explicar el fenómeno número %d con sus causas y sus efectos observables '
+            .'en situaciones cotidianas del entorno.', $i, $i,
+        ))->implode("\n\n");
+
+        $file = $this->fixture($buenas."\n\nCN.F.5.2.1. Describir el fenómeno y la posicionCN del objeto");
+
+        $this->artisan('mineduc:import', ['file' => $file, '--official' => true])
+            ->expectsOutputToContain('Se omiten 1 destreza(s)')
+            ->assertSuccessful();
+
+        $this->assertSame(0, LearningObjective::where('native_code', 'CN.F.5.2.1')->count());
+        $this->assertGreaterThan(0, LearningObjective::where('native_code', 'CN.F.5.1.1')->count());
+    }
+
+    public function test_el_dry_run_jamas_escribe(): void
+    {
+        $antes = LearningObjective::count();
+
+        $file = $this->fixture(
+            'CN.F.5.1.9. Explicar el movimiento de un cuerpo sobre un plano inclinado, '
+            .'identificando las fuerzas que actúan sobre él.',
+        );
+        $this->artisan('mineduc:import', ['file' => $file, '--dry-run' => true])->assertSuccessful();
+        $this->artisan('mineduc:import', ['file' => $file, '--dry-run' => true, '--official' => true])
+            ->assertSuccessful();
+
+        $this->assertSame($antes, LearningObjective::count());
+        $this->assertNull($this->version->fresh()->source_sha256);
+    }
+
+    public function test_reimportar_es_idempotente(): void
+    {
+        $file = $this->fixture(
+            'CN.F.5.1.9. Explicar el movimiento de un cuerpo sobre un plano inclinado, '
+            ."identificando las fuerzas que actúan sobre él.\n\n"
+            .'CN.F.5.1.12. Determinar experimentalmente el coeficiente de rozamiento entre dos '
+            .'superficies, a partir del ángulo crítico.',
+        );
+
+        $this->artisan('mineduc:import', ['file' => $file, '--official' => true])->assertSuccessful();
+        $primera = LearningObjective::count();
+
+        $this->artisan('mineduc:import', ['file' => $file, '--official' => true])->assertSuccessful();
+
+        $this->assertSame($primera, LearningObjective::count(), 'Re-importar duplicó destrezas');
+        // Una por grado del subnivel 5 (g11, g12, g13) y por código.
+        $this->assertSame(3, LearningObjective::where('native_code', 'CN.F.5.1.9')->count());
+    }
 }

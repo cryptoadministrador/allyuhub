@@ -6,6 +6,7 @@ use App\Models\CurNode;
 use App\Models\FrameworkVersion;
 use App\Models\LearningObjective;
 use Illuminate\Console\Command;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\Process\Process;
 
@@ -42,6 +43,9 @@ class ImportMineduc extends Command
         {--min-len=25 : Longitud mínima del enunciado para aceptarlo}';
 
     protected $description = 'Importa destrezas del currículo oficial MINEDEC al grafo';
+
+    /** Por debajo de este % de enunciados válidos, --official aborta. */
+    public const UMBRAL_CALIDAD = 95.0;
 
     /** Prefijo de código → native_code de la asignatura en el grafo del seeder. */
     private const AREA_MAP = [
@@ -93,10 +97,49 @@ class ImportMineduc extends Command
             ])->all(),
         );
 
+        // ---------- El oráculo de calidad ----------
+        $invalidos = $found->map(fn ($d) => self::evaluarCalidad($d['text']) + ['code' => $d['code'], 'text' => $d['text']])
+            ->filter(fn ($e) => ! $e['valido'])->values();
+        $pct = $found->count() === 0 ? 0.0 : round(100 * ($found->count() - $invalidos->count()) / $found->count(), 1);
+
+        $this->info(sprintf(
+            'Calidad de la extracción: %s %% (%d de %d enunciados válidos).',
+            $pct, $found->count() - $invalidos->count(), $found->count(),
+        ));
+
+        if ($invalidos->isNotEmpty()) {
+            $this->warn('Enunciados que NO pasan el oráculo (muestra):');
+            $this->table(['código', 'motivo', 'enunciado (inicio)'], $invalidos->take(10)->map(fn ($e) => [
+                $e['code'], $e['motivo'], mb_substr($e['text'], 0, 60).'…',
+            ])->all());
+            $this->line('  Motivos: '.$invalidos->countBy('motivo')
+                ->map(fn ($n, $motivo) => "{$motivo} ({$n})")->implode(' · '));
+        }
+
         if ($this->option('dry-run')) {
             $this->comment('Dry-run: no se escribió nada.');
 
             return self::SUCCESS;
+        }
+
+        // Mejor no importar que importar basura: por debajo del umbral, el
+        // documento no entra al currículo como verificado. Punto.
+        if ($this->option('official') && $pct < self::UMBRAL_CALIDAD) {
+            $this->error(sprintf(
+                'ABORTADO: la calidad (%s %%) está por debajo del umbral del %s %% exigido para --official. '
+                .'Revisa la extracción antes de marcar esto como currículo oficial.',
+                $pct, self::UMBRAL_CALIDAD,
+            ));
+
+            return self::FAILURE;
+        }
+
+        // Con --official, además, las que no pasan el oráculo NO se importan:
+        // marcar un enunciado corrupto como verificado es mentirle al colegio.
+        if ($this->option('official') && $invalidos->isNotEmpty()) {
+            $codigosMalos = $invalidos->pluck('code')->all();
+            $found = $found->reject(fn ($d) => in_array($d['code'], $codigosMalos, true))->values();
+            $this->warn(sprintf('Se omiten %d destreza(s) que no pasan el oráculo.', count($codigosMalos)));
         }
 
         $version = FrameworkVersion::whereHas('framework', fn ($q) => $q->where('code', 'EC-MINEDEC'))
@@ -132,7 +175,7 @@ class ImportMineduc extends Command
                     $payload = [
                         'statement' => ['es' => $d['text']],
                         'attrs' => ['imported_from' => basename($this->argument('file')),
-                                    'imported_at' => now()->toDateString()],
+                            'imported_at' => now()->toDateString()],
                     ];
                     if ($this->option('official')) {
                         $payload['is_verified'] = true;   // sin --official NUNCA se degrada lo ya verificado
@@ -182,13 +225,176 @@ class ImportMineduc extends Command
         return self::SUCCESS;
     }
 
+    /**
+     * PDF → texto. Modo RAW (sin -layout) A PROPÓSITO: el currículo son tablas
+     * de dos columnas, y `-layout` las pone en la MISMA línea, de modo que unir
+     * una palabra cortada con guion al final de línea la pega con la columna de
+     * al lado («gimnos-» + «problemas…» = «gimproblemas»). En raw, pdftotext ya
+     * entrega cada columna en orden de lectura y sin cortes.
+     */
     private function pdfToText(string $file): ?string
     {
         $out = tempnam(sys_get_temp_dir(), 'mineduc').'.txt';
-        $p = new Process(['pdftotext', '-layout', '-enc', 'UTF-8', $file, $out]);
+        $p = new Process(['pdftotext', '-enc', 'UTF-8', $file, $out]);
         $p->setTimeout(300)->run();
 
         return $p->isSuccessful() ? file_get_contents($out) : null;
+    }
+
+    /**
+     * Si el texto viene de `pdftotext -layout` (o de un .txt ya extraído así),
+     * las columnas comparten línea separadas por huecos de espacios. Aquí se
+     * reconstruyen por POSICIÓN X — el mismo patrón que `parseCai` usa en el
+     * importador EPJA — para que cada columna vuelva a ser un bloque continuo
+     * y las palabras cortadas se unan con SU continuación, no con la vecina.
+     */
+    public static function reconstruirColumnas(string $text): string
+    {
+        $lineas = preg_split('/\R/u', $text);
+
+        // ¿Es texto multicolumna? Solo si una parte apreciable de las líneas
+        // tiene un hueco interno de 3+ espacios (en raw no hay ninguno).
+        $conHueco = 0;
+        $noVacias = 0;
+        foreach ($lineas as $l) {
+            if (trim($l) === '') {
+                continue;
+            }
+            $noVacias++;
+            if (preg_match('/\S {3,}\S/u', $l)) {
+                $conHueco++;
+            }
+        }
+        if ($noVacias === 0 || $conHueco / $noVacias < 0.15) {
+            return $text;   // una sola columna: nada que reconstruir
+        }
+
+        // Trocea cada línea en segmentos con su columna de inicio (en CARACTERES,
+        // no bytes: el castellano lleva tildes de 2 bytes y desplazaría la X).
+        $segmentos = [];
+        foreach ($lineas as $n => $linea) {
+            $x = 0;
+            foreach (preg_split('/( {3,})/u', $linea, -1, PREG_SPLIT_DELIM_CAPTURE) as $i => $parte) {
+                if ($i % 2 === 0 && trim($parte) !== '') {
+                    $sangria = mb_strlen($parte) - mb_strlen(ltrim($parte));
+                    $segmentos[] = ['x' => $x + $sangria, 'linea' => $n, 'texto' => trim($parte)];
+                }
+                $x += mb_strlen($parte);
+            }
+        }
+
+        // Agrupa las X parecidas en columnas (tolerancia de 4 caracteres).
+        $xs = collect($segmentos)->pluck('x')->unique()->sort()->values();
+        $centros = [];
+        foreach ($xs as $x) {
+            $ultimo = end($centros);
+            if ($ultimo === false || $x - $ultimo > 4) {
+                $centros[] = $x;
+            }
+        }
+
+        $columnas = array_fill(0, count($centros), []);
+        foreach ($segmentos as $s) {
+            $mejor = 0;
+            foreach ($centros as $i => $c) {
+                if (abs($s['x'] - $c) < abs($s['x'] - $centros[$mejor])) {
+                    $mejor = $i;
+                }
+            }
+            $columnas[$mejor][] = $s;
+        }
+
+        // Cada columna, de arriba abajo; las columnas, de izquierda a derecha.
+        $bloques = [];
+        foreach ($columnas as $col) {
+            usort($col, fn ($a, $b) => $a['linea'] <=> $b['linea']);
+            $bloques[] = implode("\n", array_column($col, 'texto'));
+        }
+
+        return implode("\n\n", $bloques);
+    }
+
+    /**
+     * Une las palabras cortadas con guion al final de línea. Conservador a
+     * propósito: solo minúscula-guion-salto-minúscula. Ya se aplica DESPUÉS de
+     * reconstruir columnas, así que la continuación es la de verdad.
+     */
+    public static function unirGuiones(string $text): string
+    {
+        return preg_replace('/(\p{Ll})-\R\s*(\p{Ll})/u', '$1$2', $text);
+    }
+
+    /**
+     * Corta el enunciado en cuanto invade un código que NO es una destreza:
+     * objetivos (OG./O.), criterios de evaluación (CE.), indicadores (I.CN.)
+     * o los elementos del perfil de salida (J.3., I.2., S.4.) que en las
+     * tablas del PDF viven en la columna de al lado.
+     */
+    public static function cortarInvasores(string $stmt): string
+    {
+        $stmt = preg_replace('/\s*\(?\bRef\.?\s*[A-Z.]*CE\.[A-Z.\d]+\)?\.?.*$/su', '', $stmt);
+        // Sin \b: el troceado pega el código a la palabra anterior sin espacio
+        // («…y expeOG.CN.10. Apreciar…»), y ahí no hay frontera de palabra.
+        $stmt = preg_replace('/\s*(?:OG|CE|I|O)\.[A-Z]{2,3}\.[\d.]+.*$/su', '', $stmt);
+        $stmt = preg_replace('/\s*\(?\b[JIS]\.\d+\.[,)\s].*$/su', '', $stmt);
+        // Otra destreza pegada detrás (dos códigos en la misma celda).
+        $stmt = preg_replace('/\s*\b(?:CN\.[FQB]|CS\.[HFC]|CN|CS|LL|M|ECA|EF|EG)\.\d\.\d{1,2}\.\d{1,3}\..*$/su', '', $stmt);
+
+        // Mobiliario de página: el enunciado termina y detrás viene el
+        // encabezado o el pie de la siguiente («… degradación. Bloque 3»,
+        // «… especie. 156 Educación General Básica Superior CIENCIAS…»).
+        $stmt = preg_replace(
+            '/\s*\b(?:Bloque\s+\d|Indicadores?\s+para\s+la\s+evaluaci[óo]n|Elementos\s+del\s+perfil'
+            .'|Objetivos\s+generales|Objetivos\s+del\s+subnivel|Criterios?\s+de\s+evaluaci[óo]n'
+            .'|Educaci[óo]n\s+General\s+B[áa]sica|Bachillerato\s+General\s+Unificado'
+            .'|CIENCIAS\s+NATURALES|DESTREZAS\s+CON\s+CRITERIOS)\b.*$/sui',
+            '', $stmt,
+        );
+
+        $stmt = rtrim(trim($stmt), ' ·|-');
+
+        // Lo que quede DESPUÉS de la última frase completa no es enunciado:
+        // es cola de troceado. Se recorta en esa frontera (criterio (d)).
+        if (preg_match('/^(.*[.!?…])\s*\S.*$/su', $stmt, $m)) {
+            $stmt = $m[1];
+        }
+
+        return rtrim(trim($stmt), ' ·|-');
+    }
+
+    /**
+     * EL ORÁCULO DE CALIDAD. Un enunciado importado es válido si no arrastra
+     * códigos de otra columna, no tiene palabras partidas, tiene longitud de
+     * enunciado y termina donde debe. Mejor no importar que importar basura:
+     * `--official` aborta si el porcentaje de válidos baja del umbral.
+     *
+     * @return array{valido: bool, motivo: ?string}
+     */
+    public static function evaluarCalidad(string $stmt): array
+    {
+        // (a) fragmentos de código curricular ajeno.
+        if (preg_match('/\b(?:OG|CE|I|O)\.[A-Z]{2,3}\.\d/u', $stmt)
+            || preg_match('/\b(?:CN|CS|LL|M|ECA|EF|EG)\.\d\.\d{1,2}\.\d{1,3}\b/u', $stmt)) {
+            return ['valido' => false, 'motivo' => 'arrastra un código curricular'];
+        }
+
+        // (b) palabras partidas: guion suelto («expli- car») o una minúscula
+        //     pegada a una mayúscula dentro de la misma palabra («semillaCN»).
+        if (preg_match('/\p{Ll}-\s+\p{Ll}/u', $stmt) || preg_match('/\p{Ll}\p{Lu}/u', $stmt)) {
+            return ['valido' => false, 'motivo' => 'palabra partida o pegada'];
+        }
+
+        // (c) longitud de enunciado real.
+        if (mb_strlen($stmt) < 30) {
+            return ['valido' => false, 'motivo' => 'demasiado corto'];
+        }
+
+        // (d) termina donde debe (puntuación) y no a mitad de palabra.
+        if (! preg_match('/[.!?…)]$/u', $stmt)) {
+            return ['valido' => false, 'motivo' => 'no termina en puntuación'];
+        }
+
+        return ['valido' => true, 'motivo' => null];
     }
 
     /**
@@ -196,13 +402,15 @@ class ImportMineduc extends Command
      * PREFIJO.subnivel.bloque.numero (CN.4.3.5) o PREFIJO.SUB.5.b.n en BGU
      * (CN.F.5.1.12). El enunciado es el texto hasta el siguiente código.
      */
-    private function parse(string $text): \Illuminate\Support\Collection
+    public function parse(string $text): Collection
     {
-        // Normaliza: une líneas partidas, colapsa espacios.
-        $text = preg_replace('/-\n\s*/u', '', $text);          // palabras cortadas con guion
+        $text = self::unirGuiones(self::reconstruirColumnas($text));
         $text = preg_replace('/\s+/u', ' ', $text);
 
-        $codeRe = '/\b((?:CN\.[FQB]|CS\.[HFC]|CN|CS|LL|M|ECA|EF|EG)\.(\d)\.(\d{1,2})\.(\d{1,3}))\.?\s/u';
+        // El lookbehind excluye los códigos que NO son destrezas y que
+        // comparten sufijo: «I.CN.2.2.1» es un INDICADOR de evaluación, no la
+        // destreza «CN.2.2.1». Sin esto se importaban como si lo fueran.
+        $codeRe = '/(?<![A-Za-z]\.)\b((?:CN\.[FQB]|CS\.[HFC]|CN|CS|LL|M|ECA|EF|EG)\.(\d)\.(\d{1,2})\.(\d{1,3}))\.?\s/u';
 
         preg_match_all($codeRe, $text, $m, PREG_OFFSET_CAPTURE);
         $out = collect();
@@ -210,11 +418,7 @@ class ImportMineduc extends Command
         foreach ($m[1] as $i => [$code, $offset]) {
             $start = $offset + strlen($m[0][$i][0]);
             $end = isset($m[0][$i + 1]) ? $m[0][$i + 1][1] : min(strlen($text), $start + 600);
-            $stmt = trim(substr($text, $start, $end - $start));
-
-            // Limpia colas típicas de tabla (referencias a criterios: "Ref. CE.CN.4.5" etc.)
-            $stmt = preg_replace('/\s*\(?Ref\.?\s*[A-Z.]*CE\.[A-Z.\d]+\)?\.?$/u', '', $stmt);
-            $stmt = rtrim($stmt, " ·|");
+            $stmt = self::cortarInvasores(trim(substr($text, $start, $end - $start)));
 
             if (mb_strlen($stmt) < (int) $this->option('min-len')) {
                 continue;
@@ -235,9 +439,19 @@ class ImportMineduc extends Command
             ]);
         }
 
-        // El mismo código puede aparecer varias veces (tabla + anexos): quédate con el enunciado más largo.
+        // El mismo código aparece varias veces (la tabla de destrezas y la
+        // matriz de criterios). Se queda la ocurrencia de mejor CALIDAD, no la
+        // más larga: la contaminada por el troceado de columnas es justamente
+        // la más larga, así que «la más larga gana» premiaba la basura.
+        // OJO con sortBy([closure, closure]): NO ordena por los closures (los
+        // trata como claves y compara null<=>null), así que ordenaba solo por
+        // longitud y volvía a ganar la basura. Comparador explícito.
         return $out->groupBy('code')
-            ->map(fn ($g) => $g->sortByDesc(fn ($d) => mb_strlen($d['text']))->first())
+            ->map(fn ($g) => $g->sort(fn ($a, $b) => [
+                self::evaluarCalidad($a['text'])['valido'] ? 0 : 1, mb_strlen($a['text']),
+            ] <=> [
+                self::evaluarCalidad($b['text'])['valido'] ? 0 : 1, mb_strlen($b['text']),
+            ])->first())
             ->values();
     }
 }
