@@ -27,8 +27,6 @@ class HandleInertiaRequests extends Middleware
 
     public function share(Request $request): array
     {
-        $contextos = $this->contextosDocente($request);
-
         return [
             ...parent::share($request),
             'auth' => [
@@ -36,8 +34,12 @@ class HandleInertiaRequests extends Middleware
                     'id' => $request->user()->id,
                     'name' => $request->user()->name,
                 ],
-                'es_docente' => $contextos !== [],
-                'contextos' => $contextos,
+                // Closures, no valores: share() se ejecuta ANTES de la
+                // respuesta y en TODO el grupo web — incluidos los endpoints
+                // JSON de práctica, que no llevan props Inertia. Diferido, la
+                // consulta solo se paga cuando se pinta una página (auditoría).
+                'es_docente' => fn () => $this->contextosDocente($request) !== [],
+                'contextos' => fn () => $this->contextosDocente($request),
             ],
             'flash' => [
                 'status' => fn () => $request->session()->get('status'),
@@ -68,10 +70,13 @@ class HandleInertiaRequests extends Middleware
                 ->where('user_id', $user->id)
                 ->where('role', 'instructor')
                 ->select('lti_context_id'))
-            ->orderBy('title')
-            ->orderBy('id')
             ->get(['id', 'title'])
+            // El orden se decide en PHP: `title` es nullable y SQLite pone los
+            // NULL primero mientras PostgreSQL los pone últimos — los enlaces
+            // del nav saldrían en orden distinto en test y en producción.
+            ->sortBy(fn (LtiContext $c) => [$c->title ?? '', $c->id])
             ->map(fn (LtiContext $c) => ['id' => $c->id, 'title' => $c->title])
+            ->values()
             ->all();
     }
 }

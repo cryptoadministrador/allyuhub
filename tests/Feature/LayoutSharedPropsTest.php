@@ -139,6 +139,29 @@ class LayoutSharedPropsTest extends TestCase
         $this->assertSame($pocos, $contar(), 'La prop compartida escala con cursos ajenos');
     }
 
+    /**
+     * REGRESIÓN: share() se ejecuta en TODO el grupo web, también en los
+     * endpoints JSON de práctica, que no llevan props Inertia. Como prop
+     * diferida (closure), la consulta solo se paga al pintar una página —
+     * antes se cobraba en cada respuesta del alumno (auditoría).
+     */
+    public function test_la_api_json_no_paga_la_consulta_de_contextos(): void
+    {
+        $this->actingAs($this->docenteCon(['c1' => 'Uno']));
+
+        $consultas = [];
+        DB::listen(function ($q) use (&$consultas) {
+            $consultas[] = $q->sql;
+        });
+
+        $this->getJson('/api/v1/practice/mastery')->assertOk();
+
+        $this->assertEmpty(
+            array_filter($consultas, fn ($sql) => str_contains($sql, 'lti_contexts')),
+            'La respuesta JSON consulta los contextos docentes sin necesitarlos',
+        );
+    }
+
     /** @param  array<string,string>  $cursos  context_id => título */
     private function docenteCon(array $cursos): User
     {

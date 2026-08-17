@@ -119,9 +119,14 @@ export default function AppLayout({ title, children }) {
                     )}
                 </div>
 
-                {!embebido && menuAbierto && destinos.length > 0 && (
+                {/* Se monta SIEMPRE y se oculta con `hidden`: si solo existiera
+                    abierto, el aria-controls del botón apuntaría a un id
+                    inexistente mientras está cerrado, y un lector de pantalla
+                    no podría saltar al menú que dice controlar (auditoría). */}
+                {!embebido && destinos.length > 0 && (
                     <nav
                         id="menu-movil"
+                        hidden={!menuAbierto}
                         aria-label="Navegación móvil"
                         className="border-t border-slate-200 px-4 pb-3 sm:hidden"
                     >

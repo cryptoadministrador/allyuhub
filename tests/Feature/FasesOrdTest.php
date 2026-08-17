@@ -142,6 +142,55 @@ class FasesOrdTest extends TestCase
         $this->assertSame(0, $ord->phases()->where('label->es', 'Grado 6')->count());
     }
 
+    /**
+     * REGRESIÓN: el comando NO puede tocar un trayecto PCEI. Apuntado a uno,
+     * borraba su fase 0 propedéutica —obligatoria por la reforma
+     * 2025-00010-A— y le encajaba la dosificación de ORD (auditoría).
+     */
+    public function test_jamas_toca_un_trayecto_pcei(): void
+    {
+        $pcei = Track::create(['code' => 'PCEI-BI', 'label' => ['es' => 'Bachillerato Intensivo']]);
+        $propedeutica = TrackPhase::create([
+            'track_id' => $pcei->id, 'seq' => 0,
+            'label' => ['es' => 'Fase propedéutica'], 'is_propedeutic' => true,
+        ]);
+        $modulo = TrackPhase::create([
+            'track_id' => $pcei->id, 'seq' => 1, 'label' => ['es' => 'Módulo 1'],
+        ]);
+        $modulo->objectives()->attach(
+            LearningObjective::first()->id, ['source' => 'acuerdo-2025-00034-A'],
+        );
+
+        $this->artisan('curriculo:fases-ord')->assertSuccessful();
+
+        // La propedéutica sigue ahí, con su bandera, y el módulo con su fuente.
+        $this->assertTrue($propedeutica->fresh()->is_propedeutic);
+        $this->assertSame(2, $pcei->phases()->count());
+        $this->assertSame(
+            'acuerdo-2025-00034-A',
+            DB::table('track_phase_objectives')->where('phase_id', $modulo->id)->value('source'),
+        );
+    }
+
+    /** No borra a ciegas: una fase antigua CON destrezas atadas exige --force. */
+    public function test_se_niega_a_borrar_fases_antiguas_que_tienen_destrezas(): void
+    {
+        $ord = Track::where('code', 'ORD')->firstOrFail();
+        $manual = TrackPhase::create([
+            'track_id' => $ord->id, 'seq' => 9, 'label' => ['es' => 'Mapeo a mano'],
+        ]);
+        $manual->objectives()->attach(LearningObjective::first()->id, ['source' => 'mapeo-interno']);
+
+        $this->artisan('curriculo:fases-ord')
+            ->expectsOutputToContain('ABORTADO')
+            ->assertFailed();
+        $this->assertNotNull($manual->fresh(), 'Borró una fase con trabajo humano dentro');
+
+        // Con --force sí, porque es una decisión explícita.
+        $this->artisan('curriculo:fases-ord', ['--force' => true])->assertSuccessful();
+        $this->assertNull($manual->fresh());
+    }
+
     /** INTEGRACIÓN: el panel del docente deja de decir «cubre 0 destrezas». */
     public function test_el_panel_del_docente_muestra_el_total_correcto(): void
     {

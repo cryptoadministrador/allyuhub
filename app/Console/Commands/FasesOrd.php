@@ -26,8 +26,11 @@ use Illuminate\Support\Facades\DB;
  */
 class FasesOrd extends Command
 {
+    // SIN --track a propósito: apuntado a un PCEI, este comando borraba su
+    // fase 0 propedéutica —obligatoria por la reforma 2025-00010-A— y le
+    // encajaba la dosificación de ORD. El trayecto es fijo (auditoría).
     protected $signature = 'curriculo:fases-ord
-        {--track=ORD : Código del trayecto a rearmar}';
+        {--force : Permite retirar fases antiguas que YA tengan destrezas atadas}';
 
     protected $description = 'Crea las fases por subnivel del trayecto ordinario y les ata sus destrezas';
 
@@ -42,16 +45,31 @@ class FasesOrd extends Command
 
     public function handle(): int
     {
-        $track = Track::where('code', $this->option('track'))->first();
+        $track = Track::where('code', 'ORD')->first();
         if (! $track) {
-            $this->error("No existe el trayecto «{$this->option('track')}». ¿Falta sembrar el grafo?");
+            $this->error('No existe el trayecto ORD. ¿Falta sembrar el grafo?');
+
+            return self::FAILURE;
+        }
+
+        // Guarda de seguridad: las fases que este comando retiraría son las
+        // fases-grado VACÍAS que dejó el seeder. Si alguna tiene destrezas
+        // atadas, alguien las mapeó a mano y borrarlas perdería ese trabajo.
+        $sobrantes = $track->phases()->whereNotIn('seq', array_keys(self::SUBNIVELES))->get();
+        $conDatos = $sobrantes->filter(fn (TrackPhase $f) => $f->objectives()->exists());
+        if ($conDatos->isNotEmpty() && ! $this->option('force')) {
+            $this->error(sprintf(
+                'ABORTADO: %d fase(s) antiguas de ORD tienen destrezas atadas (seq: %s). '
+                .'Repite con --force si de verdad quieres retirarlas.',
+                $conDatos->count(), $conDatos->pluck('seq')->implode(', '),
+            ));
 
             return self::FAILURE;
         }
 
         $total = 0;
 
-        DB::transaction(function () use ($track, &$total) {
+        DB::transaction(function () use ($track, $sobrantes, &$total) {
             foreach (self::SUBNIVELES as $seq => [$etiqueta, $grados]) {
                 $fase = TrackPhase::updateOrCreate(
                     ['track_id' => $track->id, 'seq' => $seq],
@@ -76,7 +94,6 @@ class FasesOrd extends Command
 
             // Las fases que este comando no gobierna (las de grado que dejó el
             // seeder) desaparecen: si no, el panel sumaría dos veces.
-            $sobrantes = $track->phases()->whereNotIn('seq', array_keys(self::SUBNIVELES))->get();
             foreach ($sobrantes as $fase) {
                 $fase->objectives()->detach();
                 $fase->delete();

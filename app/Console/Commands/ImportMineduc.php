@@ -237,7 +237,12 @@ class ImportMineduc extends Command
     private function pdfToText(string $file): ?string
     {
         $out = tempnam(sys_get_temp_dir(), 'mineduc').'.txt';
-        $p = new Process(['pdftotext', '-enc', 'UTF-8', $file, $out]);
+        // -raw DE VERDAD, no el modo por defecto: el modo por defecto reordena
+        // por «reading order» y en las tablas de dos columnas ENTRELAZA la
+        // columna de la destreza con la de objetivos/perfil («…mediante la
+        // relaambiente físico»). Medido sobre el PDF oficial: por defecto, 44
+        // enunciados salen distintos del oficial; con -raw, 7.
+        $p = new Process(['pdftotext', '-raw', '-enc', 'UTF-8', $file, $out]);
         $p->setTimeout(300)->run();
 
         return $p->isSuccessful() ? file_get_contents($out) : null;
@@ -306,6 +311,17 @@ class ImportMineduc extends Command
             $columnas[$mejor][] = $s;
         }
 
+        // Segunda guarda: reconstruir SOLO si de verdad hay dos columnas con
+        // peso. Un texto de una columna con listas indentadas también produce
+        // varios centros, pero casi todos los segmentos caen en uno — y
+        // reordenarlo teletransportaría los ítems de la lista al final del
+        // documento (auditoría). Se exige que las dos mayores tengan ≥20 %.
+        $pesos = collect($columnas)->map(fn ($c) => count($c))->sortDesc()->values();
+        $totalSeg = max(1, count($segmentos));
+        if ($pesos->count() < 2 || ($pesos[1] / $totalSeg) < 0.20) {
+            return $text;
+        }
+
         // Cada columna, de arriba abajo; las columnas, de izquierda a derecha.
         $bloques = [];
         foreach ($columnas as $col) {
@@ -355,9 +371,14 @@ class ImportMineduc extends Command
 
         $stmt = rtrim(trim($stmt), ' ·|-');
 
-        // Lo que quede DESPUÉS de la última frase completa no es enunciado:
-        // es cola de troceado. Se recorta en esa frontera (criterio (d)).
-        if (preg_match('/^(.*[.!?…])\s*\S.*$/su', $stmt, $m)) {
+        // Lo que quede DESPUÉS de la última frase completa no es enunciado: es
+        // cola de troceado. DOS guardas, ambas necesarias:
+        //  - solo si el enunciado NO termina ya en puntuación; si no, este
+        //    recorte se comía la última frase de todo enunciado de varias.
+        //  - el punto de corte exige espacio y luego mayúscula o cifra, para
+        //    no partir un decimal («precisión de 0.5 gramos»).
+        if (! preg_match('/[.!?…)]$/u', $stmt)
+            && preg_match('/^(.*[.!?…])\s+[\p{Lu}\d].*$/su', $stmt, $m)) {
             $stmt = $m[1];
         }
 
@@ -380,9 +401,13 @@ class ImportMineduc extends Command
             return ['valido' => false, 'motivo' => 'arrastra un código curricular'];
         }
 
-        // (b) palabras partidas: guion suelto («expli- car») o una minúscula
-        //     pegada a una mayúscula dentro de la misma palabra («semillaCN»).
-        if (preg_match('/\p{Ll}-\s+\p{Ll}/u', $stmt) || preg_match('/\p{Ll}\p{Lu}/u', $stmt)) {
+        // (b) palabras partidas: guion suelto («expli- car») o una PALABRA
+        //     pegada a una mayúscula («semillaCN»). Se exigen 3+ minúsculas
+        //     antes de la mayúscula porque si no el criterio se lleva por
+        //     delante la notación científica del propio currículo: `pH`, `mL`,
+        //     `kWh`, `mmHg`. Con la regla anterior, las dos destrezas de ácidos
+        //     y bases de Química BGU se omitían en silencio (auditoría).
+        if (preg_match('/\p{Ll}-\s+\p{Ll}/u', $stmt) || preg_match('/\p{Ll}{3,}\p{Lu}/u', $stmt)) {
             return ['valido' => false, 'motivo' => 'palabra partida o pegada'];
         }
 
@@ -445,14 +470,16 @@ class ImportMineduc extends Command
         // matriz de criterios). Se queda la ocurrencia de mejor CALIDAD, no la
         // más larga: la contaminada por el troceado de columnas es justamente
         // la más larga, así que «la más larga gana» premiaba la basura.
-        // OJO con sortBy([closure, closure]): NO ordena por los closures (los
-        // trata como claves y compara null<=>null), así que ordenaba solo por
-        // longitud y volvía a ganar la basura. Comparador explícito.
+        // Primero la CALIDAD y, entre las válidas, la MÁS LARGA: la completa.
+        // (Preferir la más corta premiaba al amasijo ya recortado, que también
+        // pasa el oráculo pero es media destreza. OJO con sortBy([closure,
+        // closure]): no ordena por los closures — compara null<=>null — así
+        // que aquí va un comparador explícito.)
         return $out->groupBy('code')
             ->map(fn ($g) => $g->sort(fn ($a, $b) => [
-                self::evaluarCalidad($a['text'])['valido'] ? 0 : 1, mb_strlen($a['text']),
+                self::evaluarCalidad($a['text'])['valido'] ? 0 : 1, -mb_strlen($a['text']),
             ] <=> [
-                self::evaluarCalidad($b['text'])['valido'] ? 0 : 1, mb_strlen($b['text']),
+                self::evaluarCalidad($b['text'])['valido'] ? 0 : 1, -mb_strlen($b['text']),
             ])->first())
             ->values();
     }

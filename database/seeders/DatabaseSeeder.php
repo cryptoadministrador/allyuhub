@@ -19,6 +19,10 @@ class DatabaseSeeder extends Seeder
         // ORD deja de estar vacío: fases por subnivel con SUS destrezas. Va al
         // final porque necesita el grafo entero, y es idempotente — se puede
         // repetir después del importador oficial para recoger lo nuevo.
-        Artisan::call('curriculo:fases-ord');
+        //
+        // La salida se reenvía a la consola del seeder: este comando RETIRA las
+        // fases-grado vacías del seeder, y en un despliegue eso tiene que verse
+        // en el log en vez de ocurrir en silencio (auditoría).
+        Artisan::call('curriculo:fases-ord', [], $this->command?->getOutput());
     }
 }

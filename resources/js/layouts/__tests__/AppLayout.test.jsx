@@ -119,10 +119,18 @@ describe('AppLayout — móvil (360 px) y teclado', () => {
         montar();
 
         const boton = screen.getByRole('button', { name: /abrir menú/i });
-        await user.click(boton);
 
+        // REGRESIÓN (auditoría): el aria-controls tiene que apuntar a un
+        // elemento que EXISTA también con el menú cerrado; si el panel solo se
+        // monta al abrirlo, el idref está roto y un lector de pantalla no
+        // puede saltar al menú que el botón dice controlar.
         const id = boton.getAttribute('aria-controls');
         expect(id).toBeTruthy();
+        expect(document.getElementById(id)).not.toBeNull();
+        // …y estando cerrado no aparece en el árbol de accesibilidad.
+        expect(screen.queryByRole('navigation', { name: /móvil/i })).not.toBeInTheDocument();
+
+        await user.click(boton);
         expect(document.getElementById(id)).toBe(screen.getByRole('navigation', { name: /móvil/i }));
     });
 });

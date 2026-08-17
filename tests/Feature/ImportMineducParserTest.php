@@ -68,12 +68,83 @@ class ImportMineducParserTest extends TestCase
         $this->assertStringContainsString('angiospermas y gimnospermas', $ahora);
     }
 
-    public function test_el_texto_raw_de_una_sola_columna_no_se_toca(): void
+    public function test_reconstruir_columnas_actua_en_dos_columnas_y_no_toca_una_sola(): void
     {
         $raw = $this->fixture('ccnn-dcd-raw.txt');
+        $layout = $this->fixture('ccnn-indicadores-layout.txt');
 
-        // Sin huecos de columna, reconstruirColumnas devuelve el mismo texto.
+        // Una sola columna: intacto…
         $this->assertSame($raw, ImportMineduc::reconstruirColumnas($raw));
+        // …pero en dos columnas SÍ reorganiza (si no, el test de arriba lo
+        // pasaría igual un `return $text;` — era tautológico).
+        $this->assertNotSame($layout, ImportMineduc::reconstruirColumnas($layout));
+    }
+
+    /**
+     * REGRESIÓN del hallazgo CRÍTICO: en el modo por defecto de pdftotext, la
+     * columna de la destreza y la de objetivos se ENTRELAZAN, y el enunciado
+     * mutilado («…mediante la relaambiente físico.») pasaba el oráculo y, por
+     * ser el más corto, GANABA el desempate. Fixture: región real del PDF.
+     */
+    public function test_un_enunciado_mutilado_nunca_le_gana_al_completo(): void
+    {
+        $entrelazado = $this->comoAhora($this->fixture('ccnn-dos-columnas-entrelazadas.txt'));
+
+        // El fixture contiene de verdad el amasijo…
+        $this->assertStringContainsString('relaambiente', $entrelazado);
+
+        // …y el amasijo recortado PASA el oráculo (por eso hacía falta el
+        // desempate por longitud: la validez sola no lo distingue).
+        $mutilado = ImportMineduc::cortarInvasores(
+            'Explicar la segunda ley de Newton, mediante la relaambiente físico.',
+        );
+        $this->assertTrue(ImportMineduc::evaluarCalidad($mutilado)['valido']);
+
+        // Entre el mutilado y el completo, gana el COMPLETO.
+        $completo = 'Explicar la segunda ley de Newton mediante la relación entre las magnitudes: '
+            .'aceleración y fuerza que actúan sobre un objeto y su masa, mediante experimentaciones '
+            .'formales o no formales.';
+        $this->assertTrue(ImportMineduc::evaluarCalidad($completo)['valido']);
+
+        $ganador = collect([['text' => $mutilado], ['text' => $completo]])
+            ->sort(fn ($a, $b) => [
+                ImportMineduc::evaluarCalidad($a['text'])['valido'] ? 0 : 1, -mb_strlen($a['text']),
+            ] <=> [
+                ImportMineduc::evaluarCalidad($b['text'])['valido'] ? 0 : 1, -mb_strlen($b['text']),
+            ])->first();
+
+        $this->assertSame($completo, $ganador['text']);
+    }
+
+    /** El recorte de cola no puede comerse la última frase de un enunciado. */
+    public function test_el_recorte_respeta_los_enunciados_de_varias_frases(): void
+    {
+        $varias = 'Observar y describir el ciclo vital de las plantas. Registrar los cambios '
+            .'en una bitácora durante cuatro semanas.';
+
+        $this->assertSame($varias, ImportMineduc::cortarInvasores($varias));
+    }
+
+    /** Ni partir un decimal por su punto. */
+    public function test_el_recorte_no_parte_un_decimal(): void
+    {
+        $conDecimal = 'Medir la masa de diferentes objetos con una precisión de 0.5 gramos y '
+            .'registrar los resultados en una tabla.';
+
+        $this->assertSame($conDecimal, ImportMineduc::cortarInvasores($conDecimal));
+    }
+
+    /** La notación científica del currículo NO es una palabra partida. */
+    public function test_el_oraculo_acepta_la_notacion_cientifica(): void
+    {
+        foreach ([
+            'Deducir y comunicar la importancia del pH a través de la medición de este parámetro en soluciones.',
+            'Medir el volumen en mL y la energía en kWh, y registrar los datos obtenidos en la práctica.',
+            'Indagar sobre el ADN y las TIC disponibles para el estudio de la herencia en los seres vivos.',
+        ] as $stmt) {
+            $this->assertTrue(ImportMineduc::evaluarCalidad($stmt)['valido'],
+                "Falso positivo del criterio (b) sobre: {$stmt}");
+        }
     }
 
     public function test_el_enunciado_real_se_extrae_literal_y_completo(): void
