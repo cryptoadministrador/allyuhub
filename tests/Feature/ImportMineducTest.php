@@ -2,11 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Console\Commands\ImportMineduc;
 use App\Models\CurNode;
 use App\Models\Framework;
 use App\Models\FrameworkVersion;
 use App\Models\LearningObjective;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
+use Symfony\Component\Process\ExecutableFinder;
 use Tests\TestCase;
 
 class ImportMineducTest extends TestCase
@@ -190,6 +193,47 @@ class ImportMineducTest extends TestCase
 
         $this->assertSame($antes, LearningObjective::count());
         $this->assertNull($this->version->fresh()->source_sha256);
+    }
+
+    /**
+     * EL ÚNICO TEST QUE TOCA EL PDF DE VERDAD. Los fixtures son .txt y por eso
+     * ninguno veía el modo de extracción: quitar `-raw` de pdfToText dejaba la
+     * suite en verde mientras el importador entrelazaba columnas (auditoría).
+     *
+     * Se salta si no está el PDF (está en .gitignore, así que el CI no lo
+     * tiene) — en la máquina de quien vaya a importar, corre.
+     */
+    public function test_el_pdf_oficial_se_extrae_con_calidad_suficiente(): void
+    {
+        $pdf = base_path('storage/curriculo/CCNN_COMPLETO.pdf');
+        if (! is_file($pdf)) {
+            $this->markTestSkipped('Sin storage/curriculo/CCNN_COMPLETO.pdf (ver storage/curriculo/README.md).');
+        }
+        if ((new ExecutableFinder)->find('pdftotext') === null) {
+            $this->markTestSkipped('Sin pdftotext (poppler-utils) en el PATH.');
+        }
+
+        $codigo = Artisan::call('mineduc:import', ['file' => $pdf]);
+        $salida = Artisan::output();
+        $this->assertSame(0, $codigo, $salida);
+
+        preg_match('/Calidad de la extracción: ([\d.]+) %/u', $salida, $m);
+        $this->assertNotEmpty($m, 'El comando no reportó la calidad');
+        $this->assertGreaterThanOrEqual(
+            ImportMineduc::UMBRAL_CALIDAD, (float) $m[1],
+            'La extracción del PDF oficial ya no alcanza el umbral de --official',
+        );
+
+        // El % NO basta: con el modo de extracción equivocado la calidad seguía
+        // por encima del umbral y aun así el enunciado era falso. Se comprueba
+        // el CONTENIDO de una destreza concreta contra el texto oficial.
+        $ley = LearningObjective::where('native_code', 'CN.F.5.1.17')->first();
+        $this->assertNotNull($ley, 'No se importó CN.F.5.1.17');
+        $this->assertStringContainsString(
+            'aceleración y fuerza que actúan sobre un objeto y su masa',
+            $ley->statement['es'],
+        );
+        $this->assertStringNotContainsString('relaambiente', $ley->statement['es']);
     }
 
     public function test_reimportar_es_idempotente(): void
