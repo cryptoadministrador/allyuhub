@@ -18,7 +18,9 @@ use Symfony\Component\Process\Process;
  *   php artisan mineduc:import storage/curriculo/CCNN_COMPLETO.pdf --official
  *
  * Cómo funciona:
- *  1. PDF → texto con pdftotext -layout (o lee .txt directamente).
+ *  1. PDF → texto con pdftotext en modo RAW (o lee .txt directamente). Si el
+ *     texto llega en formato -layout, se reconstruyen las columnas por
+ *     posición X antes de nada: ver reconstruirColumnas().
  *  2. Regex sobre los códigos oficiales: CN.4.3.5 · CN.F.5.1.12 · M.3.1.13 ·
  *     LL.5.1.2 · CS.4.2.3 · ECA.2.1.4 · EF.3.1.8 · EG.5.1.1 · CS.H.5.1.1 …
  *     El texto de la destreza es lo que sigue al código hasta el próximo código.
