@@ -234,6 +234,62 @@ class ImportMineducTest extends TestCase
             $ley->statement['es'],
         );
         $this->assertStringNotContainsString('relaambiente', $ley->statement['es']);
+
+        // Y una destreza donde el modo de extracción se nota de verdad: por
+        // defecto, pdftotext le encaja texto de la columna de objetivos.
+        $deformacion = LearningObjective::where('native_code', 'CN.F.5.1.30')->first();
+        $this->assertNotNull($deformacion);
+        $this->assertStringContainsString(
+            'fuerzas de compresión o de tracción que causan la deformación',
+            $deformacion->statement['es'],
+        );
+        $this->assertStringNotContainsString('su lugar en el Universo', $deformacion->statement['es']);
+    }
+
+    /**
+     * REGRESIÓN del desempate, por la RUTA REAL (el comando, no una copia de
+     * la comparación dentro del test). Fixture con las DOS ocurrencias reales
+     * del PDF para el mismo código: la limpia de la tabla de destrezas y la
+     * entrelazada con la columna de objetivos. Las dos pasan el oráculo, así
+     * que solo el criterio «entre válidas, la más larga» las distingue.
+     */
+    public function test_entre_dos_ocurrencias_reales_se_queda_la_completa(): void
+    {
+        $fixture = dirname(__DIR__).'/fixtures/curriculo/ccnn-codigo-duplicado.txt';
+
+        $this->artisan('mineduc:import', ['file' => $fixture])->assertSuccessful();
+
+        $ley = LearningObjective::where('native_code', 'CN.F.5.1.17')->first();
+        $this->assertNotNull($ley);
+        $this->assertStringContainsString(
+            'aceleración y fuerza que actúan sobre un objeto y su masa',
+            $ley->statement['es'],
+        );
+        $this->assertStringNotContainsString('relaambiente', $ley->statement['es']);
+        $this->assertStringNotContainsString('curiosidad por explorar', $ley->statement['es']);
+    }
+
+    /**
+     * El desempate, aislado: cuando la MISMA destreza aparece dos veces y AMBAS
+     * versiones pasan el oráculo, se queda la completa. Ocurre cuando la matriz
+     * de criterios solo trae la primera frase y el mobiliario de página se lleva
+     * el resto — el recorte la deja terminada en punto, o sea válida y CORTA.
+     */
+    public function test_entre_dos_variantes_validas_se_queda_la_completa(): void
+    {
+        $file = $this->fixture(
+            'CN.F.5.1.9. Explicar el movimiento de un cuerpo sobre un plano inclinado. '
+            ."156 Educación General Básica Superior CIENCIAS NATURALES\n\n"
+            .'CN.F.5.1.9. Explicar el movimiento de un cuerpo sobre un plano inclinado. '
+            .'Descomponer el peso en sus componentes y calcular la fuerza resultante.',
+        );
+
+        $this->artisan('mineduc:import', ['file' => $file])->assertSuccessful();
+
+        $ley = LearningObjective::where('native_code', 'CN.F.5.1.9')->first();
+        $this->assertNotNull($ley);
+        $this->assertStringContainsString('Descomponer el peso en sus componentes', $ley->statement['es']);
+        $this->assertStringNotContainsString('Educación General Básica', $ley->statement['es']);
     }
 
     public function test_reimportar_es_idempotente(): void

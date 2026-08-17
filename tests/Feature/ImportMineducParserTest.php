@@ -106,14 +106,12 @@ class ImportMineducParserTest extends TestCase
             .'formales o no formales.';
         $this->assertTrue(ImportMineduc::evaluarCalidad($completo)['valido']);
 
-        $ganador = collect([['text' => $mutilado], ['text' => $completo]])
-            ->sort(fn ($a, $b) => [
-                ImportMineduc::evaluarCalidad($a['text'])['valido'] ? 0 : 1, -mb_strlen($a['text']),
-            ] <=> [
-                ImportMineduc::evaluarCalidad($b['text'])['valido'] ? 0 : 1, -mb_strlen($b['text']),
-            ])->first();
-
-        $this->assertSame($completo, $ganador['text']);
+        // Quién gana lo decide la RUTA REAL, no una copia del comparador aquí
+        // dentro: eso lo comprueba
+        // ImportMineducTest::test_entre_dos_ocurrencias_reales_se_queda_la_completa,
+        // que ejecuta el comando sobre un fixture con las dos ocurrencias.
+        // (Con el comparador copiado, mutar producción dejaba este test verde.)
+        $this->assertGreaterThan(mb_strlen($mutilado), mb_strlen($completo));
     }
 
     /** El recorte de cola no puede comerse la última frase de un enunciado. */
