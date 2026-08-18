@@ -84,9 +84,11 @@ export default function AppLayout({ title, children }) {
 
             <header className="border-b border-slate-200 bg-white">
                 <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
-                    {/* Wordmark tipográfico: sobrio, esto lo usan colegios. */}
+                    {/* Wordmark tipográfico: sobrio, esto lo usan colegios.
+                        Sin sesión apunta a la portada: /inicio exige auth y
+                        rebotaría al visitante a la pared de /entrar. */}
                     <Link
-                        href="/inicio"
+                        href={auth.user ? '/inicio' : '/'}
                         className="text-lg font-semibold tracking-tight text-marca-700 focus:outline-2 focus:outline-offset-2 focus:outline-marca-600"
                     >
                         AllyuHub

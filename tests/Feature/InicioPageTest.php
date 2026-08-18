@@ -118,6 +118,47 @@ class InicioPageTest extends TestCase
         $this->get('/inicio')->assertRedirect('/entrar');
     }
 
+    /**
+     * FRENTE 3: cada tarjeta se pinta con el acento de SU asignatura. El nodo
+     * de la destreza es un bloque, así que el icono y el color se heredan
+     * subiendo por el árbol hasta la asignatura.
+     */
+    public function test_las_tarjetas_traen_el_acento_de_su_asignatura(): void
+    {
+        $asignatura = CurNode::create([
+            'version_id' => $this->version->id, 'parent_id' => $this->node->id,
+            'node_type' => 'asignatura', 'native_code' => 'CN.F',
+            'title' => ['es' => 'Física'], 'path' => 'bgu.g11.cn_f',
+            'attrs' => ['icon' => '⚛️', 'color' => '#3aa675'],
+        ]);
+        $bloque = CurNode::create([
+            'version_id' => $this->version->id, 'parent_id' => $asignatura->id,
+            'node_type' => 'bloque', 'title' => ['es' => 'Movimiento'],
+            'path' => 'bgu.g11.cn_f.b2',
+        ]);
+        $this->base->update(['node_id' => $bloque->id]);
+
+        $this->intento($this->base, false);
+
+        $this->actingAs($this->ana)->get('/inicio')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('continuar.asignatura.title', 'Física')
+                ->where('continuar.asignatura.icon', '⚛️')
+                ->where('continuar.asignatura.color', '#3aa675')
+            );
+    }
+
+    /** Sin asignatura en la cadena (o sin estilos), la prop es null y la UI degrada. */
+    public function test_sin_asignatura_el_acento_es_null(): void
+    {
+        $this->intento($this->base, false);
+
+        $this->actingAs($this->ana)->get('/inicio')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('continuar.asignatura', null));
+    }
+
     public function test_alumno_nuevo_recibe_un_estado_vacio_digno(): void
     {
         $this->actingAs($this->ana)->get('/inicio')

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\LearningObjective;
 use App\Models\ObjectiveMastery;
 use App\Models\PracticeAttempt;
+use App\Services\Catalog\AcentoDeAsignatura;
 use App\Services\Practice\AdaptiveSelector;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -34,6 +35,7 @@ class InicioController extends Controller
                 'native_code' => $ultima->native_code,
                 'statement' => $ultima->statement['es'] ?? '',
                 'mastery' => (float) ($masteries['de_la_ultima'] ?? 0),
+                'asignatura' => AcentoDeAsignatura::deNodo($ultima->node),
             ],
             'siguiente' => $this->siguientePaso($ultima, $userId),
             'resumen' => [
@@ -81,6 +83,7 @@ class InicioController extends Controller
             'native_code' => $objetivo->native_code,
             'statement' => $objetivo->statement['es'] ?? '',
             'reason' => $decision['reason'],
+            'asignatura' => AcentoDeAsignatura::deNodo($objetivo->node),
         ];
     }
 

@@ -181,6 +181,28 @@ modalidades y 2025-00031-A regula el Bachillerato Técnico EPJA (100 días/ciclo
    (todo escalar por `json_encode`, que es YAML 1.2 válido) y el test lo
    reparsea con symfony/yaml (dev) como oráculo.
    **Falta**: del lado de e-learnium, que el compilador consuma `curso.yaml`.
+7. ~~La plataforma se VE~~ **HECHO**: portada pública `/` (`bienvenida`, cifras
+   agregadas cacheadas 1 h — cero contenido del grafo), catálogo con tarjetas
+   (grado con etiqueta corta + edad + conteos de subárbol; asignatura con icono
+   y color), ficha y aula con el acento heredado de la asignatura, anillo de
+   dominio en SVG propio y página de error 404/403 con marca.
+   **Tras cada importación oficial, ejecuta `php artisan curriculo:estilos`**:
+   escribe `icon`/`color` en `attrs` de los nodos asignatura desde
+   `database/data/curriculo-semilla.json` (el importador oficial no los trae).
+   Es idempotente y QUIRÚRGICO — no crea nodos, no toca `learning_objectives`
+   y solo mira `node_type = 'asignatura'` (los códigos `CN`/`CS`/`M` también
+   los llevan los nodos de área). El seeder ya los persiste en instalación nueva.
+   **Falta**: colores para los marcos internacionales (CAIE/IB) y PCEI.
+
+## Regla de color (no la violes)
+
+El color de asignatura **jamás** es el único portador de significado: siempre va
+con icono Y con texto. Y ninguno de los 15 colores de la semilla llega a 4.5:1
+sobre blanco (el mejor, ECA `#b45fc4`, da 3.91), así que el color se usa como
+ACENTO —borde, fondo suave, texto ya oscurecido— y nunca como fondo de texto
+blanco. Los cálculos viven en `resources/js/lib/color.js` y
+`__tests__/color.test.js` los MIDE contra el JSON real: si alguien añade un
+color que no cumple, el test cae.
 
 ## Qué NO hacer
 
@@ -192,3 +214,7 @@ modalidades y 2025-00031-A regula el Bachillerato Técnico EPJA (100 días/ciclo
   eso es del compilador, con sandbox y human gate.
 - No usar matter.js en los simuladores (abandonado): integrador ODE propio o Rapier
   `-deterministic`. Nunca `Math.random()` en simuladores.
+- No distinguir nada SOLO por color (ni estado, ni asignatura, ni acierto/error):
+  siempre texto, y el icono como refuerzo. Ver «Regla de color» arriba.
+- No meter una librería de gráficas por un anillo o una barra: `resources/js/components/Anillo.jsx`
+  son 60 líneas de SVG. El guardián del CI corta el bundle en 450 KB.

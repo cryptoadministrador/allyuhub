@@ -53,25 +53,84 @@ describe('catalogo — la puerta del currículo', () => {
         expect(within(seccion).getByText('(CAIE-IGCSE)')).toBeInTheDocument();
     });
 
-    it('el árbol se pinta RECURSIVO y cada nodo enlaza a SU id', () => {
+    it('el árbol baja hasta el GRADO, y cada tarjeta enlaza a SU id', () => {
         render(<Catalogo frameworks={MARCOS} tree={ARBOL} />);
 
-        // Tres niveles: nivel → subnivel → grado. Sin la recursión, el nieto
-        // no existe y este test se pone rojo.
-        expect(screen.getByRole('link', { name: 'Educación General Básica' }))
-            .toHaveAttribute('href', '/catalogo/n-egb');
-        expect(screen.getByRole('link', { name: 'Básica Superior' }))
-            .toHaveAttribute('href', '/catalogo/n-sup');
+        // Nivel y subnivel son el andamio: se leen como encabezados. El grado
+        // es el destino: es el único que se pinta como tarjeta enlazada. Sin
+        // la recursión completa, los nietos no existen y esto se pone rojo.
+        expect(screen.getByRole('heading', { name: 'Educación General Básica' })).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Básica Superior' })).toBeInTheDocument();
         expect(screen.getByRole('link', { name: '8.º de Básica' }))
             .toHaveAttribute('href', '/catalogo/n-g8');
         expect(screen.getByRole('link', { name: '9.º de Básica' }))
             .toHaveAttribute('href', '/catalogo/n-g9');
-        expect(screen.getByRole('link', { name: 'Bachillerato' }))
-            .toHaveAttribute('href', '/catalogo/n-bach');
 
-        // Y el nieto cuelga de su padre, no está suelto en la raíz.
-        const subnivel = screen.getByRole('link', { name: 'Básica Superior' }).closest('li');
+        // Y el nieto cuelga de su subnivel, no está suelto en la raíz.
+        const subnivel = screen.getByRole('heading', { name: 'Básica Superior' }).parentElement;
         expect(within(subnivel).getByRole('link', { name: '8.º de Básica' })).toBeInTheDocument();
+    });
+
+    it('la tarjeta de grado usa la etiqueta CORTA y dice cuántas destrezas hay', () => {
+        render(
+            <Catalogo
+                frameworks={MARCOS}
+                tree={[
+                    {
+                        id: 'n-bgu',
+                        title: 'Bachillerato',
+                        children: [
+                            {
+                                id: 'n-sub',
+                                title: 'BGU',
+                                children: [
+                                    {
+                                        id: 'g11',
+                                        title: 'Primer Año de Bachillerato General Unificado',
+                                        corto: '1.º BGU',
+                                        edad: 15,
+                                        destrezas: 240,
+                                        verificadas: 8,
+                                        practicables: 3,
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                ]}
+            />,
+        );
+
+        // El enlace se llama como lo llama un alumno, no como el documento.
+        const enlace = screen.getByRole('link', { name: '1.º BGU' });
+        expect(enlace).toHaveAttribute('href', '/catalogo/g11');
+
+        const tarjeta = enlace.closest('li');
+        // …y el nombre largo sigue estando, para quien lo necesite.
+        expect(within(tarjeta).getByText('Primer Año de Bachillerato General Unificado')).toBeInTheDocument();
+        expect(within(tarjeta).getByText('Desde los 15 años')).toBeInTheDocument();
+        expect(within(tarjeta).getByText('240 destrezas')).toBeInTheDocument();
+        expect(within(tarjeta).getByText('8 verificadas')).toBeInTheDocument();
+        expect(within(tarjeta).getByText('3 con ejercicios')).toBeInTheDocument();
+    });
+
+    it('un grado sin metadatos se pinta igual, sin huecos ni «undefined»', () => {
+        render(
+            <Catalogo
+                frameworks={MARCOS}
+                tree={[
+                    {
+                        id: 'n1',
+                        title: 'EGB',
+                        children: [{ id: 'n2', title: 'Elemental', children: [{ id: 'g2', title: '2.º de Básica' }] }],
+                    },
+                ]}
+            />,
+        );
+
+        const tarjeta = screen.getByRole('link', { name: '2.º de Básica' }).closest('li');
+        expect(tarjeta.textContent).not.toMatch(/undefined|null|NaN/);
+        expect(within(tarjeta).queryByText(/desde los/i)).not.toBeInTheDocument();
     });
 
     it('sin currículo sembrado lo dice, y lo dice anunciándolo', () => {
@@ -79,7 +138,7 @@ describe('catalogo — la puerta del currículo', () => {
 
         expect(screen.getByRole('status'))
             .toHaveTextContent(/currículo aún no está sembrado/i);
-        expect(screen.queryByRole('link', { name: 'Bachillerato' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('heading', { name: 'Bachillerato' })).not.toBeInTheDocument();
     });
 
     it('ofrece la búsqueda como salida', () => {

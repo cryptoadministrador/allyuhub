@@ -1,18 +1,19 @@
 <?php
 
 use App\Http\Controllers\Api\PracticeController;
+use App\Http\Controllers\App\BienvenidaController;
 use App\Http\Controllers\App\DocenteController;
 use App\Http\Controllers\App\InicioController;
 use App\Http\Controllers\App\PageController;
 use Illuminate\Support\Facades\Route;
 
-// La portada ES el catálogo. El welcome de fábrica referenciaba
-// resources/js/app.js — borrado al pasar a Inertia (app.jsx) — así que con
-// el manifest de Vite presente (producción) la raíz daba 500. Los tests no
-// lo veían: withoutVite() y ninguno visitaba '/'.
 // La raíz lleva a la casa del alumno cuando hay sesión; el visitante sin
-// sesión va al catálogo (que a su vez lo manda a /entrar con redirectGuestsTo).
-Route::get('/', fn () => auth()->check() ? redirect('/inicio') : redirect('/catalogo'));
+// sesión ve la PORTADA pública (antes se le rebotaba al catálogo, que a su vez
+// lo mandaba a /entrar: dos redirecciones para acabar en una pared).
+// Ojo con el welcome de fábrica: referenciaba resources/js/app.js — borrado al
+// pasar a Inertia (app.jsx) — y con el manifest de Vite presente (producción)
+// la raíz daba 500. Los tests no lo veían: withoutVite() y nadie visitaba '/'.
+Route::get('/', BienvenidaController::class)->name('bienvenida');
 
 // Sesión caducada o acceso sin launch: la única puerta de entrada es Moodle.
 Route::view('/entrar', 'entrar')->name('entrar');

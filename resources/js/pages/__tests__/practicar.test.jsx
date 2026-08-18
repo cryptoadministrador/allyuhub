@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -111,6 +111,52 @@ describe('Practicar — el bucle completo como lo vive un alumno', () => {
         expect(screen.getByText(/dominio de CN\.F\.5\.1\.9/i)).toBeInTheDocument();
         // Y el alumno ve POR QUÉ le tocó esto.
         expect(screen.getByText(/repasemos algo anterior/i)).toBeInTheDocument();
+    });
+
+    /**
+     * FRENTE 3: el bloque de resultado se vio ANTES como una franja fina que
+     * se perdía debajo del formulario. Ahora es una tarjeta con marca lateral,
+     * icono grande y veredicto en palabras — y las palabras son el oráculo:
+     * si alguien vuelve a dejar solo el color, esto cae.
+     */
+    it('el veredicto se lee, no se adivina por el color', async () => {
+        encolarFetch(
+            respuestaJson(200, ITEM_PROPIO),
+            respuestaJson(201, { id: 'a1', attempt_no: 1, is_correct: false, expected: 26.565, answer: 3 }),
+            respuestaJson(200, []),
+        );
+
+        const user = userEvent.setup();
+        render(<Practicar objective={OBJETIVO} mastery={0} />);
+        await screen.findByText(/μs = 0\.5/);
+
+        await user.type(screen.getByLabelText(/tu respuesta/i), '3');
+        await user.click(screen.getByRole('button', { name: /comprobar/i }));
+
+        const veredicto = await screen.findByText('Incorrecto.');
+        const tarjeta = veredicto.closest('[tabindex="-1"]');
+
+        // El símbolo acompaña, pero no habla: es decorativo.
+        expect(within(tarjeta).getByText('✗')).toHaveAttribute('aria-hidden', 'true');
+        // Y el dato duro sigue ahí, con su unidad.
+        expect(within(tarjeta).getByText(/tu respuesta: 3\./i)).toBeInTheDocument();
+        expect(tarjeta.textContent).toContain('26.565');
+    });
+
+    it('el desvío adaptativo se explica en su propio bloque, atado al formulario', async () => {
+        encolarFetch(respuestaJson(200, ITEM_DESVIADO));
+
+        render(<Practicar objective={OBJETIVO} mastery={0.8} />);
+        const aviso = await screen.findByText(/repasemos algo anterior/i);
+
+        // El formulario lo declara como su descripción: un lector de pantalla
+        // oye POR QUÉ le cambiaron el ejercicio antes de teclear la respuesta.
+        const bloque = aviso.closest('#razon-adaptativa');
+        expect(bloque).not.toBeNull();
+        expect(document.querySelector('form')).toHaveAttribute(
+            'aria-describedby',
+            'razon-adaptativa',
+        );
     });
 
     it('no filtra nada sensible al DOM aunque la API lo enviara', async () => {

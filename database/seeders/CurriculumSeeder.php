@@ -94,7 +94,12 @@ class CurriculumSeeder extends Seeder
                         'version_id' => $ver->id, 'parent_id' => $grade->id,
                         'node_type' => 'asignatura', 'native_code' => $s['codigo'],
                         'title' => ['es' => $s['nombre']], 'seq' => $si, 'path' => $sPath,
-                        'attrs' => ['area' => $s['area'], 'horas' => $s['horas']],
+                        'attrs' => [
+                            'area' => $s['area'], 'horas' => $s['horas'],
+                            // Identidad visual: la UI la pinta como acento, nunca
+                            // como único portador de significado (ver curriculo:estilos).
+                            'icon' => $s['icon'], 'color' => $s['color'],
+                        ],
                     ]);
                     foreach ($s['unidades'] as $u) {
                         $uPath = $sPath.'.b'.$u['n'];

@@ -2,6 +2,7 @@ import { Head, Link } from '@inertiajs/react';
 import AppLayout from '../layouts/AppLayout';
 import DistintivoVerificacion from '../components/DistintivoVerificacion';
 import Migas from '../components/Migas';
+import { estiloDeAsignatura } from '../lib/color';
 
 const RELACIONES = {
     exact: 'equivalente a',
@@ -15,23 +16,63 @@ const RELACIONES = {
  * práctica (o el porqué de que no la haya), recursos publicados,
  * equivalencias REVISADAS y prerrequisitos.
  */
-export default function Destreza({ objective, breadcrumbs, resources, alignments, prerequisites }) {
+export default function Destreza({
+    objective,
+    asignatura,
+    breadcrumbs,
+    resources,
+    alignments,
+    prerequisites,
+}) {
+    const estilo = estiloDeAsignatura(asignatura?.color);
+
     return (
-        <AppLayout title={objective.native_code}>
+        <AppLayout>
             <Head title={objective.native_code} />
             <Migas breadcrumbs={breadcrumbs} actual={objective.native_code} />
 
-            <p className="mb-2">
-                <DistintivoVerificacion verificada={objective.is_verified} conExplicacion />
-            </p>
-            {!objective.is_verified && (
-                <p className="mb-4 text-sm text-slate-600">
-                    El enunciado de abajo es un marcador provisional, no la redacción del
-                    currículo oficial.
-                </p>
-            )}
+            <div style={estilo}>
+            {/* La cabecera hereda el acento de la asignatura, con el código en
+                monoespaciado: es un identificador, no una frase. */}
+            <div
+                className="mb-6 rounded-lg border border-l-4 border-slate-200 bg-white p-4"
+                style={{ borderLeftColor: 'var(--acento)' }}
+            >
+                <div className="flex items-center gap-3">
+                    {asignatura?.icon && (
+                        <span
+                            aria-hidden="true"
+                            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-2xl"
+                            style={{ background: 'var(--acento-suave)' }}
+                        >
+                            {asignatura.icon}
+                        </span>
+                    )}
+                    <div>
+                        <h1
+                            className="font-mono text-xl font-semibold"
+                            style={{ color: 'var(--acento-tinta)' }}
+                        >
+                            {objective.native_code}
+                        </h1>
+                        {asignatura && (
+                            <p className="text-sm text-slate-600">{asignatura.title}</p>
+                        )}
+                    </div>
+                </div>
 
-            <p className="mb-6 text-lg">{objective.statement}</p>
+                <p className="mt-3">
+                    <DistintivoVerificacion verificada={objective.is_verified} conExplicacion />
+                </p>
+                {!objective.is_verified && (
+                    <p className="mt-2 text-sm text-slate-600">
+                        El enunciado de abajo es un marcador provisional, no la redacción del
+                        currículo oficial.
+                    </p>
+                )}
+
+                <p className="mt-3 text-lg leading-relaxed text-slate-900">{objective.statement}</p>
+            </div>
 
             <section aria-labelledby="practica" className="mb-8">
                 <h2 id="practica" className="mb-2 text-lg font-medium">
@@ -40,7 +81,7 @@ export default function Destreza({ objective, breadcrumbs, resources, alignments
                 {objective.has_items ? (
                     <Link
                         href={`/practicar/${objective.id}`}
-                        className="inline-block rounded bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700 focus:outline-2 focus:outline-offset-2 focus:outline-indigo-600"
+                        className="inline-block rounded bg-marca-600 px-4 py-2 font-medium text-white hover:bg-marca-700 focus:outline-2 focus:outline-offset-2 focus:outline-marca-600"
                     >
                         Practicar esta destreza
                     </Link>
@@ -61,7 +102,7 @@ export default function Destreza({ objective, breadcrumbs, resources, alignments
                             aria-disabled="true"
                             onClick={(e) => e.preventDefault()}
                             aria-describedby="sin-ejercicios"
-                            className="cursor-not-allowed rounded bg-slate-300 px-4 py-2 font-medium text-slate-600 focus:outline-2 focus:outline-offset-2 focus:outline-indigo-600"
+                            className="cursor-not-allowed rounded bg-slate-200 px-4 py-2 font-medium text-slate-700 focus:outline-2 focus:outline-offset-2 focus:outline-marca-600"
                         >
                             Practicar esta destreza
                         </button>
@@ -141,6 +182,7 @@ export default function Destreza({ objective, breadcrumbs, resources, alignments
                     </ul>
                 )}
             </section>
+            </div>
         </AppLayout>
     );
 }

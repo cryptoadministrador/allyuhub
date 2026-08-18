@@ -127,6 +127,7 @@ class LayoutSharedPropsTest extends TestCase
             return $n;
         };
 
+        $this->calentarCacheDeLaCsp();
         $pocos = $contar();
 
         // Diez cursos más de otro docente: no son suyos, no deben costarle nada.

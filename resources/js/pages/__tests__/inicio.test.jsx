@@ -87,6 +87,47 @@ describe('inicio — el alumno que ya practicó', () => {
     });
 });
 
+describe('inicio — el acento de la asignatura', () => {
+    const FISICA = { id: 'a1', title: 'Física', icon: '⚛️', color: '#3aa675' };
+
+    it('la tarjeta lleva el icono y el nombre de la asignatura, no solo su color', () => {
+        render(<Inicio {...props({ continuar: { ...CONTINUAR, asignatura: FISICA }, siguiente: null })} />);
+
+        const seccion = screen.getByRole('heading', { name: /continúa donde ibas/i }).closest('section');
+        expect(within(seccion).getByText('⚛️')).toHaveAttribute('aria-hidden', 'true');
+        // El nombre ESCRITO: quien no distinga el verde sabe igual que es Física.
+        expect(within(seccion).getByText('Física')).toBeInTheDocument();
+        expect(seccion.getAttribute('style')).toContain('#3aa675');
+    });
+
+    it('sin asignatura la tarjeta se pinta en gris, sin huecos', () => {
+        render(<Inicio {...props({ siguiente: null })} />);
+
+        const seccion = screen.getByRole('heading', { name: /continúa donde ibas/i }).closest('section');
+        expect(seccion.getAttribute('style')).toContain('#64748b');
+        expect(seccion.textContent).not.toMatch(/undefined|null/);
+    });
+
+    it('cada tarjeta usa SU acento, no el de la anterior', () => {
+        const MATE = { id: 'a2', title: 'Matemática', icon: '📐', color: '#4a86e8' };
+        render(
+            <Inicio
+                {...props({
+                    continuar: { ...CONTINUAR, asignatura: FISICA },
+                    siguiente: { ...SIGUIENTE, asignatura: MATE },
+                })}
+            />,
+        );
+
+        const continuar = screen.getByRole('heading', { name: /continúa donde ibas/i }).closest('section');
+        const siguiente = screen.getByRole('heading', { name: /tu siguiente paso/i }).closest('section');
+
+        expect(continuar.getAttribute('style')).toContain('#3aa675');
+        expect(siguiente.getAttribute('style')).toContain('#4a86e8');
+        expect(siguiente.getAttribute('style')).not.toContain('#3aa675');
+    });
+});
+
 describe('inicio — el alumno nuevo', () => {
     it('recibe una invitación honesta, no una pantalla vacía ni cifras falsas', () => {
         render(<Inicio {...props({

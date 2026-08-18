@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Models\LtiPlatform;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -21,13 +22,20 @@ class AllowLtiFrameEmbedding
         // rescue: si la tabla aún no existe (despliegue a medio migrar, tests
         // sin BD), la política queda en 'self' a secas — jamás un 500 y jamás
         // un fallback más permisivo.
+        //
+        // Cacheado porque este middleware corre en TODAS las respuestas web,
+        // incluida la portada pública: una consulta por visita para una lista
+        // que cambia cuando alguien ejecuta `lti:platform:add`. La invalidación
+        // no depende del TTL — el modelo borra la clave al guardarse o
+        // borrarse (LtiPlatform::booted), así que el header nunca va atrasado.
         $origins = rescue(
-            fn () => LtiPlatform::query()->active()
-                ->pluck('issuer')
-                ->map($this->toOrigin(...))
-                ->filter()
-                ->unique()
-                ->implode(' '),
+            fn () => Cache::remember(LtiPlatform::CACHE_ORIGENES, now()->addHour(),
+                fn () => LtiPlatform::query()->active()
+                    ->pluck('issuer')
+                    ->map($this->toOrigin(...))
+                    ->filter()
+                    ->unique()
+                    ->implode(' ')),
             '',
             report: false,
         );
