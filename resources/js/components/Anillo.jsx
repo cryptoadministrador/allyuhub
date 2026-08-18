@@ -17,7 +17,9 @@ export default function Anillo({
     const fraccion = Math.max(0, Math.min(1, Number.isFinite(valor) ? valor : 0));
     const porcentaje = Math.round(fraccion * 100);
 
-    const radio = (tamano - grosor) / 2;
+    // Un radio negativo (grosor mayor que el tamaño) hace que el navegador
+    // descarte el círculo entero y registre un error: mejor un anillo plano.
+    const radio = Math.max(0, (tamano - grosor) / 2);
     const circunferencia = 2 * Math.PI * radio;
     const centro = tamano / 2;
 

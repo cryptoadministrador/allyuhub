@@ -34,31 +34,42 @@ class SubtreeCounts
             ->join('cur_nodes as cn', 'cn.id', '=', 'lo.node_id')
             ->whereIn('cn.version_id', $versiones);
 
-        // [path => ['t' => total, 'v' => verificadas, 'p' => practicables]]
+        // La clave lleva la VERSIÓN además del path: dos versiones del mismo
+        // marco reutilizan los paths («bgu.g1» existe en las dos), así que
+        // agrupar solo por path sumaba las destrezas de ambas en cada tarjeta
+        // (auditoría). Hoy el catálogo pinta una sola versión y no se notaba.
+        // [version|path => ['t' => total, 'v' => verificadas, 'p' => practicables]]
         $porPath = [];
+        $clave = fn ($version, $ruta) => $version.'|'.$ruta;
 
-        foreach ($base()->groupBy('cn.path', 'lo.is_verified')
-            ->selectRaw('cn.path as ruta, lo.is_verified as verificada, count(*) as n')->get() as $fila) {
-            $porPath[$fila->ruta]['t'] = ($porPath[$fila->ruta]['t'] ?? 0) + (int) $fila->n;
+        foreach ($base()->groupBy('cn.version_id', 'cn.path', 'lo.is_verified')
+            ->selectRaw('cn.version_id as version, cn.path as ruta, lo.is_verified as verificada, count(*) as n')
+            ->get() as $fila) {
+            $k = $clave($fila->version, $fila->ruta);
+            $porPath[$k]['t'] = ($porPath[$k]['t'] ?? 0) + (int) $fila->n;
             if ((bool) $fila->verificada) {
-                $porPath[$fila->ruta]['v'] = ($porPath[$fila->ruta]['v'] ?? 0) + (int) $fila->n;
+                $porPath[$k]['v'] = ($porPath[$k]['v'] ?? 0) + (int) $fila->n;
             }
         }
 
         foreach ($base()
             ->whereExists(fn ($q) => $q->selectRaw('1')->from('practice_items')
                 ->whereColumn('practice_items.objective_id', 'lo.id'))
-            ->groupBy('cn.path')->selectRaw('cn.path as ruta, count(*) as n')->get() as $fila) {
-            $porPath[$fila->ruta]['p'] = (int) $fila->n;
+            ->groupBy('cn.version_id', 'cn.path')
+            ->selectRaw('cn.version_id as version, cn.path as ruta, count(*) as n')
+            ->get() as $fila) {
+            $porPath[$clave($fila->version, $fila->ruta)]['p'] = (int) $fila->n;
         }
 
         $resultado = [];
         foreach ($nodos as $nodo) {
-            $prefijo = $nodo->path.'.';
+            // El punto cierra el prefijo: sin él, «bgu.g1» se tragaría «bgu.g11».
+            $prefijo = $clave($nodo->version_id, $nodo->path).'.';
+            $propio = $clave($nodo->version_id, $nodo->path);
             $suma = ['destrezas' => 0, 'verificadas' => 0, 'practicables' => 0];
 
-            foreach ($porPath as $ruta => $cuentas) {
-                if ($ruta !== $nodo->path && ! str_starts_with($ruta, $prefijo)) {
+            foreach ($porPath as $k => $cuentas) {
+                if ($k !== $propio && ! str_starts_with($k, $prefijo)) {
                     continue;
                 }
                 $suma['destrezas'] += $cuentas['t'] ?? 0;

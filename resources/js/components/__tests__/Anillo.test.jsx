@@ -42,6 +42,15 @@ describe('Anillo de progreso', () => {
         expect(Number(arco.getAttribute('stroke-dashoffset'))).toBeCloseTo(circunferencia * 0.75, 5);
     });
 
+    /** Auditoría: con el grosor mayor que el tamaño salía `r="-1"`. */
+    it('nunca emite un radio negativo', () => {
+        const { container } = render(<Anillo valor={0.5} etiqueta="x" tamano={6} grosor={8} />);
+
+        container.querySelectorAll('circle').forEach((c) => {
+            expect(Number(c.getAttribute('r'))).toBeGreaterThanOrEqual(0);
+        });
+    });
+
     it('cuando es decorativo no se anuncia dos veces', () => {
         const { container } = render(<Anillo valor={1} etiqueta="x" decorativo />);
 

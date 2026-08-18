@@ -60,3 +60,21 @@ Route::prefix('api/v1')->middleware('auth')->group(function () {
     Route::get('practice/mastery', [PracticeController::class, 'mastery']);
     Route::get('practice/progress', [PracticeController::class, 'progress']);
 });
+
+// Una URL que no casa con NINGUNA ruta la rechaza el router antes de aplicar
+// el grupo `web`: sin sesión, sin props compartidas y sin CSP, así que la
+// página de error salía con la salida del visitante aunque el alumno tuviera
+// sesión (auditoría del frente visual). Con un fallback DENTRO del grupo, el
+// 404 vuelve al pipeline normal y se pinta como cualquier otro.
+// Las rutas de la API quedan fuera: allí el 404 tiene que seguir siendo JSON.
+//
+// `any()->fallback()` y no `Route::fallback()`: el helper de Laravel registra
+// SOLO GET, así que un POST a una URL inexistente pasaba a casar la ruta por
+// path pero no por método y devolvía 405 en vez de 404 — además de revelar que
+// «ahí hay algo, pero con otro verbo». `->fallback()` conserva lo importante:
+// esta ruta se prueba la ÚLTIMA, después de las de /lti que se registran luego.
+// El `(?!api/)` es lo que cumple esa promesa: sin él, un POST a un endpoint de
+// solo lectura de /api/v1 pasaba de 405 a 404 porque esta ruta lo casaba.
+Route::any('{cualquiera}', fn () => abort(404))
+    ->where('cualquiera', '(?!api/).*')
+    ->fallback();

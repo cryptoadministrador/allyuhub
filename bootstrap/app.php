@@ -6,6 +6,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\Response;
@@ -42,9 +43,20 @@ return Application::configure(basePath: dirname(__DIR__))
         // las peticiones JSON reciben su 401 estándar.
         $middleware->redirectGuestsTo('/entrar');
 
+        // ANTES de SubstituteBindings, no después (auditoría del frente
+        // visual). Cuando el binding de ruta no encuentra el modelo —el 404
+        // MÁS COMÚN de la app: /catalogo/{uuid-que-no-existe}— lanza la
+        // excepción desde DENTRO del pipeline, así que todo middleware
+        // posterior no llega a ejecutarse nunca. Con los nuestros al final,
+        // la página de error se pintaba sin `auth` (un alumno con sesión
+        // recibía la salida del visitante: «entra desde tu aula virtual», la
+        // pared) y sin la cabecera `frame-ancestors`, dejando una superficie
+        // con enlaces embebible desde cualquier origen.
+        $middleware->web(remove: [SubstituteBindings::class]);
         $middleware->web(append: [
             HandleInertiaRequests::class,
             AllowLtiFrameEmbedding::class,
+            SubstituteBindings::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
@@ -57,7 +69,12 @@ return Application::configure(basePath: dirname(__DIR__))
         // mismo marco (y del mismo iframe de Moodle), con una salida clara.
         // Solo esos dos: un 500 con página bonita esconde el fallo real.
         $exceptions->respond(function (Response $response, Throwable $e, Request $request) {
+            // `expectsJson()` NO basta: es false sin cabecera `Accept` y con
+            // `Accept: */*`, así que un `curl /api/v1/...` inexistente se comía
+            // la página entera creyendo que era JSON (auditoría). El prefijo
+            // manda, igual que en shouldRenderJsonWhen de arriba.
             if (! in_array($response->getStatusCode(), [403, 404], true)
+                || $request->is('api/*')
                 || $request->expectsJson()) {
                 return $response;
             }

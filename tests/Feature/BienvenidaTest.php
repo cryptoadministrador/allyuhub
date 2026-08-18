@@ -76,8 +76,19 @@ class BienvenidaTest extends TestCase
             ->assertRedirect('/inicio');
     }
 
-    /** ORÁCULO: la portada es pública; la segunda visita no toca la BD. */
-    public function test_no_consulta_la_base_de_datos_en_cada_visita(): void
+    /**
+     * ORÁCULO: la portada es pública y no puede recontar el currículo en cada
+     * visita.
+     *
+     * Lo que se afirma es que no vuelve a TOCAR EL GRAFO, no que no haga cero
+     * consultas: con `CACHE_STORE=database` (lo que traen .env.example y
+     * deploy/env.production.example) leer la caché ES una consulta — de coste
+     * fijo, eso sí, y no una que cuente 1010 destrezas. La suite corre con
+     * `array` (phpunit.xml), donde además salen cero; afirmarlo así habría
+     * hecho pasar por garantía algo que solo era cierto en el banco de pruebas
+     * (auditoría del frente visual).
+     */
+    public function test_no_vuelve_a_contar_el_curriculo_en_cada_visita(): void
     {
         $this->sembrarCurriculo();
 
@@ -90,8 +101,15 @@ class BienvenidaTest extends TestCase
 
         $this->get('/')->assertOk();
 
+        $delGrafo = array_filter($consultas, fn (string $sql) => (bool) preg_match(
+            '/\b(learning_objectives|cur_nodes|resources|frameworks|framework_versions)\b/', $sql,
+        ));
+        $this->assertSame([], array_values($delGrafo),
+            'La portada volvió a consultar el grafo: '.implode(' | ', $delGrafo));
+
+        // Y con la caché en memoria (la de la suite), ni una consulta.
         $this->assertSame([], $consultas,
-            'La portada pública consultó la BD: '.implode(' | ', $consultas));
+            'Con CACHE_STORE=array la portada no debería consultar nada: '.implode(' | ', $consultas));
     }
 
     /** Si el currículo cambia, la caché caduca (no es eterna). */

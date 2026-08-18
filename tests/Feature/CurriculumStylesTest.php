@@ -134,6 +134,40 @@ class CurriculumStylesTest extends TestCase
         $this->assertSame('#3aa675', $this->fisica->fresh()->attrs['color']);
     }
 
+    /**
+     * REGRESIÓN (auditoría, hallazgo 7): la clave de un código curricular es
+     * (marco, versión, código) y NUNCA el código solo — regla #2 del repo. Una
+     * asignatura «M» de EC-EPJA no puede acabar con la paleta de MINEDEC solo
+     * porque comparta la letra.
+     */
+    public function test_no_pinta_asignaturas_de_otro_marco(): void
+    {
+        $epja = Framework::create([
+            'code' => 'EC-EPJA', 'authority' => 'MINEDEC', 'kind' => 'national',
+            'country' => 'EC', 'label' => ['es' => 'Currículo EPJA'],
+        ]);
+        $version = FrameworkVersion::create(['framework_id' => $epja->id, 'label' => '2025']);
+        $ajena = CurNode::create([
+            'version_id' => $version->id, 'node_type' => 'asignatura',
+            'native_code' => 'M', 'title' => ['es' => 'Matemática EPJA'],
+            'path' => 'epja.alfa.m',
+        ]);
+
+        $this->artisan('curriculo:estilos')->assertSuccessful();
+
+        $this->assertArrayNotHasKey('color', $ajena->fresh()->attrs ?? []);
+        $this->assertSame('#4a86e8', $this->matematica->fresh()->attrs['color']);
+
+        // Y si algún día EPJA tiene su paleta, se pide por su nombre.
+        $this->artisan('curriculo:estilos', ['--marco' => 'EC-EPJA'])->assertSuccessful();
+        $this->assertSame('#4a86e8', $ajena->fresh()->attrs['color']);
+    }
+
+    public function test_un_marco_inexistente_falla_en_vez_de_no_hacer_nada(): void
+    {
+        $this->artisan('curriculo:estilos', ['--marco' => 'NO-EXISTE'])->assertFailed();
+    }
+
     public function test_es_idempotente(): void
     {
         $this->artisan('curriculo:estilos')->assertSuccessful();
