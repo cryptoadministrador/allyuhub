@@ -99,16 +99,20 @@ export default function Bienvenida({ cifras, entrar }) {
                 <p className="mt-1 text-sm text-slate-600">
                     Cifras del currículo publicado en esta instalación.
                 </p>
+                {/* Etiquetas de una o dos palabras: en un teléfono de 360 px
+                    cada celda mide ~158 px y una frase entera se deshilacha en
+                    cuatro líneas. La explicación va debajo, en prosa. */}
                 <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
                     <Cifra numero={cifras.destrezas} singular="destreza" plural="destrezas" />
-                    <Cifra
-                        numero={cifras.verificadas}
-                        singular="verificada contra el documento oficial"
-                        plural="verificadas contra los documentos oficiales"
-                    />
+                    <Cifra numero={cifras.verificadas} singular="verificada" plural="verificadas" />
                     <Cifra numero={cifras.grados} singular="grado" plural="grados" />
                     <Cifra numero={cifras.simuladores} singular="simulador" plural="simuladores" />
                 </div>
+                <p className="mt-3 text-sm text-slate-600">
+                    «Verificada» significa cotejada palabra por palabra con el documento oficial
+                    del Ministerio. Las demás llevan un enunciado provisional y lo dicen en su
+                    ficha: aquí no se hace pasar un marcador por currículo.
+                </p>
             </section>
 
             <section className="mt-8">

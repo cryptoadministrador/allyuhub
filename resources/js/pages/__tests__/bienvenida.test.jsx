@@ -53,8 +53,24 @@ describe('portada pública', () => {
         render(<Bienvenida cifras={{ destrezas: 1, verificadas: 1, grados: 1, simuladores: 1 }} entrar="/entrar" />);
 
         expect(screen.getByText('destreza')).toBeInTheDocument();
+        expect(screen.getByText('verificada')).toBeInTheDocument();
         expect(screen.getByText('grado')).toBeInTheDocument();
         expect(screen.getByText('simulador')).toBeInTheDocument();
+    });
+
+    /**
+     * Las etiquetas de las cifras caben en una celda de ~158 px (la mitad de un
+     * teléfono de 360 px menos los márgenes). Una frase entera ahí se parte en
+     * cuatro líneas y descuadra la retícula: el matiz va en prosa, debajo.
+     */
+    it('las etiquetas de las cifras caben en un móvil de 360 px', () => {
+        render(<Bienvenida cifras={CIFRAS} entrar="/entrar" />);
+
+        ['destrezas', 'verificadas', 'grados', 'simuladores'].forEach((etiqueta) => {
+            expect(screen.getByText(etiqueta).textContent.split(/\s+/)).toHaveLength(1);
+        });
+        // Y el matiz de «verificada» sigue explicado, solo que fuera de la celda.
+        expect(screen.getByText(/cotejada palabra por palabra/i)).toBeInTheDocument();
     });
 
     it('sobrevive a una instalación recién desplegada (todo en cero)', () => {
