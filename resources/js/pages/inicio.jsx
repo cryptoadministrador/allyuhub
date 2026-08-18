@@ -1,40 +1,52 @@
 import { Head, Link } from '@inertiajs/react';
 import AppLayout from '../layouts/AppLayout';
+import Anillo from '../components/Anillo';
+import { estiloDeAsignatura } from '../lib/color';
 import { textoDeRazon } from '../lib/razones';
 
 /**
  * La casa del alumno. Tres preguntas, en el orden en que se las hace:
  * ¿dónde iba? · ¿qué toca ahora? · ¿cómo voy?
  *
- * Nada de números sin palabras: el resumen se lee en una frase.
+ * Nada de números sin palabras: el resumen se lee en una frase, y el anillo
+ * de dominio lleva el porcentaje escrito dentro. Cada tarjeta toma el acento
+ * de SU asignatura, así que de un vistazo se ve si lo de hoy es Física o
+ * Matemática sin tener que leer el código curricular.
  */
 
-function Tarjeta({ titulo, children }) {
+function Tarjeta({ titulo, acento, children }) {
     return (
-        <section className="mb-6 rounded-lg border border-slate-200 bg-white p-4">
-            <h2 className="mb-2 text-base font-semibold text-slate-900">{titulo}</h2>
+        <section
+            style={{ ...estiloDeAsignatura(acento), borderLeftColor: 'var(--acento)' }}
+            className="mb-6 rounded-lg border border-l-4 border-slate-200 bg-white p-4"
+        >
+            <h2 className="mb-3 text-base font-semibold text-slate-900">{titulo}</h2>
             {children}
         </section>
     );
 }
 
-function BarraDominio({ valor, etiqueta }) {
-    const pct = Math.round((valor ?? 0) * 100);
-
+/** El encabezado de una destreza: icono de la asignatura + código monoespaciado. */
+function Encabezado({ destreza }) {
     return (
-        <div className="mt-2">
-            <div
-                role="progressbar"
-                aria-label={etiqueta}
-                aria-valuenow={pct}
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuetext={`${pct} por ciento`}
-                className="h-2 overflow-hidden rounded-full bg-slate-200"
-            >
-                <div className="h-full rounded-full bg-marca-600" style={{ width: `${pct}%` }} />
+        <div className="flex items-center gap-3">
+            {destreza.asignatura?.icon && (
+                <span
+                    aria-hidden="true"
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-xl"
+                    style={{ background: 'var(--acento-suave)' }}
+                >
+                    {destreza.asignatura.icon}
+                </span>
+            )}
+            <div className="min-w-0">
+                <p className="font-mono text-sm font-semibold" style={{ color: 'var(--acento-tinta)' }}>
+                    {destreza.native_code}
+                </p>
+                {destreza.asignatura && (
+                    <p className="text-xs text-slate-600">{destreza.asignatura.title}</p>
+                )}
             </div>
-            <p className="mt-1 text-xs text-slate-600">Dominio: {pct} %</p>
         </div>
     );
 }
@@ -50,7 +62,7 @@ export default function Inicio({ continuar, siguiente, resumen }) {
         <AppLayout title="Tu aprendizaje">
             <Head title="Inicio" />
 
-            <Tarjeta titulo="Continúa donde ibas">
+            <Tarjeta titulo="Continúa donde ibas" acento={continuar?.asignatura?.color}>
                 {empezando ? (
                     <div>
                         <p className="text-slate-700">
@@ -64,30 +76,40 @@ export default function Inicio({ continuar, siguiente, resumen }) {
                         </p>
                     </div>
                 ) : (
-                    <div>
-                        <p className="font-medium">{continuar.native_code}</p>
-                        <p className="text-sm text-slate-700">{continuar.statement}</p>
-                        <BarraDominio
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="min-w-0">
+                            <Encabezado destreza={continuar} />
+                            <p className="mt-2 text-sm leading-relaxed text-slate-700">
+                                {continuar.statement}
+                            </p>
+                            <p className="mt-3">
+                                <Link href={`/practicar/${continuar.objective_id}`} className={BOTON}>
+                                    Seguir practicando
+                                </Link>
+                            </p>
+                        </div>
+
+                        {/* El anillo dice el dominio con su número dentro: quien
+                            no vea el arco lee el porcentaje igual. */}
+                        <Anillo
                             valor={continuar.mastery}
                             etiqueta={`Dominio de ${continuar.native_code}`}
+                            tamano={104}
                         />
-                        <p className="mt-3">
-                            <Link href={`/practicar/${continuar.objective_id}`} className={BOTON}>
-                                Seguir practicando
-                            </Link>
-                        </p>
                     </div>
                 )}
             </Tarjeta>
 
             {siguiente && (
-                <Tarjeta titulo="Tu siguiente paso">
-                    <p className="mb-2 rounded bg-marca-50 px-3 py-2 text-sm text-marca-900">
+                <Tarjeta titulo="Tu siguiente paso" acento={siguiente.asignatura?.color}>
+                    <p className="mb-3 rounded bg-marca-50 px-3 py-2 text-sm text-marca-900">
                         <span aria-hidden="true">{razon.icono} </span>
                         {razon.texto}
                     </p>
-                    <p className="font-medium">{siguiente.native_code}</p>
-                    <p className="text-sm text-slate-700">{siguiente.statement}</p>
+                    <Encabezado destreza={siguiente} />
+                    <p className="mt-2 text-sm leading-relaxed text-slate-700">
+                        {siguiente.statement}
+                    </p>
                     <p className="mt-3">
                         <Link href={`/practicar/${siguiente.objective_id}`} className={BOTON}>
                             Empezar

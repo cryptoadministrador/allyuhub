@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Models\LtiPlatform;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -21,13 +22,27 @@ class AllowLtiFrameEmbedding
         // rescue: si la tabla aún no existe (despliegue a medio migrar, tests
         // sin BD), la política queda en 'self' a secas — jamás un 500 y jamás
         // un fallback más permisivo.
+        //
+        // Cacheado porque este middleware corre en TODAS las respuestas web,
+        // incluida la portada pública: una consulta por visita para una lista
+        // que cambia cuando alguien ejecuta `lti:platform:add`.
+        //
+        // La invalidación normal la hace el modelo (LtiPlatform::booted borra
+        // la clave al guardar o borrar), pero eso solo cubre los eventos de
+        // MODELO: un `LtiPlatform::query()->update(['is_active' => false])` o
+        // un UPDATE por psql no los disparan. Por eso el TTL es de un minuto y
+        // no de una hora (auditoría): revocar un Moodle desde la consola de la
+        // base de datos tarda como mucho 60 s en salir de la CSP, y aun así se
+        // ahorra el 99,9 % de las consultas. Si algún día hace falta que sea
+        // inmediato, la clave tendría que derivar de max(updated_at)+count.
         $origins = rescue(
-            fn () => LtiPlatform::query()->active()
-                ->pluck('issuer')
-                ->map($this->toOrigin(...))
-                ->filter()
-                ->unique()
-                ->implode(' '),
+            fn () => Cache::remember(LtiPlatform::CACHE_ORIGENES, now()->addMinute(),
+                fn () => LtiPlatform::query()->active()
+                    ->pluck('issuer')
+                    ->map($this->toOrigin(...))
+                    ->filter()
+                    ->unique()
+                    ->implode(' ')),
             '',
             report: false,
         );

@@ -1,0 +1,128 @@
+<?php
+
+namespace App\Console\Commands;
+
+use App\Models\CurNode;
+use App\Models\Framework;
+use App\Models\FrameworkVersion;
+use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
+
+/**
+ * Escribe la identidad visual de cada asignatura (icono y color) en el grafo,
+ * desde database/data/curriculo-semilla.json.
+ *
+ *   php artisan curriculo:estilos
+ *
+ * QUIRÚRGICO a propósito: en producción el currículo REAL ya está importado
+ * encima de la semilla, así que este comando solo actualiza `attrs` de nodos
+ * asignatura que YA existen — no crea nodos, no toca destrezas, y respeta lo
+ * que hubiera en attrs. Es idempotente: si nada cambia, no reescribe la fila.
+ */
+class CurriculumStyles extends Command
+{
+    /**
+     * El marco al que pertenece la paleta del JSON. Está aquí y no suelto en
+     * el código porque la regla #2 del repo es que la clave de un código
+     * curricular es (marco, versión, código) y NUNCA el código solo: «M» es
+     * Matemática en EC-MINEDEC, pero también podría serlo en EC-EPJA con otra
+     * paleta, y pintar la de MINEDEC encima sería mentir (auditoría).
+     */
+    public const MARCO = 'EC-MINEDEC';
+
+    protected $signature = 'curriculo:estilos
+        {--marco= : Código del marco a pintar (por defecto EC-MINEDEC)}
+        {--dry-run : Muestra lo que haría sin escribir}';
+
+    protected $description = 'Guarda el icono y el color de cada asignatura en el grafo curricular';
+
+    public function handle(): int
+    {
+        $ruta = database_path('data/curriculo-semilla.json');
+        if (! is_file($ruta)) {
+            $this->error("No existe {$ruta}");
+
+            return self::FAILURE;
+        }
+
+        $json = json_decode(file_get_contents($ruta), true);
+
+        // codigo de asignatura → [icon, color]. El JSON repite la asignatura en
+        // cada grado con los mismos valores; basta con la primera aparición.
+        $estilos = [];
+        foreach ($json['grados'] ?? [] as $g) {
+            foreach ($g['asignaturas'] ?? [] as $a) {
+                if (! isset($a['codigo'], $a['icon'], $a['color'])) {
+                    continue;
+                }
+
+                $nuevo = ['icon' => $a['icon'], 'color' => $a['color']];
+                // El JSON repite la asignatura en cada grado con los mismos
+                // valores. Si un día no coincidieran, quedarse callado con el
+                // primero sería elegir a ciegas: se avisa (auditoría).
+                if (isset($estilos[$a['codigo']]) && $estilos[$a['codigo']] !== $nuevo) {
+                    $this->warn(sprintf(
+                        '%s tiene dos estilos en el JSON (%s y %s): se usa el primero.',
+                        $a['codigo'], json_encode($estilos[$a['codigo']]), json_encode($nuevo),
+                    ));
+
+                    continue;
+                }
+                $estilos[$a['codigo']] = $nuevo;
+            }
+        }
+
+        if ($estilos === []) {
+            $this->error('El JSON no trae iconos ni colores de asignatura.');
+
+            return self::FAILURE;
+        }
+
+        $marco = $this->option('marco') ?: self::MARCO;
+        if (! Framework::where('code', $marco)->exists()) {
+            $this->error("No existe el marco {$marco}.");
+
+            return self::FAILURE;
+        }
+
+        $tocadas = 0;
+        $saltadas = 0;
+
+        DB::transaction(function () use ($estilos, $marco, &$tocadas, &$saltadas) {
+            CurNode::query()
+                ->where('node_type', 'asignatura')
+                ->whereIn('native_code', array_keys($estilos))
+                // (marco, versión, código), nunca el código solo: el mismo «M»
+                // en otro marco es otra asignatura y no lleva esta paleta.
+                ->whereIn('version_id', FrameworkVersion::query()
+                    ->whereIn('framework_id', Framework::where('code', $marco)->select('id'))
+                    ->select('id'))
+                ->orderBy('id')
+                ->chunkById(200, function ($nodos) use ($estilos, &$tocadas, &$saltadas) {
+                    foreach ($nodos as $nodo) {
+                        $estilo = $estilos[$nodo->native_code];
+                        $attrs = $nodo->attrs ?? [];
+
+                        if (($attrs['icon'] ?? null) === $estilo['icon']
+                            && ($attrs['color'] ?? null) === $estilo['color']) {
+                            $saltadas++;
+
+                            continue;   // ya está: no se reescribe la fila
+                        }
+
+                        if (! $this->option('dry-run')) {
+                            $nodo->update(['attrs' => [...$attrs, ...$estilo]]);
+                        }
+                        $tocadas++;
+                    }
+                });
+        });
+
+        $this->info(sprintf(
+            '%s%d asignatura(s) de %s con icono y color · %d ya estaban al día · %d estilos en el JSON.',
+            $this->option('dry-run') ? '[dry-run] ' : '', $tocadas, $marco, $saltadas, count($estilos),
+        ));
+
+        return self::SUCCESS;
+    }
+}

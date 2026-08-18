@@ -1,18 +1,19 @@
 <?php
 
 use App\Http\Controllers\Api\PracticeController;
+use App\Http\Controllers\App\BienvenidaController;
 use App\Http\Controllers\App\DocenteController;
 use App\Http\Controllers\App\InicioController;
 use App\Http\Controllers\App\PageController;
 use Illuminate\Support\Facades\Route;
 
-// La portada ES el catálogo. El welcome de fábrica referenciaba
-// resources/js/app.js — borrado al pasar a Inertia (app.jsx) — así que con
-// el manifest de Vite presente (producción) la raíz daba 500. Los tests no
-// lo veían: withoutVite() y ninguno visitaba '/'.
 // La raíz lleva a la casa del alumno cuando hay sesión; el visitante sin
-// sesión va al catálogo (que a su vez lo manda a /entrar con redirectGuestsTo).
-Route::get('/', fn () => auth()->check() ? redirect('/inicio') : redirect('/catalogo'));
+// sesión ve la PORTADA pública (antes se le rebotaba al catálogo, que a su vez
+// lo mandaba a /entrar: dos redirecciones para acabar en una pared).
+// Ojo con el welcome de fábrica: referenciaba resources/js/app.js — borrado al
+// pasar a Inertia (app.jsx) — y con el manifest de Vite presente (producción)
+// la raíz daba 500. Los tests no lo veían: withoutVite() y nadie visitaba '/'.
+Route::get('/', BienvenidaController::class)->name('bienvenida');
 
 // Sesión caducada o acceso sin launch: la única puerta de entrada es Moodle.
 Route::view('/entrar', 'entrar')->name('entrar');
@@ -59,3 +60,15 @@ Route::prefix('api/v1')->middleware('auth')->group(function () {
     Route::get('practice/mastery', [PracticeController::class, 'mastery']);
     Route::get('practice/progress', [PracticeController::class, 'progress']);
 });
+
+// Una URL que no casa con NINGUNA ruta la rechaza el router antes del grupo
+// `web`: sin sesión, sin props compartidas y sin CSP, así que la página de
+// error salía con la salida del visitante aunque el alumno tuviera sesión. Este
+// catch-all la devuelve al pipeline normal para que se pinte con marca+auth+CSP.
+// Cubre todos los verbos MENOS OPTIONS: un `any()` se tragaba el preflight CORS
+// (OPTIONS -> 404 en vez del 200 autogenerado con Allow) y el 405 de las rutas
+// reales; excluir OPTIONS devuelve el preflight (auditoría PR #20). Las de
+// /api/v1 quedan fuera: su 404 es JSON.
+Route::match(['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'], '{cualquiera}', fn () => abort(404))
+    ->where('cualquiera', '(?!api/).*')
+    ->fallback();

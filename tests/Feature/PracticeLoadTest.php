@@ -51,6 +51,8 @@ class PracticeLoadTest extends TestCase
         $item = PracticeItem::factory()->create();
         $user = User::factory()->create();
 
+        $this->calentarCacheDeLaCsp();
+
         $first = null;
         foreach (range(1, 200) as $i) {
             $queries = $this->countQueries(fn () => $this->postCorrectAttempt($item, $user));
@@ -70,6 +72,7 @@ class PracticeLoadTest extends TestCase
         $big = LearningObjective::factory()->create();
         PracticeItem::factory()->count(12)->for($big, 'objective')->create();
 
+        $this->calentarCacheDeLaCsp();
         $this->actingAs($user);
         $q2 = $this->countQueries(fn () => $this->getJson(
             "/api/v1/objectives/{$small->id}/practice/next")->assertOk());
@@ -89,6 +92,7 @@ class PracticeLoadTest extends TestCase
         $this->makePhases($chico, 1);
         $this->makePhases($grande, 6);
 
+        $this->calentarCacheDeLaCsp();
         $this->actingAs($user);
         $q1 = $this->countQueries(fn () => $this->getJson(
             '/api/v1/practice/progress?track=T-CHICO')->assertOk());

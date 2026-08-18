@@ -81,13 +81,131 @@ class CatalogoPagesTest extends TestCase
         $this->ana = User::factory()->create();
     }
 
-    private function nodo(?CurNode $parent, string $type, ?string $code, string $title, string $path): CurNode
+    private function nodo(?CurNode $parent, string $type, ?string $code, string $title, string $path,
+        array $attrs = [], ?float $edad = null): CurNode
     {
-        return CurNode::create([
+        // attrs y age_min son NOT NULL con default: se omiten si no se piden.
+        return CurNode::create(array_filter([
             'version_id' => $this->version->id, 'parent_id' => $parent?->id,
-            'node_type' => $type, 'native_code' => $code,
-            'title' => ['es' => $title], 'path' => $path,
-        ]);
+            'node_type' => $type, 'native_code' => $code, 'age_min' => $edad,
+            'title' => ['es' => $title], 'path' => $path, 'attrs' => $attrs ?: null,
+        ], fn ($v) => $v !== null));
+    }
+
+    // ---------- Frente 2: el catálogo con cara ----------
+
+    /**
+     * La tarjeta de un grado necesita la etiqueta CORTA («1.º BGU», no «Primer
+     * Año de Bachillerato General Unificado»), la edad y cuántas destrezas hay
+     * debajo — que no cuelgan del grado, sino de sus bloques.
+     */
+    public function test_las_tarjetas_de_grado_traen_etiqueta_corta_edad_y_conteos(): void
+    {
+        $this->grado->update(['attrs' => ['corto' => '1.º BGU'], 'age_min' => 15]);
+
+        $this->actingAs($this->ana)->get('/catalogo')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('tree.0.children.0.children.0.corto', '1.º BGU')
+                // Comparación numérica, no de tipo: pgsql devuelve la edad como
+                // float y sqlite como int, y el JSON conserva esa diferencia.
+                ->where('tree.0.children.0.children.0.edad', fn ($edad) => (float) $edad === 15.0)
+                ->where('tree.0.children.0.children.0.destrezas', 2)
+                ->where('tree.0.children.0.children.0.verificadas', 1)
+                ->where('tree.0.children.0.children.0.practicables', 1)
+            );
+    }
+
+    /** Sin estilos sembrados, la tarjeta no lleva color: la UI degrada sola. */
+    public function test_un_grado_sin_atributos_no_inventa_etiqueta_ni_edad(): void
+    {
+        $this->actingAs($this->ana)->get('/catalogo')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->missing('tree.0.children.0.children.0.corto')
+                ->missing('tree.0.children.0.children.0.edad')
+                ->where('tree.0.children.0.children.0.title', '1.º BGU')
+            );
+    }
+
+    /** La tarjeta de asignatura lleva su icono, su color y su cuenta propia. */
+    public function test_las_tarjetas_de_asignatura_traen_icono_color_y_conteos(): void
+    {
+        $this->asignatura->update(['attrs' => ['icon' => '⚛️', 'color' => '#3aa675']]);
+
+        $this->actingAs($this->ana)->get("/catalogo/{$this->grado->id}")
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('children.0.title', 'Física')
+                ->where('children.0.icon', '⚛️')
+                ->where('children.0.color', '#3aa675')
+                ->where('children.0.destrezas', 2)
+                ->where('children.0.practicables', 1)
+            );
+    }
+
+    /**
+     * El acento se HEREDA: estando en un bloque de Física, la página sigue
+     * sabiendo que es Física — el nodo actual no tiene color propio.
+     */
+    public function test_el_bloque_hereda_el_acento_de_su_asignatura(): void
+    {
+        $this->asignatura->update(['attrs' => ['icon' => '⚛️', 'color' => '#3aa675']]);
+
+        $this->actingAs($this->ana)->get("/catalogo/{$this->bloque->id}")
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('asignatura.title', 'Física')
+                ->where('asignatura.color', '#3aa675')
+                ->missing('node.color')
+            );
+
+        // Y la ficha de la destreza, también.
+        $this->actingAs($this->ana)->get("/destreza/{$this->verificada->id}")
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('asignatura.title', 'Física')
+                ->where('asignatura.icon', '⚛️')
+            );
+    }
+
+    /** Por encima de la asignatura no hay acento que heredar: null, no basura. */
+    public function test_sin_asignatura_en_la_cadena_no_hay_acento(): void
+    {
+        $this->actingAs($this->ana)->get("/catalogo/{$this->grado->id}")
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('asignatura', null));
+    }
+
+    /** Las tarjetas del catálogo no pueden costar una consulta cada una. */
+    public function test_el_catalogo_no_hace_una_consulta_por_tarjeta(): void
+    {
+        $this->calentarCacheDeLaCsp();
+        $this->actingAs($this->ana);
+
+        $contar = function (): int {
+            $n = 0;
+            DB::listen(function () use (&$n) {
+                $n++;
+            });
+            $this->get('/catalogo')->assertOk();
+
+            return $n;
+        };
+        $pocos = $contar();
+
+        // Nueve grados más, cada uno con su asignatura, su bloque y destrezas.
+        foreach (range(1, 9) as $i) {
+            $g = $this->nodo($this->subnivel, 'grado', "g{$i}", "Grado {$i}", "bgu.bgu.gx{$i}");
+            $a = $this->nodo($g, 'asignatura', 'M', 'Matemática', "bgu.bgu.gx{$i}.m");
+            $b = $this->nodo($a, 'bloque', null, 'Álgebra', "bgu.bgu.gx{$i}.m.b1");
+            LearningObjective::create([
+                'node_id' => $b->id, 'version_id' => $this->version->id,
+                'native_code' => "M.5.1.{$i}", 'statement' => ['es' => 'x'], 'is_verified' => true,
+            ]);
+        }
+
+        $this->assertSame($pocos, $contar(), 'Las consultas crecieron con el número de tarjetas');
     }
 
     /**
@@ -155,11 +273,14 @@ class CatalogoPagesTest extends TestCase
     /**
      * REGRESIÓN (despliegue): la raíz servía el welcome de fábrica, que pedía
      * un resources/js/app.js inexistente y daba 500 EN PRODUCCIÓN (con
-     * manifest de Vite). La raíz es el catálogo, sin vistas de fábrica.
+     * manifest de Vite). Sigue sin haber vistas de fábrica; lo que cambió es
+     * el destino: el visitante ve la PORTADA (antes se le rebotaba al catálogo,
+     * que a su vez lo mandaba a /entrar) y el alumno con sesión, su inicio.
      */
-    public function test_la_raiz_lleva_al_catalogo(): void
+    public function test_la_raiz_no_sirve_vistas_de_fabrica(): void
     {
-        $this->get('/')->assertRedirect('/catalogo');
+        $this->get('/')->assertOk();
+        $this->actingAs($this->ana)->get('/')->assertRedirect('/inicio');
         $this->assertFileDoesNotExist(resource_path('views/welcome.blade.php'));
     }
 
@@ -242,6 +363,7 @@ class CatalogoPagesTest extends TestCase
             return $n;
         };
 
+        $this->calentarCacheDeLaCsp();
         $pocas = $contar("/catalogo/{$this->bloque->id}");
 
         foreach (range(1, 200) as $i) {

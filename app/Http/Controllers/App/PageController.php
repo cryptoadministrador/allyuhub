@@ -11,6 +11,8 @@ use App\Models\LearningObjective;
 use App\Models\ObjectiveMastery;
 use App\Models\Resource;
 use App\Models\Track;
+use App\Services\Catalog\AcentoDeAsignatura;
+use App\Services\Catalog\SubtreeCounts;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -69,12 +71,22 @@ class PageController extends Controller
                 'kind' => $fw->kind,
             ])->values();
 
-        $tree = [];
+        $tree = collect();
         $minedec = Framework::where('code', 'EC-MINEDEC')->first();
         if ($minedec !== null) {
             $version = $minedec->versions()->latest('valid_from')->first();
-            $tree = $version?->roots()->with('children.children')->get()
-                ->map(fn (CurNode $n) => $this->nodoLigero($n, 2))->values() ?? collect();
+            $raices = $version?->roots()->with('children.children')->get() ?? collect();
+
+            // Las tarjetas de grado llevan cuántas destrezas hay debajo: se
+            // cuentan de una vez para TODOS los grados (dos consultas), no una
+            // por tarjeta. Un grado no tiene destrezas propias — cuelgan de
+            // sus bloques— así que hace falta el subárbol.
+            $grados = $raices->flatMap(fn (CurNode $n) => $n->children)
+                ->flatMap(fn (CurNode $n) => $n->children)
+                ->filter(fn (CurNode $n) => $n->node_type === 'grado');
+            $cuentas = SubtreeCounts::para($grados);
+
+            $tree = $raices->map(fn (CurNode $n) => $this->nodoLigero($n, 2, $cuentas))->values();
         }
 
         return Inertia::render('catalogo', [
@@ -83,19 +95,35 @@ class PageController extends Controller
         ]);
     }
 
-    /** Nodo del árbol con lo MÍNIMO para pintar (nada de attrs ni paths). */
-    private function nodoLigero(CurNode $node, int $depth): array
+    /**
+     * Nodo del árbol con lo mínimo para pintar SU TARJETA: nada de paths ni de
+     * attrs enteros, solo la etiqueta corta y la edad del grado (las que hacen
+     * legible «1.º EGB · 5 años» frente a «Primer Grado de Educación General
+     * Básica») y el icono y color de la asignatura.
+     */
+    private function nodoLigero(CurNode $node, int $depth, array $cuentas = []): array
     {
-        $ligero = [
+        $attrs = $node->attrs ?? [];
+
+        $ligero = array_filter([
             'id' => $node->id,
             'node_type' => $node->node_type,
             'native_code' => $node->native_code,
             'title' => $node->title['es'] ?? '',
-        ];
+            'corto' => $attrs['corto'] ?? null,
+            'edad' => $node->age_min,
+            'icon' => $attrs['icon'] ?? null,
+            'color' => $attrs['color'] ?? null,
+        ], fn ($v) => $v !== null);
+
+        if (isset($cuentas[$node->id])) {
+            $ligero += $cuentas[$node->id];
+        }
 
         if ($depth > 0) {
             $ligero['children'] = $node->children
-                ->map(fn (CurNode $c) => $this->nodoLigero($c, $depth - 1))->values()->all();
+                ->map(fn (CurNode $c) => $this->nodoLigero($c, $depth - 1, $cuentas))
+                ->values()->all();
         }
 
         return $ligero;
@@ -110,22 +138,24 @@ class PageController extends Controller
     {
         $paginator = (new CurriculumController)->nodeObjectives($node, $request);
 
+        $ancestros = $node->ancestors();
+        $hijos = $node->children;
+        // Una sola pasada para las tarjetas de los hijos (dos consultas en total).
+        $cuentas = SubtreeCounts::para($hijos);
+
         return Inertia::render('catalogo-nodo', [
-            'node' => [
-                'id' => $node->id,
-                'node_type' => $node->node_type,
-                'native_code' => $node->native_code,
-                'title' => $node->title['es'] ?? '',
-            ],
-            'breadcrumbs' => $node->ancestors()
+            'node' => $this->nodoLigero($node, 0),
+            // El acento visual lo pone la asignatura, esté el usuario en ella o
+            // en uno de sus bloques: se hereda del ancestro más cercano.
+            // concat, no push: push MUTA la colección y las migas de abajo
+            // acabarían incluyendo al propio nodo.
+            'asignatura' => AcentoDeAsignatura::deCadena($ancestros->concat([$node])),
+            'breadcrumbs' => $ancestros
                 ->map(fn (CurNode $n) => [
                     'id' => $n->id, 'title' => $n->title['es'] ?? '', 'node_type' => $n->node_type,
                 ])->values(),
-            'children' => $node->children
-                ->map(fn (CurNode $c) => [
-                    'id' => $c->id, 'title' => $c->title['es'] ?? '',
-                    'node_type' => $c->node_type, 'native_code' => $c->native_code,
-                ])->values(),
+            'children' => $hijos
+                ->map(fn (CurNode $c) => $this->nodoLigero($c, 0, $cuentas))->values(),
             'objectives' => [
                 'data' => collect($paginator->items())->map(fn (LearningObjective $o) => [
                     'id' => $o->id,
@@ -179,6 +209,7 @@ class PageController extends Controller
                 'is_verified' => (bool) $objective->is_verified,
                 'has_items' => $objective->practiceItems()->exists(),
             ],
+            'asignatura' => AcentoDeAsignatura::deCadena($breadcrumbs),
             'breadcrumbs' => $breadcrumbs
                 ->map(fn (CurNode $n) => [
                     'id' => $n->id, 'title' => $n->title['es'] ?? '', 'node_type' => $n->node_type,

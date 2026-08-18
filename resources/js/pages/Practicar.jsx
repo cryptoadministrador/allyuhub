@@ -138,7 +138,10 @@ export default function Practicar({ objective, mastery: masteryInicial }) {
 
             <p className="mb-4 text-sm text-slate-600">{enunciado}</p>
 
-            {/* Barra de dominio: progressbar real, con texto además del color. */}
+            {/* Barra de dominio: progressbar real, con texto además del color.
+                La transición es explícita sobre `width` y se apaga si el
+                sistema pide menos movimiento (motion-reduce): una barra que
+                repta puede marear, y aquí se mueve en cada respuesta. */}
             <div className="mb-6">
                 <div className="mb-1 flex justify-between text-sm">
                     <span id="etiqueta-dominio">
@@ -156,7 +159,7 @@ export default function Practicar({ objective, mastery: masteryInicial }) {
                     className="h-3 overflow-hidden rounded-full bg-slate-200"
                 >
                     <div
-                        className="h-full rounded-full bg-indigo-600 transition-all"
+                        className="h-full rounded-full bg-marca-600 transition-[width] duration-700 ease-out motion-reduce:transition-none"
                         style={{ width: `${porcentaje}%` }}
                     />
                 </div>
@@ -183,7 +186,7 @@ export default function Practicar({ objective, mastery: masteryInicial }) {
                     <button
                         type="button"
                         onClick={cargarSiguiente}
-                        className="mt-2 rounded bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700 focus:outline-2 focus:outline-offset-2 focus:outline-indigo-600"
+                        className="mt-2 rounded bg-marca-600 px-4 py-2 font-medium text-white hover:bg-marca-700 focus:outline-2 focus:outline-offset-2 focus:outline-marca-600"
                     >
                         Reintentar
                     </button>
@@ -192,18 +195,28 @@ export default function Practicar({ objective, mastery: masteryInicial }) {
 
             {(estado === 'listo' || estado === 'enviando') && item && (
                 <form onSubmit={enviar} aria-describedby={razon ? 'razon-adaptativa' : undefined}>
+                    {/* El desvío adaptativo se explica en una TARJETA ámbar, no
+                        en una línea suelta: es una decisión del motor que
+                        cambia lo que el alumno tiene delante, y merece que se
+                        note. El texto lo dice entero — el ámbar solo lo señala. */}
                     {razon && (
-                        <p
+                        <div
                             id="razon-adaptativa"
-                            className="mb-3 rounded bg-amber-50 px-3 py-2 text-sm text-amber-900"
+                            className="mb-4 flex gap-3 rounded-lg border border-l-4 border-amber-200 border-l-amber-500 bg-amber-50 p-3"
                         >
-                            <span aria-hidden="true">{razon.icono} </span>
-                            {razon.texto}
-                        </p>
+                            <span aria-hidden="true" className="text-xl leading-none">
+                                {razon.icono}
+                            </span>
+                            <p className="text-sm leading-relaxed text-amber-900">{razon.texto}</p>
+                        </div>
                     )}
 
-                    {/* React escapa por defecto; los enunciados vienen de PDFs importados. */}
-                    <p className="mb-4 text-lg">{item.statement.es}</p>
+                    {/* El enunciado es LO QUE SE LEE: grande, con aire y sin
+                        competir con nada. React escapa por defecto; el texto
+                        viene de PDFs importados. */}
+                    <p className="mb-5 rounded-lg border border-slate-200 bg-white p-4 text-xl leading-relaxed text-slate-900">
+                        {item.statement.es}
+                    </p>
 
                     <div className="mb-4 flex items-end gap-2">
                         <label className="block">
@@ -218,7 +231,7 @@ export default function Practicar({ objective, mastery: masteryInicial }) {
                                 required
                                 value={respuesta}
                                 onChange={(e) => setRespuesta(e.target.value)}
-                                className="w-40 rounded border border-slate-300 px-3 py-2 focus:outline-2 focus:outline-indigo-600"
+                                className="w-40 rounded border border-slate-300 px-3 py-2 focus:outline-2 focus:outline-marca-600"
                             />
                         </label>
                         {item.answer_unit && (
@@ -231,7 +244,7 @@ export default function Practicar({ objective, mastery: masteryInicial }) {
                     <button
                         type="submit"
                         disabled={estado === 'enviando'}
-                        className="rounded bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700 focus:outline-2 focus:outline-offset-2 focus:outline-indigo-600 disabled:opacity-50"
+                        className="rounded bg-marca-600 px-4 py-2 font-medium text-white hover:bg-marca-700 focus:outline-2 focus:outline-offset-2 focus:outline-marca-600 disabled:opacity-50"
                     >
                         {estado === 'enviando' ? 'Comprobando…' : 'Comprobar'}
                     </button>
@@ -244,29 +257,44 @@ export default function Practicar({ objective, mastery: masteryInicial }) {
                     <div
                         ref={feedbackRef}
                         tabIndex={-1}
-                        className={`rounded border px-4 py-3 ${
+                        className={`flex gap-4 rounded-lg border border-l-4 p-4 ${
                             resultado.is_correct
-                                ? 'border-green-300 bg-green-50'
-                                : 'border-red-300 bg-red-50'
+                                ? 'border-emerald-200 border-l-emerald-600 bg-emerald-50'
+                                : 'border-rose-200 border-l-rose-600 bg-rose-50'
                         }`}
                     >
-                        {/* Icono + texto: jamás solo el color. */}
-                        <p className="font-semibold">
-                            <span aria-hidden="true">{resultado.is_correct ? '✓' : '✗'} </span>
-                            {resultado.is_correct ? 'Correcto.' : 'Incorrecto.'}
-                        </p>
-                        <p className="mt-1 text-sm">
-                            Tu respuesta: {resultado.answer}. Valor esperado:{' '}
-                            {Math.round(resultado.expected * 1000) / 1000}
-                            {item?.answer_unit ? ` ${item.answer_unit}` : ''}.
-                        </p>
-                        <button
-                            type="button"
-                            onClick={cargarSiguiente}
-                            className="mt-3 rounded bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700 focus:outline-2 focus:outline-offset-2 focus:outline-indigo-600"
+                        {/* Icono GRANDE + texto: jamás solo el color, y a un
+                            tamaño que se ve de reojo desde el teclado. */}
+                        <span
+                            aria-hidden="true"
+                            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xl font-bold text-white ${
+                                resultado.is_correct ? 'bg-emerald-600' : 'bg-rose-600'
+                            }`}
                         >
-                            Siguiente ejercicio
-                        </button>
+                            {resultado.is_correct ? '✓' : '✗'}
+                        </span>
+
+                        <div>
+                            <p
+                                className={`text-lg font-semibold ${
+                                    resultado.is_correct ? 'text-emerald-900' : 'text-rose-900'
+                                }`}
+                            >
+                                {resultado.is_correct ? 'Correcto.' : 'Incorrecto.'}
+                            </p>
+                            <p className="mt-1 text-sm text-slate-700">
+                                Tu respuesta: {resultado.answer}. Valor esperado:{' '}
+                                {Math.round(resultado.expected * 1000) / 1000}
+                                {item?.answer_unit ? ` ${item.answer_unit}` : ''}.
+                            </p>
+                            <button
+                                type="button"
+                                onClick={cargarSiguiente}
+                                className="mt-3 rounded bg-marca-600 px-4 py-2 font-medium text-white hover:bg-marca-700 focus:outline-2 focus:outline-offset-2 focus:outline-marca-600"
+                            >
+                                Siguiente ejercicio
+                            </button>
+                        </div>
                     </div>
                 )}
             </div>

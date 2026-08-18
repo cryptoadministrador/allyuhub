@@ -155,6 +155,35 @@ class AppPagesTest extends TestCase
             );
     }
 
+    /**
+     * La lista de orígenes se cachea (el middleware corre en CADA respuesta y
+     * la portada pública no puede pagar una consulta por visita), pero la
+     * caché no puede dejar la CSP atrasada: registrar o desactivar una
+     * Platform tiene efecto en la siguiente respuesta, sin esperar al TTL.
+     */
+    public function test_la_csp_se_actualiza_al_registrar_o_desactivar_una_platform(): void
+    {
+        $ruta = "/practicar/{$this->objective->id}";
+        $csp = fn () => $this->actingAs($this->ana)->get($ruta)
+            ->headers->get('Content-Security-Policy');
+
+        $this->assertSame("frame-ancestors 'self'", $csp());   // calienta la caché
+
+        $moodle = LtiPlatform::create([
+            'issuer' => 'https://moodle.colegio.test',
+            'client_id' => 'client-abc',
+            'auth_login_url' => 'x', 'auth_token_url' => 'x', 'jwks_url' => 'x',
+        ]);
+        $this->assertSame("frame-ancestors 'self' https://moodle.colegio.test", $csp());
+
+        $moodle->update(['is_active' => false]);
+        $this->assertSame("frame-ancestors 'self'", $csp());
+
+        $moodle->update(['is_active' => true]);
+        $moodle->delete();
+        $this->assertSame("frame-ancestors 'self'", $csp());
+    }
+
     public function test_frame_ancestors_solo_las_platforms_registradas(): void
     {
         LtiPlatform::create([
