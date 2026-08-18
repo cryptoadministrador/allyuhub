@@ -166,15 +166,28 @@ class PaginaDeErrorTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
 
+        // GET a una URL inexistente: 404 con marca (el enlace muerto del alumno).
         $this->get('/no-existe')->assertNotFound();
-        $this->post('/no-existe')->assertNotFound();
-        $this->put('/no-existe')->assertNotFound();
-        $this->delete('/no-existe')->assertNotFound();
 
         // La API conserva su semántica: 405 donde el verbo no aplica…
         $this->postJson('/api/v1/practice/mastery')->assertStatus(405);
         // …y 404 JSON donde no hay nada.
         $this->getJson('/api/v1/no-existe')->assertNotFound();
+    }
+
+    /**
+     * REGRESIÓN (auditoría PR #20, defecto 10): el catch-all era `Route::any()`
+     * y se tragaba el preflight CORS — OPTIONS sobre cualquier ruta devolvía
+     * 404 en vez del 200 autogenerado con su cabecera Allow, una mina para el
+     * día que un consumidor externo llame con cabeceras personalizadas. El
+     * catch-all ahora excluye OPTIONS. El test viejo solo probaba URLs
+     * inexistentes con GET/POST y nunca vio la regresión.
+     */
+    public function test_el_catch_all_no_se_traga_el_preflight_options(): void
+    {
+        $r = $this->call('OPTIONS', '/catalogo');
+        $this->assertSame(200, $r->getStatusCode(), 'OPTIONS debe autogenerar el preflight, no caer en el 404');
+        $this->assertNotEmpty($r->headers->get('Allow'), 'el preflight trae la cabecera Allow');
     }
 
     /** Un 500 NO se disfraza: esconder el fallo real es peor que la pantalla fea. */
