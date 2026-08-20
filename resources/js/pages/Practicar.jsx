@@ -80,7 +80,8 @@ function AvisoDeInvitado({ compacto = false }) {
 }
 
 export default function Practicar({ objective, mastery: masteryInicial }) {
-    // estado: cargando | listo | enviando | respondido | sin-items | sesion | error
+    // estado: cargando | listo | enviando | respondido | sin-items | sesion |
+    //         demasiadas | error
     const [estado, setEstado] = useState('cargando');
     const [item, setItem] = useState(null);
     const [respuesta, setRespuesta] = useState('');
@@ -93,6 +94,8 @@ export default function Practicar({ objective, mastery: masteryInicial }) {
 
     const { props: compartidas } = usePage();
     const invitado = !compartidas.auth?.user;
+    const invitadoRef = useRef(invitado);
+    invitadoRef.current = invitado;
 
     // El invitado no tiene historial en el servidor del que deducir por qué
     // intento va, así que lo lleva él. En un ref y no en estado: `cargarSiguiente`
@@ -111,9 +114,20 @@ export default function Practicar({ objective, mastery: masteryInicial }) {
 
             if (r.status === 401) return setEstado('sesion');
             if (r.status === 404) return setEstado('sin-items');
+            if (r.status === 429) return setEstado('demasiadas');
             if (!r.ok) return setEstado('error');
 
-            setItem(await r.json());
+            const siguiente = await r.json();
+
+            // La prop `auth` se renderizó cuando la sesión aún vivía; el
+            // servidor es el único que sabe si AHORA se guarda. Si el alumno
+            // creía tener sesión y ya no la tiene, se le dice — antes seguía
+            // practicando en el vacío con la barra congelada (auditoría).
+            if (!invitadoRef.current && siguiente.se_guarda === false) {
+                return setEstado('sesion');
+            }
+
+            setItem(siguiente);
             inicioItem.current = Date.now();
             setEstado('listo');
         } catch {
@@ -155,9 +169,18 @@ export default function Practicar({ objective, mastery: masteryInicial }) {
 
             if (r.status === 401) return setEstado('sesion');
             if (r.status === 409) return cargarSiguiente();   // intento duplicado: pedir el siguiente
+            if (r.status === 429) return setEstado('demasiadas');
             if (!r.ok) return setEstado('error');
 
             const veredicto = await r.json();
+
+            // Misma comprobación que al pedir el ítem: si el alumno creía tener
+            // sesión y el servidor dice que esto no se ha guardado, se le avisa
+            // en vez de darle un «Correcto» que no cuenta para nada.
+            if (!invitado && veredicto.se_guarda === false) {
+                return setEstado('sesion');
+            }
+
             setResultado(veredicto);
             setEstado('respondido');
 
@@ -166,7 +189,10 @@ export default function Practicar({ objective, mastery: masteryInicial }) {
                 // desaparece, que es exactamente lo que dice el aviso. Y el
                 // siguiente ejercicio necesita otro número de intento para no
                 // repetir los mismos números.
-                intento.current = (item.attempt_no ?? 1) + 1;
+                // El servidor acepta como mucho intento=500; al llegar se
+                // vuelve a empezar en vez de pedir un 501 que dejaba la página
+                // muerta con un mensaje falso (auditoría).
+                intento.current = ((item.attempt_no ?? 1) % 500) + 1;
                 setTanteo((t) => ({
                     aciertos: t.aciertos + (veredicto.is_correct ? 1 : 0),
                     respondidos: t.respondidos + 1,
@@ -265,9 +291,40 @@ export default function Practicar({ objective, mastery: masteryInicial }) {
             )}
 
             {estado === 'sesion' && (
-                <p role="alert">
-                    Tu sesión caducó. <a className="underline" href="/entrar">Vuelve a entrar desde Moodle</a>.
-                </p>
+                <div role="alert" className="rounded-lg border border-l-4 border-amber-200 border-l-amber-500 bg-amber-50 p-4">
+                    <p className="font-semibold text-amber-900">Tu sesión caducó</p>
+                    <p className="mt-1 text-sm leading-relaxed text-amber-900">
+                        Lo que respondas a partir de ahora no se guardaría.{' '}
+                        <a className="font-medium underline" href="/entrar">
+                            Vuelve a entrar desde tu aula virtual
+                        </a>{' '}
+                        y sigues donde ibas — lo que ya tenías guardado sigue ahí.
+                    </p>
+                    <p className="mt-3 text-sm text-amber-900">
+                        También puedes{' '}
+                        <a className="font-medium underline" href="/catalogo">
+                            seguir practicando como visitante
+                        </a>
+                        , sin que cuente.
+                    </p>
+                </div>
+            )}
+
+            {estado === 'demasiadas' && (
+                <div role="alert" className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+                    <p className="text-amber-900">
+                        Has pedido muchos ejercicios seguidos. Espera un minuto y vuelve a
+                        intentarlo — el límite es por conexión, así que si estás en el colegio
+                        puede que lo hayáis alcanzado entre varios.
+                    </p>
+                    <button
+                        type="button"
+                        onClick={cargarSiguiente}
+                        className="mt-3 rounded bg-marca-600 px-4 py-2 font-medium text-white hover:bg-marca-700 focus:outline-2 focus:outline-offset-2 focus:outline-marca-600"
+                    >
+                        Reintentar
+                    </button>
+                </div>
             )}
 
             {estado === 'error' && (

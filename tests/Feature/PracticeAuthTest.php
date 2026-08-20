@@ -18,7 +18,9 @@ use Tests\TestCase;
  * La deuda cerrada (misión frontend-auth): la API de práctica identifica al
  * alumno por su SESIÓN (`Auth::id()`), jamás por un user_id del request.
  *
- *  - Anónimo → 401 en los cuatro endpoints (ni siquiera puede practicar).
+ *  - Anónimo → atiende los cuatro endpoints (el contenido es abierto), pero
+ *    no escribe NI UNA FILA: la puerta que se cerró no es la de practicar,
+ *    es la de guardar.
  *  - `user_id` en el request → 422 explícito (regla `prohibited`): mejor
  *    ruidoso que ignorado, para cazar clientes desactualizados.
  *  - IDOR: un alumno autenticado no puede leer ni escribir lo de otro.

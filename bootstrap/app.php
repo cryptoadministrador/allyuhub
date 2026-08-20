@@ -33,9 +33,26 @@ return Application::configure(basePath: dirname(__DIR__))
         // el TLS termina ahí y a PHP le llega http. Sin confiar en el proxy,
         // Laravel cree que la petición es insegura, las cookies pierden
         // `Secure` y la sesión muere dentro del iframe de Moodle — justo lo
-        // que el piloto tiene que probar. El proxy es NUESTRO nginx en la
-        // misma máquina (127.0.0.1), por eso el '*' no abre nada a terceros.
-        $middleware->trustProxies(at: '*');
+        // que el piloto tiene que probar.
+        //
+        // RANGOS PRIVADOS, no '*' (auditoría del contenido abierto). Con '*'
+        // se confiaba en la cadena ENTERA de X-Forwarded-For, incluida la parte
+        // que escribe el cliente, así que `$request->ip()` devolvía lo que el
+        // cliente quisiera: bastaba una cabecera distinta en cada petición para
+        // saltarse el límite de la práctica abierta. Nuestro nginx AÑADE el
+        // peer real al final (`$proxy_add_x_forwarded_for`), y el salto que
+        // toca la app siempre viene de una IP privada —el gateway del
+        // contenedor, ver deploy/docker-compose.yml—, así que Symfony descarta
+        // los saltos privados desde la derecha y se queda con la primera IP
+        // pública: la de verdad. Lo inventado por el cliente queda a la
+        // izquierda y se ignora. `X-Forwarded-Proto` sigue funcionando porque
+        // el proxy inmediato sigue siendo de confianza.
+        $middleware->trustProxies(at: [
+            '127.0.0.1',
+            '10.0.0.0/8',
+            '172.16.0.0/12',
+            '192.168.0.0/16',
+        ]);
 
         $middleware->validateCsrfTokens(except: ['lti/*']);
 

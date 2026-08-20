@@ -48,16 +48,24 @@ class AppServiceProvider extends ServiceProvider
      *
      * Desde que el motor sirve ítems sin sesión, cualquiera puede pedirlos: sin
      * tope, un script martillea el generador (que evalúa expresiones y hashea)
-     * gratis. 60 por minuto y por IP es holgado para practicar de verdad —un
-     * ejercicio cada segundo durante un minuto— y ridículo para un raspador.
+     * gratis.
      *
-     * Al ALUMNO no se le pone tope: entró por LTI, está identificado, y un
-     * límite por IP castigaría a un aula entera detrás del mismo NAT.
+     * 120 por minuto y por IP, no 60 (auditoría): un aula entera sale a
+     * internet por la MISMA IP, y el bucle gasta dos peticiones por ejercicio
+     * —pedirlo y responderlo—, así que 60 dejaba a todo el colegio en 30
+     * ejercicios por minuto entre todos. Con 120 son 60, holgado para una clase
+     * probando la plataforma y sigue siendo ridículo para un raspador.
+     *
+     * Que la clave sea de verdad la IP del cliente depende de que no se confíe
+     * en cualquier X-Forwarded-For: ver `trustProxies` en bootstrap/app.php.
+     *
+     * Al ALUMNO no se le pone tope: entró por LTI, está identificado, y el
+     * límite por IP lo dejaría fuera junto a toda su clase.
      */
     private function limitarLaPracticaAbierta(): void
     {
         RateLimiter::for('practica', fn (Request $request) => $request->user()
             ? Limit::none()
-            : Limit::perMinute(60)->by($request->ip()));
+            : Limit::perMinute(120)->by($request->ip()));
     }
 }

@@ -10,8 +10,10 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 | API v1 pública — SOLO LECTURA del grafo y el catálogo (se importan y
 | publican por pipeline, no por esta API). Los endpoints de práctica viven
-| en routes/web.php bajo el mismo prefijo /api/v1: exigen sesión (auth) y
-| el alumno sale de Auth::id(), jamás del payload.
+| en routes/web.php bajo el mismo prefijo /api/v1: desde el contenido abierto
+| TAMPOCO exigen sesión —un invitado practica y se le corrige— pero solo con
+| sesión se GUARDA el avance y viaja la nota, y el alumno sale siempre de
+| Auth::id(), jamás del payload (un `user_id` en el request es 422).
 |--------------------------------------------------------------------------
 */
 Route::prefix('v1')->group(function () {

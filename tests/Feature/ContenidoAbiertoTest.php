@@ -18,6 +18,7 @@ use App\Models\TrackPhase;
 use App\Models\User;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Inertia\Testing\AssertableInertia;
@@ -251,6 +252,42 @@ class ContenidoAbiertoTest extends TestCase
         ])->assertStatus(422)->assertJsonValidationErrors('user_id');
     }
 
+    /**
+     * MUTACIÓN SUPERVIVIENTE (bucle B): hacer que el servidor se creyera el
+     * `intento` del ALUMNO no ponía nada rojo, y es un agujero de trampa de
+     * libro. El alumno ya conoce el `expected` del intento 1 —se le revela al
+     * responder—, así que si pudiera fijar el número de intento repetiría
+     * eternamente la misma instancia con la respuesta ya sabida: dominio a 1.0
+     * y un 100 en el gradebook de Moodle sin resolver nada.
+     *
+     * Su número de intento sale de la BASE, y punto. El campo existe para el
+     * invitado, que no tiene base donde mirar.
+     */
+    public function test_al_alumno_no_se_le_cree_el_numero_de_intento(): void
+    {
+        $this->actingAs($this->ana);
+
+        // Aunque pida el ítem 300, se le sirve su intento real: el 1.
+        $this->getJson("/api/v1/objectives/{$this->objective->id}/practice/next?intento=300")
+            ->assertOk()
+            ->assertJsonPath('attempt_no', 1);
+
+        // Y aunque diga responder al 99, se registra el que le toca.
+        $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [
+            'answer' => 5, 'intento' => 99,
+        ])->assertCreated()->assertJsonPath('attempt_no', 1);
+
+        $this->assertDatabaseHas('practice_attempts', [
+            'item_id' => self::ITEM_ID, 'user_id' => $this->ana->id, 'attempt_no' => 1,
+        ]);
+        $this->assertDatabaseMissing('practice_attempts', ['attempt_no' => 99]);
+
+        // El segundo intento es el 2, no el 100: la cuenta la lleva el servidor.
+        $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [
+            'answer' => 5, 'intento' => 99,
+        ])->assertCreated()->assertJsonPath('attempt_no', 2);
+    }
+
     // ======== Dominio/progreso del invitado: 200 vacío, jamás el de otro ========
 
     public function test_mastery_y_progress_de_invitado_no_filtran_el_avance_de_otro(): void
@@ -285,11 +322,84 @@ class ContenidoAbiertoTest extends TestCase
     {
         $url = "/api/v1/objectives/{$this->objective->id}/practice/next";
 
-        for ($i = 0; $i < 60; $i++) {
+        // 120/min: un aula entera sale por la misma IP y el bucle gasta dos
+        // peticiones por ejercicio, así que 60 dejaba al colegio en 30
+        // ejercicios por minuto entre todos (auditoría).
+        for ($i = 0; $i < 120; $i++) {
             $this->getJson($url)->assertOk();
         }
 
         $this->getJson($url)->assertStatus(429);
+    }
+
+    /**
+     * REGRESIÓN DE SEGURIDAD (auditoría): con `trustProxies(at: '*')` Laravel
+     * se creía la cadena ENTERA de X-Forwarded-For, incluida la parte que
+     * escribe el cliente, así que `$request->ip()` devolvía lo que el atacante
+     * quisiera y bastaba una cabecera distinta por petición para saltarse el
+     * límite. Confiando solo en rangos privados, los saltos inventados quedan
+     * a la izquierda y se descartan: manda la primera IP pública de verdad.
+     */
+    public function test_una_cabecera_forjada_no_cambia_la_ip_que_cuenta_para_el_limite(): void
+    {
+        // Una petición real primero: TrustProxies fija los proxies de confianza.
+        $this->get('/catalogo')->assertOk();
+
+        $peticion = Request::create('/api/v1/practice/mastery', 'GET', server: [
+            'REMOTE_ADDR' => '203.0.113.9',   // lo que ve NUESTRO nginx
+        ]);
+        $peticion->headers->set('X-Forwarded-For', '1.2.3.4, 203.0.113.9');
+
+        $this->assertSame('203.0.113.9', $peticion->ip(),
+            'Un X-Forwarded-For forjado sigue decidiendo la IP: el límite es saltable.');
+    }
+
+    /**
+     * REGRESIÓN (auditoría): el invitado veía SIEMPRE el mismo ítem. El
+     * selector cuenta intentos por usuario y el invitado no tiene ninguno, así
+     * que el mínimo era 0 para todos y ganaba siempre el de menor `seq`: más de
+     * la mitad del banco quedaba inalcanzable sin sesión. Ahora rota por número
+     * de intento, sobre el mismo orden estable que usa la rotación del alumno.
+     */
+    public function test_el_invitado_recorre_todos_los_items_de_la_destreza(): void
+    {
+        foreach ([2, 3] as $seq) {
+            PracticeItem::create([
+                'objective_id' => $this->objective->id, 'seq' => $seq,
+                'statement' => ['es' => "Ejercicio {$seq}: {a} + {b}"],
+                'params' => ['a' => ['const' => $seq], 'b' => ['const' => 1]],
+                'solution_expr' => 'a + b', 'tolerance' => 0.01, 'tolerance_kind' => 'abs',
+            ]);
+        }
+
+        $vistos = [];
+        foreach (range(1, 6) as $intento) {
+            $vistos[] = $this->getJson(
+                "/api/v1/objectives/{$this->objective->id}/practice/next?intento={$intento}"
+            )->assertOk()->json('item_id');
+        }
+
+        $this->assertCount(3, array_unique($vistos), 'El invitado no rota de ítem: '.implode(', ', $vistos));
+        // Y la rotación es cíclica y estable: el intento 4 repite el del 1.
+        $this->assertSame($vistos[0], $vistos[3]);
+    }
+
+    /**
+     * El `next` declara si lo que venga se guardará. Es lo ÚNICO que delata una
+     * sesión caducada a media práctica: los endpoints ya no devuelven 401
+     * —atienden al alumno como invitado— y la prop `auth` del cliente se
+     * renderizó cuando la sesión aún vivía (auditoría).
+     */
+    public function test_el_siguiente_item_declara_si_se_va_a_guardar(): void
+    {
+        $this->getJson("/api/v1/objectives/{$this->objective->id}/practice/next")
+            ->assertOk()
+            ->assertJsonPath('se_guarda', false);
+
+        $this->actingAs($this->ana)
+            ->getJson("/api/v1/objectives/{$this->objective->id}/practice/next")
+            ->assertOk()
+            ->assertJsonPath('se_guarda', true);
     }
 
     // ======== CSRF: el invitado tiene sesión web, y la protección sigue puesta ========

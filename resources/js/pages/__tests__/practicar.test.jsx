@@ -211,13 +211,77 @@ describe('Practicar — el bucle completo como lo vive un alumno', () => {
 });
 
 describe('Practicar — estados degradados', () => {
-    it('401: sesión caducada con enlace a /entrar', async () => {
+    /**
+     * EL ESCENARIO REAL de caducidad, y el que antes no tenía test.
+     *
+     * Desde que la práctica es abierta, los cuatro endpoints NO devuelven 401
+     * nunca: a un alumno con la sesión muerta se le atiende como visitante. El
+     * cliente no puede darse cuenta por su prop `auth` —se renderizó cuando la
+     * sesión aún vivía—, así que lo único que lo delata es el `se_guarda: false`
+     * de la respuesta. Sin esta comprobación, el alumno seguía practicando en
+     * el vacío: corrección real, «Correcto.», barra congelada y nada guardado.
+     */
+    it('sesión caducada a media práctica: el servidor lo dice y la página avisa', async () => {
+        encolarFetch(respuestaJson(200, { ...ITEM_PROPIO, se_guarda: false }));
+
+        render(<Practicar objective={OBJETIVO} mastery={0.42} />);
+
+        expect(await screen.findByRole('alert')).toHaveTextContent(/sesión caducó/i);
+        expect(screen.getByRole('link', { name: /vuelve a entrar/i })).toHaveAttribute('href', '/entrar');
+        // Y NO se le pinta el ejercicio como si nada.
+        expect(screen.queryByLabelText(/tu respuesta/i)).not.toBeInTheDocument();
+    });
+
+    it('si caduca justo al responder, tampoco se le da un «Correcto» que no cuenta', async () => {
+        const user = userEvent.setup();
+        encolarFetch(
+            respuestaJson(200, { ...ITEM_PROPIO, se_guarda: true }),
+            respuestaJson(200, { attempt_no: 1, is_correct: true, expected: 26.565, answer: 26.6, se_guarda: false }),
+        );
+
+        render(<Practicar objective={OBJETIVO} mastery={0.42} />);
+        await screen.findByText(/μs = 0\.5/);
+
+        await user.type(screen.getByLabelText(/tu respuesta/i), '26.6');
+        await user.click(screen.getByRole('button', { name: /comprobar/i }));
+
+        expect(await screen.findByRole('alert')).toHaveTextContent(/sesión caducó/i);
+        expect(screen.queryByText('Correcto.')).not.toBeInTheDocument();
+    });
+
+    /** Al VISITANTE `se_guarda: false` es su caso normal: no es una caducidad. */
+    it('al visitante ese mismo se_guarda:false no le saca ningún aviso de sesión', async () => {
+        auth = { user: null };
+        encolarFetch(respuestaJson(200, { ...ITEM_PROPIO, se_guarda: false }));
+
+        render(<Practicar objective={OBJETIVO} mastery={null} />);
+
+        expect(await screen.findByText(/μs = 0\.5/)).toBeInTheDocument();
+        expect(screen.queryByText(/sesión caducó/i)).not.toBeInTheDocument();
+    });
+
+    /**
+     * El 401 sigue manejado como cinturón: hoy ninguna de las cuatro rutas lo
+     * emite, pero si mañana alguna vuelve a exigir sesión, no puede acabar en
+     * «¿se cortó la conexión?».
+     */
+    it('401: sesión caducada con enlace a /entrar (defensa, hoy inalcanzable)', async () => {
         encolarFetch(respuestaJson(401, { message: 'Unauthenticated.' }));
 
         render(<Practicar objective={OBJETIVO} mastery={0} />);
 
         expect(await screen.findByRole('alert')).toHaveTextContent(/sesión caducó/i);
-        expect(screen.getByRole('link', { name: /vuelve a entrar/i })).toHaveAttribute('href', '/entrar');
+    });
+
+    it('429: el límite se explica, no se disfraza de conexión cortada', async () => {
+        encolarFetch(respuestaJson(429, { message: 'Too Many Attempts.' }));
+
+        render(<Practicar objective={OBJETIVO} mastery={null} />);
+
+        const aviso = await screen.findByRole('alert');
+        expect(aviso).toHaveTextContent(/muchos ejercicios seguidos/i);
+        expect(aviso).not.toHaveTextContent(/se cortó la conexión/i);
+        expect(within(aviso).getByRole('button', { name: /reintentar/i })).toBeInTheDocument();
     });
 
     it('409 al responder: pide el siguiente ítem sin romperse', async () => {
@@ -268,7 +332,8 @@ describe('Practicar — accesibilidad (axe) en sus estados', () => {
         ['con datos', () => encolarFetch(respuestaJson(200, ITEM_PROPIO)), /μs = 0\.5/],
         ['vacío', () => encolarFetch(), /todavía no tiene ejercicios/i],
         ['error', () => encolarFetch(respuestaJson(500, {})), /no pudimos cargar/i],
-        ['sesión caducada', () => encolarFetch(respuestaJson(401, {})), /sesión caducó/i],
+        ['sesión caducada', () => encolarFetch(respuestaJson(200, { ...ITEM_PROPIO, se_guarda: false })), /sesión caducó/i],
+        ['límite alcanzado', () => encolarFetch(respuestaJson(429, {})), /muchos ejercicios seguidos/i],
     ])('estado %s sin violaciones serias', async (nombre, prepara, esperado) => {
         prepara();
         const props = nombre === 'vacío'
