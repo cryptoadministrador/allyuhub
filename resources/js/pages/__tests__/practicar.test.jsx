@@ -6,9 +6,13 @@ import Practicar from '../Practicar';
 import { respuestaJson, violacionesGraves } from '../../test/helpers';
 
 // Fuera de una app Inertia real: Head y usePage se sustituyen por dobles.
+// `auth` es mutable para poder practicar la misma página como alumno y como
+// visitante: es la ÚNICA diferencia entre los dos, y eso es lo que se prueba.
+let auth = { user: { id: 1, name: 'Ana Estudiante' } };
+
 vi.mock('@inertiajs/react', () => ({
     Head: () => null,
-    usePage: () => ({ props: { auth: { user: { id: 1, name: 'Ana Estudiante' } } } }),
+    usePage: () => ({ props: { auth } }),
     Link: ({ href, children, ...rest }) => (
         <a href={href} {...rest}>
             {children}
@@ -57,6 +61,7 @@ function encolarFetch(...respuestas) {
 }
 
 beforeEach(() => {
+    auth = { user: { id: 1, name: 'Ana Estudiante' } };
     vi.unstubAllGlobals();
     document.cookie = 'XSRF-TOKEN=token-de-prueba';
 });
@@ -283,5 +288,125 @@ describe('Practicar — accesibilidad (axe) en sus estados', () => {
 
         // aria-labelledby vivo: el progressbar TIENE nombre («Dominio de…»).
         expect(screen.getByRole('progressbar', { name: /dominio de/i })).toBeInTheDocument();
+    });
+});
+
+/**
+ * ORÁCULOS 7 y 9 de la misión «contenido abierto»: el visitante practica de
+ * verdad, se le corrige de verdad, y en ningún momento se le hace creer que
+ * aquello queda registrado.
+ */
+describe('Practicar — como VISITANTE (sin sesión)', () => {
+    beforeEach(() => {
+        auth = { user: null };
+    });
+
+    it('avisa, sin letra pequeña, de que su avance no se guarda', async () => {
+        encolarFetch(respuestaJson(200, ITEM_PROPIO));
+        render(<Practicar objective={OBJETIVO} mastery={null} />);
+        await screen.findByText(/μs = 0\.5/);
+
+        const aviso = screen.getByText(/tu avance no se guarda/i);
+        expect(aviso).toBeInTheDocument();
+        // Y el aviso lleva a la puerta, no es solo un lamento.
+        expect(screen.getAllByRole('link', { name: /entra desde tu aula virtual/i })[0])
+            .toHaveAttribute('href', '/entrar');
+    });
+
+    it('con sesión ese aviso NO aparece', async () => {
+        auth = { user: { id: 1, name: 'Ana Estudiante' } };
+        encolarFetch(respuestaJson(200, ITEM_PROPIO));
+        render(<Practicar objective={OBJETIVO} mastery={0.4} />);
+        await screen.findByText(/μs = 0\.5/);
+
+        expect(screen.queryByText(/tu avance no se guarda/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/aciertos en esta visita/i)).not.toBeInTheDocument();
+    });
+
+    it('lleva su propio número de intento: el servidor no puede deducirlo', async () => {
+        const fetchMock = encolarFetch(
+            respuestaJson(200, ITEM_PROPIO),
+            respuestaJson(200, { attempt_no: 1, is_correct: true, expected: 26.565, answer: 26.6, se_guarda: false }),
+            respuestaJson(200, { ...ITEM_PROPIO, attempt_no: 2, statement: { es: 'Segundo: μs = 0.7…' } }),
+        );
+
+        const user = userEvent.setup();
+        render(<Practicar objective={OBJETIVO} mastery={null} />);
+        await screen.findByText(/μs = 0\.5/);
+
+        // El primer ítem se pide con intento=1.
+        expect(fetchMock.mock.calls[0][0]).toContain('intento=1');
+
+        await user.type(screen.getByLabelText(/tu respuesta/i), '26.6');
+        await user.click(screen.getByRole('button', { name: /comprobar/i }));
+        await screen.findByText('Correcto.');
+
+        // Y al responder, el intento que se corrige es el del ítem servido.
+        expect(JSON.parse(fetchMock.mock.calls[1][1].body).intento).toBe(1);
+
+        await user.click(screen.getByRole('button', { name: /siguiente ejercicio/i }));
+        await screen.findByText(/Segundo:/);
+
+        // El siguiente avanza: sin esto el visitante repetiría los mismos números.
+        expect(fetchMock.mock.calls[2][0]).toContain('intento=2');
+    });
+
+    it('su marcador es de ACIERTOS de la visita, no un dominio inventado', async () => {
+        const user = userEvent.setup();
+        encolarFetch(
+            respuestaJson(200, ITEM_PROPIO),
+            respuestaJson(200, { attempt_no: 1, is_correct: true, expected: 26.565, answer: 26.6, se_guarda: false }),
+            respuestaJson(200, { ...ITEM_PROPIO, attempt_no: 2 }),
+            respuestaJson(200, { attempt_no: 2, is_correct: false, expected: 30, answer: 1, se_guarda: false }),
+        );
+
+        render(<Practicar objective={OBJETIVO} mastery={null} />);
+        await screen.findByText(/μs = 0\.5/);
+
+        // Arranca en cero y se llama por su nombre: nada de «dominio».
+        const barra = screen.getByRole('progressbar');
+        expect(barra).toHaveAccessibleName(/aciertos en esta visita/i);
+        expect(barra).toHaveAttribute('aria-valuenow', '0');
+
+        await user.type(screen.getByLabelText(/tu respuesta/i), '26.6');
+        await user.click(screen.getByRole('button', { name: /comprobar/i }));
+        await screen.findByText('Correcto.');
+        expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '100');
+        expect(screen.getByText('1 de 1')).toBeInTheDocument();
+
+        await user.click(screen.getByRole('button', { name: /siguiente ejercicio/i }));
+        await screen.findByText(/μs = 0\.5/);
+        await user.type(screen.getByLabelText(/tu respuesta/i), '1');
+        await user.click(screen.getByRole('button', { name: /comprobar/i }));
+        await screen.findByText('Incorrecto.');
+
+        // 1 de 2 = 50 %.
+        expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '50');
+        expect(screen.getByText('1 de 2')).toBeInTheDocument();
+    });
+
+    it('el aviso se repite justo donde surge la duda: en el resultado', async () => {
+        const user = userEvent.setup();
+        encolarFetch(
+            respuestaJson(200, ITEM_PROPIO),
+            respuestaJson(200, { attempt_no: 1, is_correct: true, expected: 26.565, answer: 26.6, se_guarda: false }),
+        );
+
+        render(<Practicar objective={OBJETIVO} mastery={null} />);
+        await screen.findByText(/μs = 0\.5/);
+        await user.type(screen.getByLabelText(/tu respuesta/i), '26.6');
+        await user.click(screen.getByRole('button', { name: /comprobar/i }));
+
+        const veredicto = await screen.findByText('Correcto.');
+        const tarjeta = veredicto.closest('[tabindex="-1"]');
+        expect(within(tarjeta).getByText(/esto no se ha guardado/i)).toBeInTheDocument();
+    });
+
+    it('no tiene violaciones graves de accesibilidad', async () => {
+        encolarFetch(respuestaJson(200, ITEM_PROPIO));
+        const { container } = render(<Practicar objective={OBJETIVO} mastery={null} />);
+        await screen.findByText(/μs = 0\.5/);
+
+        expect(violacionesGraves(await axe(container))).toEqual([]);
     });
 });

@@ -3,6 +3,9 @@
 namespace App\Providers;
 
 use App\Services\Lti\LtiCache;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Packback\Lti1p3\Interfaces\ICache;
 use RuntimeException;
@@ -24,6 +27,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $this->limitarLaPracticaAbierta();
+
         // Fail-closed: la protección anti-replay de LTI (nonces) solo es sólida con
         // una cache COMPARTIDA entre workers. Con array/file, un replay que cae en
         // otro proceso no ve el nonce consumido y pasa. En producción se aborta el
@@ -36,5 +41,23 @@ class AppServiceProvider extends ServiceProvider
                 .'Ver docs/lti-moodle.md §0.3.'
             );
         }
+    }
+
+    /**
+     * El límite de la práctica ABIERTA.
+     *
+     * Desde que el motor sirve ítems sin sesión, cualquiera puede pedirlos: sin
+     * tope, un script martillea el generador (que evalúa expresiones y hashea)
+     * gratis. 60 por minuto y por IP es holgado para practicar de verdad —un
+     * ejercicio cada segundo durante un minuto— y ridículo para un raspador.
+     *
+     * Al ALUMNO no se le pone tope: entró por LTI, está identificado, y un
+     * límite por IP castigaría a un aula entera detrás del mismo NAT.
+     */
+    private function limitarLaPracticaAbierta(): void
+    {
+        RateLimiter::for('practica', fn (Request $request) => $request->user()
+            ? Limit::none()
+            : Limit::perMinute(60)->by($request->ip()));
     }
 }

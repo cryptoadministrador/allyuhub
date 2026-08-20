@@ -209,13 +209,17 @@ class CatalogoPagesTest extends TestCase
     }
 
     /**
-     * REGRESIÓN (auditoría): solo `/catalogo` tenía oráculo de sesión, y estaba
-     * escondido dentro de un test que se llama «…monta el árbol hasta grado».
-     * Se podían sacar `/catalogo/{node}`, `/destreza/{id}` y `/buscar` del grupo
-     * `auth` y las 154 pruebas seguían verdes. Aquí van TODAS las páginas de la
-     * app, para que abrir cualquiera al mundo se ponga rojo.
+     * LA FRONTERA del contenido abierto, en un solo sitio y en las dos
+     * direcciones. Este test nació porque solo `/catalogo` tenía oráculo de
+     * sesión y estaba escondido dentro de otro; se podían sacar del grupo
+     * `auth` las demás páginas sin que nada se pusiera rojo. Sigue haciendo ese
+     * trabajo, pero al revés de como empezó: ahora lo que hay que vigilar es
+     * que el contenido NO se vuelva a cerrar y que lo del alumno NO se abra.
+     *
+     * Se navega y se practica sin sesión (modelo Khan); su casa y su progreso
+     * guardado siguen siendo suyos.
      */
-    public function test_toda_pagina_de_la_app_exige_sesion(): void
+    public function test_la_frontera_entre_lo_abierto_y_lo_del_alumno(): void
     {
         $recurso = Resource::create([
             'slug' => 'sim', 'kind' => 'lab', 'title' => ['es' => 'Sim'], 'status' => 'published',
@@ -227,11 +231,14 @@ class CatalogoPagesTest extends TestCase
             "/destreza/{$this->verificada->id}",
             '/buscar',
             '/buscar?q=rozamiento',
-            '/progreso',
             "/recurso/{$recurso->id}",
             "/practicar/{$this->verificada->id}",
         ] as $url) {
-            $this->get($url)->assertRedirect('/entrar', "{$url} no exige sesión");
+            $this->get($url)->assertOk("{$url} se cerró: el contenido es abierto");
+        }
+
+        foreach (['/inicio', '/progreso'] as $url) {
+            $this->get($url)->assertRedirect('/entrar', "{$url} quedó abierta al mundo");
         }
     }
 
@@ -286,9 +293,10 @@ class CatalogoPagesTest extends TestCase
 
     // ---------- /catalogo ----------
 
-    public function test_catalogo_exige_sesion_y_monta_el_arbol_hasta_grado(): void
+    public function test_catalogo_monta_el_arbol_hasta_grado(): void
     {
-        $this->get('/catalogo')->assertRedirect('/entrar');
+        // Abierto: el mismo árbol para el invitado y para el alumno.
+        $this->get('/catalogo')->assertOk();
 
         $this->actingAs($this->ana)->get('/catalogo')
             ->assertOk()

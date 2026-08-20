@@ -198,9 +198,13 @@ class PracticeApiTest extends TestCase
 
     public function test_validaciones(): void
     {
-        // Sin sesión no se practica (la autorización fina vive en PracticeAuthTest).
+        // Sin sesión SÍ se practica (contenido abierto); lo que un invitado no
+        // hace es escribir. La frontera entera vive en ContenidoAbiertoTest.
         $this->getJson("/api/v1/objectives/{$this->objective->id}/practice/next")
-            ->assertUnauthorized();
+            ->assertOk();
+        // Las validaciones del payload son las MISMAS sin sesión.
+        $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [])
+            ->assertStatus(422);   // falta answer
 
         $this->actingAs($this->ana);
         $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [])

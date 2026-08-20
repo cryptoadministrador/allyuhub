@@ -22,6 +22,14 @@ const DESTINOS = [
     { href: '/progreso', texto: 'Mi progreso' },
 ];
 
+// Lo que puede visitar quien no ha entrado: el contenido es abierto, así que el
+// visitante navega con la misma barra, no con una versión mutilada. Su casa y
+// su progreso no están porque no existen todavía — no porque se le escondan.
+const DESTINOS_INVITADO = [
+    { href: '/catalogo', texto: 'Catálogo' },
+    { href: '/buscar', texto: 'Buscar' },
+];
+
 /** ¿Este destino es la página actual? `/catalogo` cubre `/catalogo/{nodo}`. */
 export function esActivo(url, href) {
     const ruta = (url || '/').split('?')[0];
@@ -71,7 +79,7 @@ export default function AppLayout({ title, children }) {
 
     const destinos = auth.user
         ? [...DESTINOS, ...(auth.es_docente ? panelesDocente(auth.contextos ?? []) : [])]
-        : [];
+        : DESTINOS_INVITADO;
 
     return (
         <div className="min-h-screen bg-slate-50">
@@ -116,8 +124,17 @@ export default function AppLayout({ title, children }) {
                         </>
                     )}
 
-                    {auth.user && (
+                    {auth.user ? (
                         <p className="hidden text-sm text-slate-600 sm:block">{auth.user.name}</p>
+                    ) : (
+                        // La puerta INVITA, no tapa: el visitante ya está dentro
+                        // del contenido; esto es para que guarde lo que haga.
+                        <a
+                            href="/entrar"
+                            className="hidden rounded border border-marca-600 px-3 py-1.5 text-sm font-medium text-marca-700 hover:bg-marca-50 focus:outline-2 focus:outline-offset-2 focus:outline-marca-600 sm:block"
+                        >
+                            Entrar y guardar mi avance
+                        </a>
                     )}
                 </div>
 
@@ -138,8 +155,17 @@ export default function AppLayout({ title, children }) {
                                     <EnlaceNav destino={d} url={url} className="block" />
                                 </li>
                             ))}
-                            {auth.user && (
+                            {auth.user ? (
                                 <li className="px-2 pt-2 text-sm text-slate-600">{auth.user.name}</li>
+                            ) : (
+                                <li className="pt-2">
+                                    <a
+                                        href="/entrar"
+                                        className="block rounded px-2 py-1 text-sm font-medium text-marca-700 underline focus:outline-2 focus:outline-offset-2 focus:outline-marca-600"
+                                    >
+                                        Entrar y guardar mi avance
+                                    </a>
+                                </li>
                             )}
                         </ul>
                     </nav>

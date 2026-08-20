@@ -1,4 +1,4 @@
-import { Head } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import AppLayout from '../layouts/AppLayout';
 import Anillo from '../components/Anillo';
 
@@ -55,6 +55,9 @@ function Cifra({ numero, singular, plural }) {
 const BOTON =
     'inline-block rounded-md bg-marca-600 px-5 py-3 text-base font-medium text-white hover:bg-marca-700 focus:outline-2 focus:outline-offset-2 focus:outline-marca-600';
 
+const BOTON_SECUNDARIO =
+    'inline-block rounded-md border border-marca-600 bg-white px-5 py-3 text-base font-medium text-marca-700 hover:bg-marca-50 focus:outline-2 focus:outline-offset-2 focus:outline-marca-600';
+
 export default function Bienvenida({ cifras, entrar }) {
     return (
         <AppLayout>
@@ -74,13 +77,20 @@ export default function Bienvenida({ cifras, entrar }) {
                             EGB hasta el bachillerato, y también a quien retoma sus estudios por
                             PCEI.
                         </p>
-                        <p className="mt-6">
-                            <a href={entrar} className={BOTON}>
+                        {/* DOS caminos, no una pared. El primero es el que
+                            puede tomar cualquiera ahora mismo; el segundo, el
+                            que hace que lo practicado cuente. */}
+                        <p className="mt-6 flex flex-wrap gap-3">
+                            <Link href="/catalogo" className={BOTON}>
+                                Explora el currículo
+                            </Link>
+                            <a href={entrar} className={BOTON_SECUNDARIO}>
                                 Entrar desde tu aula virtual
                             </a>
                         </p>
                         <p className="mt-3 text-sm text-slate-600">
-                            El acceso lo abre tu colegio: no hace falta registrarse.
+                            Puedes ver el currículo y practicar sin registrarte. Entrar desde tu
+                            aula virtual es lo que guarda tu avance y hace que cuente en tu curso.
                         </p>
                     </div>
 
@@ -142,8 +152,9 @@ export default function Bienvenida({ cifras, entrar }) {
                     ¿Ya tienes usuario en el aula virtual?
                 </h2>
                 <p className="mx-auto mt-2 max-w-lg text-slate-700">
-                    Abre AllyuHub desde la actividad que preparó tu docente. Si te quedaste sin
-                    sesión, vuelve a entrar desde ahí.
+                    Abre AllyuHub desde la actividad que preparó tu docente y tu avance se
+                    guardará solo. Si te quedaste sin sesión, vuelve a entrar desde ahí: lo que
+                    tenías sigue ahí.
                 </p>
                 <p className="mt-4">
                     <a href={entrar} className={BOTON}>

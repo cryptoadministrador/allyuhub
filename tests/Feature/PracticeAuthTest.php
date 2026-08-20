@@ -6,6 +6,7 @@ use App\Models\CurNode;
 use App\Models\Framework;
 use App\Models\FrameworkVersion;
 use App\Models\LearningObjective;
+use App\Models\ObjectiveMastery;
 use App\Models\PracticeAttempt;
 use App\Models\PracticeItem;
 use App\Models\Track;
@@ -68,17 +69,29 @@ class PracticeAuthTest extends TestCase
         $this->luis = User::factory()->create();
     }
 
-    public function test_anonimo_401_en_los_cuatro_endpoints(): void
+    /**
+     * Contenido abierto: los cuatro endpoints ATIENDEN al anónimo. Lo que este
+     * test conserva —y es lo único que de verdad protegía— es la segunda mitad:
+     * después de pasar por todos, no queda rastro. El 401 era el medio; la
+     * ausencia de escritura es el fin.
+     */
+    public function test_el_anonimo_usa_los_cuatro_endpoints_y_no_deja_rastro(): void
     {
+        Track::create(['code' => 'ORD', 'label' => ['es' => 'Ordinaria']]);
+
         $this->getJson("/api/v1/objectives/{$this->objective->id}/practice/next")
-            ->assertUnauthorized();
+            ->assertOk();
         $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', ['answer' => 1])
-            ->assertUnauthorized();
-        $this->getJson('/api/v1/practice/mastery')->assertUnauthorized();
-        $this->getJson('/api/v1/practice/progress?track=ORD')->assertUnauthorized();
+            ->assertOk()
+            ->assertJsonPath('se_guarda', false);
+        $this->getJson('/api/v1/practice/mastery')->assertOk()->assertExactJson([]);
+        $this->getJson('/api/v1/practice/progress?track=ORD')
+            ->assertOk()
+            ->assertJsonPath('se_guarda', false);
 
         // Y no quedó rastro: el intento anónimo no se registró.
         $this->assertSame(0, PracticeAttempt::count());
+        $this->assertSame(0, ObjectiveMastery::count());
     }
 
     public function test_user_id_en_el_request_es_rechazado_con_422(): void
@@ -138,14 +151,28 @@ class PracticeAuthTest extends TestCase
             ->assertJsonPath('0.objective_id', $this->objective->id);
     }
 
-    public function test_la_api_responde_401_json_y_entrar_orienta_al_alumno(): void
+    /**
+     * La garantía que sigue viva tras abrir el contenido: un `fetch` NUNCA
+     * recibe HTML. Antes se comprobaba con el 401 de la API; ahora esos
+     * endpoints responden 200, así que lo que se fija es el tipo de respuesta —
+     * JSON bajo /api/*, y la puerta con marca solo al NAVEGAR a lo del alumno.
+     */
+    public function test_un_fetch_nunca_recibe_html_y_entrar_orienta_al_alumno(): void
     {
-        // Bajo /api/* la respuesta es SIEMPRE JSON (shouldRenderJsonWhen):
-        // un invitado recibe 401, nunca un redirect a mitad de un fetch.
-        $this->get('/api/v1/practice/mastery')->assertUnauthorized();
+        $respuesta = $this->get('/api/v1/practice/mastery')->assertOk();
+        $this->assertStringStartsWith('application/json',
+            $respuesta->headers->get('content-type'));
 
-        // La página de aterrizaje para sesiones caducadas existe y orienta
-        // (las páginas de la app redirigen aquí: redirectGuestsTo).
-        $this->get('/entrar')->assertOk()->assertSee('Moodle');
+        // Lo del alumno sigue mandando a la puerta, y con un redirect de
+        // navegación, no con un cuerpo que un fetch confundiría con datos.
+        $this->get('/inicio')->assertRedirect('/entrar');
+
+        // La página de aterrizaje existe y orienta: dice para qué sirve entrar
+        // (guardar) y ofrece la salida abierta a quien solo quiere mirar.
+        $this->get('/entrar')
+            ->assertOk()
+            ->assertSee('guardar')
+            ->assertSee('aula virtual')
+            ->assertSee('/catalogo');
     }
 }

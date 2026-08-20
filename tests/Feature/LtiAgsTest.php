@@ -243,12 +243,20 @@ class LtiAgsTest extends TestCase
     }
 
     /**
-     * REGRESIÓN DE SEGURIDAD (evolución del test de la auditoría LTI): con la
-     * deuda del user_id CERRADA, un anónimo ya no puede NI SIQUIERA practicar —
-     * mucho menos inyectar notas. El user_id que antes explotaba ahora ni existe
-     * como campo: sin sesión es 401 y con sesión sería 422 (prohibited).
+     * REGRESIÓN DE SEGURIDAD (evolución del test de la auditoría LTI).
+     *
+     * La puerta de PRACTICAR está abierta desde el contenido abierto, así que
+     * este test ya no puede apoyarse en un 401: tiene que demostrar que, aun
+     * pudiendo practicar, un anónimo no escribe en el expediente de nadie ni
+     * mueve una nota. Se prueban los dos caminos:
+     *
+     *  a) el ataque de siempre —user_id de la víctima en el body— sigue siendo
+     *     422 por la regla `prohibited`, que es lo que cerró la deuda del v1;
+     *  b) un intento de invitado PERFECTAMENTE VÁLIDO sobre el ítem de la
+     *     víctima responde 200 con su corrección y no deja rastro: ni fila de
+     *     intento, ni token AGS, ni score.
      */
-    public function test_un_anonimo_ya_no_puede_ni_practicar_ni_inyectar_notas(): void
+    public function test_un_anonimo_practica_pero_no_escribe_ni_inyecta_notas(): void
     {
         Http::fake();
 
@@ -259,18 +267,25 @@ class LtiAgsTest extends TestCase
         $this->assertSame(1, LtiResourceLink::where('user_id', $victima->id)->count());
         $attemptsBefore = $this->item->attempts()->count();
 
-        // El atacante intenta lo de siempre: user_id de la víctima en el body.
+        // (a) El atacante intenta lo de siempre: user_id de la víctima en el body.
         $engine = new PracticeEngine;
         $attemptNo = $this->item->attempts()->where('user_id', $victima->id)->count() + 1;
         $params = $engine->sampleParams($this->item->params, $engine->seedFor($this->item->id, $victima->id, $attemptNo));
+        $correcta = $params['m'] * $params['g'] * sin(deg2rad($params['theta']));
 
         $this->postJson("/api/v1/practice/items/{$this->item->id}/attempts", [
             'user_id' => $victima->id,
-            'answer' => $params['m'] * $params['g'] * sin(deg2rad($params['theta'])),
-        ])->assertUnauthorized();
+            'answer' => $correcta,
+        ])->assertStatus(422)->assertJsonValidationErrors('user_id');
 
-        // Ni intento registrado, ni score a Moodle: la puerta está cerrada.
+        // (b) Y ahora como invitado legítimo, sin trucos: se le corrige…
+        $this->postJson("/api/v1/practice/items/{$this->item->id}/attempts", [
+            'answer' => $correcta,
+        ])->assertOk()->assertJsonPath('se_guarda', false);
+
+        // …pero no queda ni una fila, ni se llamó a Moodle por ningún lado.
         $this->assertSame($attemptsBefore, $this->item->attempts()->count());
+        $this->assertSame(0, ObjectiveMastery::count(), 'Un invitado creó dominio.');
         Http::assertNotSent(fn ($request) => str_contains($request->url(), 'token.php'));
         Http::assertNotSent(fn ($request) => str_contains($request->url(), '/scores'));
     }

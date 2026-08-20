@@ -26,15 +26,22 @@ describe('portada pública', () => {
         expect(h1[0]).toHaveTextContent(/currículo ecuatoriano/i);
     });
 
-    it('lleva al aula virtual y a ningún sitio con sesión', () => {
+    /**
+     * DOS caminos, no una pared: explorar (que cualquiera puede hacer ya) y
+     * entrar (que es lo que guarda). Lo que sigue prohibido es ofrecerle una
+     * página con sesión, que lo devolvería a /entrar dando un rodeo.
+     */
+    it('ofrece explorar el currículo Y entrar, pero nada que exija sesión', () => {
         render(<Bienvenida cifras={CIFRAS} entrar="/entrar" />);
+
+        expect(screen.getByRole('link', { name: /explora el currículo/i }))
+            .toHaveAttribute('href', '/catalogo');
 
         const entradas = screen.getAllByRole('link', { name: /entrar desde tu aula virtual|cómo entrar/i });
         expect(entradas.length).toBeGreaterThanOrEqual(1);
         entradas.forEach((a) => expect(a).toHaveAttribute('href', '/entrar'));
 
-        // Un visitante no puede ir a páginas con sesión: no se le ofrecen.
-        ['/inicio', '/catalogo', '/progreso', '/buscar'].forEach((ruta) => {
+        ['/inicio', '/progreso'].forEach((ruta) => {
             expect(document.querySelector(`a[href="${ruta}"]`)).toBeNull();
         });
     });

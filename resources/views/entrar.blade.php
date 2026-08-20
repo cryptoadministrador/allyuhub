@@ -43,6 +43,8 @@
         footer {
             padding: 1rem 1.5rem; text-align: center; color: #94a3b8; font-size: .8125rem;
         }
+        .secundario { margin: 1rem 0 0; font-size: .9375rem; }
+        .secundario a { color: var(--marca); }
     </style>
 </head>
 <body>
@@ -53,17 +55,22 @@
         <div class="tarjeta">
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" aria-hidden="true"
                  stroke="#4f46e5" stroke-width="1.5" style="display:inline">
-                <rect x="3" y="11" width="18" height="10" rx="2"/>
-                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                <path d="M21 3H3v18l9-4 9 4V3Z"/>
+                <path d="M8 9h8M8 13h5"/>
             </svg>
-            <h1>Entra desde tu curso de Moodle</h1>
+            <h1>Entra para guardar tu avance</h1>
             <p>
-                AllyuHub se abre desde el aula virtual de tu colegio: entra a tu curso,
-                abre la actividad de AllyuHub y tu sesión se creará sola. Si estabas
-                practicando y ves esta página, tu sesión caducó — vuelve a abrir la
-                actividad y sigues donde ibas.
+                El currículo y los ejercicios de AllyuHub están abiertos: puedes verlos y
+                practicar sin cuenta. Lo que pide esta página es lo otro — que lo que
+                practiques <strong>se guarde</strong> y que la nota llegue a tu curso.
+            </p>
+            <p>
+                Eso lo abre tu colegio: entra a tu aula virtual, abre la actividad de
+                AllyuHub y tu sesión se creará sola. Si estabas practicando y ves esta
+                página, tu sesión caducó — vuelve a abrir la actividad y sigues donde ibas.
             </p>
             <a class="boton" href="https://e-learnium.edu.ec/">Ir al aula virtual</a>
+            <p class="secundario"><a href="/catalogo">Seguir explorando el currículo</a></p>
         </div>
     </main>
     <footer>AllyuHub · plataforma educativa</footer>

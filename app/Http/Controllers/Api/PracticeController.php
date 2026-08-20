@@ -12,6 +12,7 @@ use App\Models\Track;
 use App\Services\Practice\AdaptiveSelector;
 use App\Services\Practice\MasteryTracker;
 use App\Services\Practice\PracticeEngine;
+use App\Services\Practice\Practitioner;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -23,6 +24,12 @@ use Illuminate\Support\Facades\DB;
  * de la sesión (Auth::id()) — la sesión nace en el launch LTI. Un `user_id`
  * en el request es un 422 explícito (regla `prohibited`): mejor un cliente
  * desactualizado que grita que uno que suplanta en silencio.
+ *
+ * CONTENIDO ABIERTO (modelo Khan): estos endpoints ya no exigen sesión. Un
+ * invitado pide ítems y recibe corrección real —la misma verificación en
+ * servidor, el mismo PracticeEngine::verify()— pero NO escribe ni una fila:
+ * ni intento, ni dominio, ni AGS. La sesión LTI es lo que hace que el avance
+ * se guarde y que la nota viaje al aula. Quién es quién lo decide Practitioner.
  */
 class PracticeController extends Controller
 {
@@ -43,15 +50,24 @@ class PracticeController extends Controller
      */
     public function next(LearningObjective $objective, Request $request)
     {
-        $request->validate(['user_id' => 'prohibited']);
-        $userId = (int) $request->user()->id;
+        $data = $request->validate([
+            'user_id' => 'prohibited',
+            'intento' => 'nullable|integer|min:1|max:500',
+        ]);
+        $quien = Practitioner::fromRequest($request);
 
-        $selection = $this->selector->next($objective, $userId);
+        $selection = $this->selector->next($objective, $quien->queryId());
         abort_if($selection === null, 404, 'El objetivo no tiene ítems de práctica');
 
         $item = $selection['item'];
-        $attemptNo = $selection['attempt_no'];
-        $seed = $this->engine->seedFor($item->id, $userId, $attemptNo);
+        // El invitado no tiene historial del que deducir por qué intento va, así
+        // que lo lleva él: su avance es efímero y vive en su navegador. Al
+        // alumno NO se le pregunta —su número de intento sale de la base, que es
+        // lo que garantiza que la semilla y el registro cuadren.
+        $attemptNo = $quien->isGuest()
+            ? (int) ($data['intento'] ?? 1)
+            : $selection['attempt_no'];
+        $seed = $this->engine->seedFor($item->id, $quien->seedKey(), $attemptNo);
         $params = $this->engine->sampleParams($item->params, $seed);
 
         // El objetivo DEVUELTO puede no ser el pedido: con las aristas de
@@ -89,16 +105,38 @@ class PracticeController extends Controller
             'user_id' => 'prohibited',
             'answer' => 'required|numeric',
             'time_ms' => 'nullable|integer|min:0',
+            'intento' => 'nullable|integer|min:1|max:500',
         ]);
-        $userId = (int) $request->user()->id;
+        $quien = Practitioner::fromRequest($request);
 
-        $attemptNo = $item->attempts()->where('user_id', $userId)->count() + 1;
-        $seed = $this->engine->seedFor($item->id, $userId, $attemptNo);
+        $attemptNo = $quien->isGuest()
+            ? (int) ($data['intento'] ?? 1)
+            : $item->attempts()->where('user_id', $quien->userId())->count() + 1;
+        $seed = $this->engine->seedFor($item->id, $quien->seedKey(), $attemptNo);
         $params = $this->engine->sampleParams($item->params, $seed);
+
+        // LA CORRECCIÓN ES LA MISMA para el invitado y para el alumno: un solo
+        // sitio de llamada, por encima de la bifurcación. Lo único que cambia
+        // más abajo es si el resultado se guarda y si califica.
         $result = $this->engine->verify(
             $item->solution_expr, $params, (float) $data['answer'],
             $item->tolerance, $item->tolerance_kind,
         );
+
+        if ($quien->isGuest()) {
+            // 200 y no 201: no se creó nada. Ni intento, ni dominio, ni AGS —
+            // la regla de oro del contenido abierto. `se_guarda` viaja para que
+            // la interfaz no tenga que adivinarlo por ausencia de sesión.
+            return response()->json([
+                'attempt_no' => $attemptNo,
+                'is_correct' => $result['is_correct'],
+                'expected' => $result['expected'],
+                'answer' => (float) $data['answer'],
+                'se_guarda' => false,
+            ]);
+        }
+
+        $userId = $quien->userId();
 
         // Intento + actualización de mastery en la MISMA transacción:
         // o quedan los dos, o ninguno. Si dos peticiones simultáneas calcularon el
@@ -126,6 +164,7 @@ class PracticeController extends Controller
             'is_correct' => $result['is_correct'],
             'expected' => $result['expected'],
             'answer' => $attempt->answer,
+            'se_guarda' => true,
         ], 201);
     }
 
@@ -181,9 +220,17 @@ class PracticeController extends Controller
     public function mastery(Request $request)
     {
         $request->validate(['user_id' => 'prohibited']);
+        $quien = Practitioner::fromRequest($request);
+
+        // Un invitado no tiene dominio guardado: lista vacía. Nunca el de otro
+        // —el id de consulta es 0, que no casa con ningún usuario— y nunca un
+        // 401 que rompa el bucle de práctica abierta.
+        if ($quien->isGuest()) {
+            return response()->json([]);
+        }
 
         return ObjectiveMastery::query()
-            ->where('user_id', (int) $request->user()->id)
+            ->where('user_id', $quien->userId())
             ->with('objective:id,native_code,statement,version_id')
             ->orderByDesc('last_attempt_at')
             ->orderBy('objective_id')
@@ -221,16 +268,25 @@ class PracticeController extends Controller
             ->whereIn('phase_id', $phases->pluck('id'))
             ->get(['phase_id', 'objective_id']);
 
-        $masteries = ObjectiveMastery::query()
-            ->where('user_id', (int) $request->user()->id)
-            ->whereIn('objective_id', $links->pluck('objective_id')->unique())
-            ->get()
-            ->keyBy('objective_id');
+        $quien = Practitioner::fromRequest($request);
+
+        // El invitado ve la FORMA del trayecto —cuántas destrezas trae cada
+        // fase— con su avance a cero, no el de nadie. La consulta ni se lanza:
+        // así el «se filtró el dominio de otro» no depende de que un WHERE esté
+        // bien escrito, sino de que no haya consulta que filtrar.
+        $masteries = $quien->isGuest()
+            ? collect()
+            : ObjectiveMastery::query()
+                ->where('user_id', $quien->userId())
+                ->whereIn('objective_id', $links->pluck('objective_id')->unique())
+                ->get()
+                ->keyBy('objective_id');
 
         $byPhase = $links->groupBy('phase_id');
 
         return response()->json([
             'track' => $track->code,
+            'se_guarda' => ! $quien->isGuest(),
             'phases' => $phases->map(function ($phase) use ($byPhase, $masteries) {
                 $objectiveIds = ($byPhase[$phase->id] ?? collect())->pluck('objective_id');
                 $mastered = $objectiveIds
