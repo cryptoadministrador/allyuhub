@@ -16,7 +16,9 @@ use App\Models\User;
 use Database\Seeders\CurriculumSeeder;
 use Database\Seeders\PracticeItemSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
@@ -277,6 +279,52 @@ class DominioYFirmaTest extends TestCase
 
         $plano = LearningObjective::where('native_code', 'CN.F.5.1.9')->firstOrFail();
         $this->getJson("/api/v1/objectives/{$plano->id}/practice/next")->assertOk();
+    }
+
+    /**
+     * MUTACIÓN SUPERVIVIENTE (bucle B): quitar el backfill de la migración no
+     * ponía nada rojo, porque en la suite las migraciones corren sobre una base
+     * VACÍA — no hay nada preexistente que firmar. En producción sí lo hay: los
+     * 17 ítems de física llevan meses ahí, y sin backfill la puerta los habría
+     * hecho desaparecer en silencio el día del despliegue.
+     *
+     * Se prueba ejecutando la migración de verdad contra una fila que existe
+     * desde ANTES: `down()` retira la puerta, se inserta el ítem como estaba, y
+     * `up()` vuelve a ponerla.
+     */
+    public function test_la_migracion_firma_lo_que_ya_existia(): void
+    {
+        $migracion = require database_path(
+            'migrations/2026_08_22_000001_add_review_gate_to_practice_items.php',
+        );
+
+        $migracion->down();   // la base, tal y como estaba antes del parche
+
+        $id = (string) Str::uuid7();
+        DB::table('practice_items')->insert([
+            'id' => $id,
+            'objective_id' => $this->objective->id,
+            'kind' => 'numeric',
+            'statement' => json_encode(['es' => 'Ítem de siempre {m}']),
+            'params' => json_encode(['m' => ['const' => 2]]),
+            'solution_expr' => 'm',
+            'tolerance' => 0.02, 'tolerance_kind' => 'rel', 'seq' => 0,
+            'attrs' => '{}', 'shuffle' => true, 'origen' => 'curado',
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        $migracion->up();
+
+        $this->assertNotNull(
+            DB::table('practice_items')->where('id', $id)->value('reviewed_at'),
+            'La migración dejó sin firmar un ítem que ya existía: la práctica de física '.
+            'habría desaparecido en silencio al desplegar.',
+        );
+
+        // Y de verdad se sirve.
+        $this->getJson("/api/v1/objectives/{$this->objective->id}/practice/next")
+            ->assertOk()
+            ->assertJsonPath('item_id', $id);
     }
 
     /** Lo que siembra `practica:sembrar` nace SIN firmar: no se publica solo. */
