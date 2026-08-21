@@ -15,6 +15,10 @@ import { RAZONES_DESVIO } from '../lib/razones';
 // alumno no lea dos explicaciones distintas de la misma decisión del motor.
 const RAZONES = RAZONES_DESVIO;
 
+// Etiqueta visual de cada opción. Decorativa: el nombre accesible del radio es
+// el texto de la opción. Con más de 6 opciones se cae a la posición numérica.
+const LETRAS = ['A', 'B', 'C', 'D', 'E', 'F'];
+
 function tokenXsrf() {
     const par = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/);
 
@@ -79,6 +83,11 @@ function AvisoDeInvitado({ compacto = false }) {
     );
 }
 
+/** El texto de la opción con esa clave, entre las que sirvió el servidor. */
+function textoDeOpcion(item, clave) {
+    return (item?.options ?? []).find((o) => o.key === clave)?.text?.es ?? '';
+}
+
 export default function Practicar({ objective, mastery: masteryInicial }) {
     // estado: cargando | listo | enviando | respondido | sin-items | sesion |
     //         demasiadas | error
@@ -91,6 +100,8 @@ export default function Practicar({ objective, mastery: masteryInicial }) {
     const inicioItem = useRef(null);
     const inputRef = useRef(null);
     const feedbackRef = useRef(null);
+
+    const esChoice = item?.kind === 'choice';
 
     const { props: compartidas } = usePage();
     const invitado = !compartidas.auth?.user;
@@ -158,7 +169,12 @@ export default function Practicar({ objective, mastery: masteryInicial }) {
             const r = await pedirJson(`/api/v1/practice/items/${item.item_id}/attempts`, {
                 method: 'POST',
                 body: JSON.stringify({
-                    answer: Number(respuesta),
+                    // Un choice manda la POSICIÓN elegida tal cual la sirvió el
+                    // servidor; un numérico, el número. Mandar los dos sería un
+                    // 422: cada tipo prohíbe el campo del otro.
+                    ...(esChoice
+                        ? { answer_key: respuesta }
+                        : { answer: Number(respuesta) }),
                     time_ms: Date.now() - inicioItem.current,
                     // Al alumno el servidor le ignora este campo: su número de
                     // intento sale de la base. Va siempre para que el cliente
@@ -365,28 +381,75 @@ export default function Practicar({ objective, mastery: masteryInicial }) {
                         {item.statement.es}
                     </p>
 
-                    <div className="mb-4 flex items-end gap-2">
-                        <label className="block">
-                            <span className="mb-1 block text-sm font-medium">
-                                Tu respuesta{item.answer_unit ? ` (en ${item.answer_unit})` : ''}
-                            </span>
-                            <input
-                                ref={inputRef}
-                                type="number"
-                                inputMode="decimal"
-                                step="any"
-                                required
-                                value={respuesta}
-                                onChange={(e) => setRespuesta(e.target.value)}
-                                className="w-40 rounded border border-slate-300 px-3 py-2 focus:outline-2 focus:outline-marca-600"
-                            />
-                        </label>
-                        {item.answer_unit && (
-                            <span className="pb-2 text-slate-600" aria-hidden="true">
-                                {item.answer_unit}
-                            </span>
-                        )}
-                    </div>
+                    {esChoice ? (
+                        /* fieldset + legend es EL patrón de un grupo de radios:
+                           el lector de pantalla anuncia la pregunta antes de la
+                           primera opción y las flechas mueven la selección
+                           gratis. Nada de divs con role a mano. */
+                        <fieldset className="mb-4">
+                            <legend className="mb-2 text-sm font-medium">
+                                Elige una respuesta
+                            </legend>
+                            <div className="space-y-2">
+                                {item.options.map((opcion, i) => (
+                                    <label
+                                        key={opcion.key}
+                                        className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-marca-600 ${
+                                            respuesta === opcion.key
+                                                ? 'border-marca-600 bg-marca-50'
+                                                : 'border-slate-200 bg-white hover:bg-slate-50'
+                                        }`}
+                                    >
+                                        <input
+                                            ref={i === 0 ? inputRef : undefined}
+                                            type="radio"
+                                            name="opcion"
+                                            value={opcion.key}
+                                            checked={respuesta === opcion.key}
+                                            onChange={(e) => setRespuesta(e.target.value)}
+                                            className="h-4 w-4 shrink-0 accent-marca-600"
+                                        />
+                                        {/* La letra es un ancla visual para
+                                            hablar del ejercicio en voz alta; el
+                                            nombre accesible del radio es el
+                                            TEXTO de la opción, no «B». */}
+                                        <span
+                                            aria-hidden="true"
+                                            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-700"
+                                        >
+                                            {LETRAS[i] ?? opcion.key}
+                                        </span>
+                                        <span className="text-base leading-relaxed text-slate-900">
+                                            {opcion.text.es}
+                                        </span>
+                                    </label>
+                                ))}
+                            </div>
+                        </fieldset>
+                    ) : (
+                        <div className="mb-4 flex items-end gap-2">
+                            <label className="block">
+                                <span className="mb-1 block text-sm font-medium">
+                                    Tu respuesta{item.answer_unit ? ` (en ${item.answer_unit})` : ''}
+                                </span>
+                                <input
+                                    ref={inputRef}
+                                    type="number"
+                                    inputMode="decimal"
+                                    step="any"
+                                    required
+                                    value={respuesta}
+                                    onChange={(e) => setRespuesta(e.target.value)}
+                                    className="w-40 rounded border border-slate-300 px-3 py-2 focus:outline-2 focus:outline-marca-600"
+                                />
+                            </label>
+                            {item.answer_unit && (
+                                <span className="pb-2 text-slate-600" aria-hidden="true">
+                                    {item.answer_unit}
+                                </span>
+                            )}
+                        </div>
+                    )}
 
                     <button
                         type="submit"
@@ -429,11 +492,23 @@ export default function Practicar({ objective, mastery: masteryInicial }) {
                             >
                                 {resultado.is_correct ? 'Correcto.' : 'Incorrecto.'}
                             </p>
-                            <p className="mt-1 text-sm text-slate-700">
-                                Tu respuesta: {resultado.answer}. Valor esperado:{' '}
-                                {Math.round(resultado.expected * 1000) / 1000}
-                                {item?.answer_unit ? ` ${item.answer_unit}` : ''}.
-                            </p>
+                            {esChoice ? (
+                                <p className="mt-1 text-sm leading-relaxed text-slate-700">
+                                    {/* Se nombra la opción buena por su TEXTO,
+                                        que es lo que el alumno recuerda: «la 2»
+                                        no significa nada dos minutos después,
+                                        y la barajada cambia en cada intento. */}
+                                    {resultado.is_correct
+                                        ? 'Esa es.'
+                                        : `La respuesta correcta era: ${textoDeOpcion(item, resultado.expected_key)}.`}
+                                </p>
+                            ) : (
+                                <p className="mt-1 text-sm text-slate-700">
+                                    Tu respuesta: {resultado.answer}. Valor esperado:{' '}
+                                    {Math.round(resultado.expected * 1000) / 1000}
+                                    {item?.answer_unit ? ` ${item.answer_unit}` : ''}.
+                                </p>
+                            )}
                             {invitado && <AvisoDeInvitado compacto />}
 
                             <button

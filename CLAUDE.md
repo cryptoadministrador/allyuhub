@@ -196,6 +196,37 @@ modalidades y 2025-00031-A regula el Bachillerato Técnico EPJA (100 días/ciclo
    los llevan los nodos de área). El seeder ya los persiste en instalación nueva.
    **Falta**: colores para los marcos internacionales (CAIE/IB) y PCEI.
 
+## Dos tipos de ítem: `numeric` y `choice`
+
+`practice_items.kind` decide cómo se corrige. El numérico es el de siempre
+(rangos en `params`, expresión en `solution_expr`). El de **opción múltiple**
+existe porque Lengua y Sociales no son numéricas y sin él la mitad del
+currículo importado no podía tener práctica.
+
+Tres reglas que no se negocian:
+
+1. **La clave correcta vive en su columna** `practice_items.answer_key`, nunca
+   en `params` ni en `attrs` — los dos se serializan al cliente en `next()`.
+   El payload se arma por LISTA BLANCA, campo a campo; el test de no-filtración
+   busca el TEXTO de la opción buena en el cuerpo entero, no un nombre de campo.
+2. **Se responde por CLAVE inmutable, no por posición.** La semilla baraja el
+   orden de PINTADO y nada más. Por eso un barajado distinto entre servir y
+   corregir no puede calificar mal: el orden no entra en la comparación. Es
+   imposible por construcción, no algo que vigile un test.
+3. **Por intento, exactamente una vía poblada según `kind`**: un choice deja
+   `answer`/`expected` en NULL y llena `answer_key`; un numérico, al revés.
+   Rellenar con `0.0` o `''` escondería un bug de bifurcación.
+
+Para llenar el banco: **`php artisan practica:sembrar`** (idempotente por
+(objetivo, seq); `--incluir-no-verificadas` para el grafo de demostración).
+Los ítems se anclan a un BLOQUE por el prefijo del código y aterrizan en la
+primera destreza de ese bloque EN CADA NODO — un bloque replicado en 8.º, 9.º
+y 10.º recibe los tres, que es lo que convierte el viejo «código ambiguo» en
+cobertura. El informe se mide en DESTREZAS (% con ≥1 ítem por asignatura ×
+subnivel) y escribe las que faltan en `storage/app/practica-sin-cobertura.txt`.
+Ojo: los ítems nacen con `attrs.revision.alineado_a = 'bloque'` — alineados al
+bloque, no cotejados uno a uno con el enunciado oficial de cada destreza.
+
 ## La frontera del contenido abierto (modelo Khan)
 
 Se **navega** y se **practica** sin sesión; se **guarda** y se **califica** solo con

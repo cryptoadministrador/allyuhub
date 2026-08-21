@@ -16,6 +16,7 @@ use App\Services\Practice\Practitioner;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 /**
  * Motor de práctica: instanciación determinista y verificación en servidor.
@@ -88,19 +89,45 @@ class PracticeController extends Controller
         }
 
         $seed = $this->engine->seedFor($item->id, $quien->seedKey(), $attemptNo);
-        $params = $this->engine->sampleParams($item->params, $seed);
+
+        // Lo específico de cada tipo se arma aparte y se FUSIONA al final: así
+        // el payload de un `choice` no arrastra campos numéricos vacíos, y
+        // sobre todo se ve de un vistazo que la marca de «correcta» no está en
+        // ninguna de las dos ramas.
+        if ($item->esChoice()) {
+            $opciones = $item->shuffle
+                ? $this->engine->shuffleOptions($item->opciones(), $seed)
+                : $item->opciones();
+
+            $propio = [
+                'statement' => $item->statement,
+                // LISTA BLANCA campo a campo: solo clave y texto. Nada de
+                // volcar la opción entera —hoy no hay más campos, pero el día
+                // que alguien añada uno no se publicará por descuido.
+                'options' => array_map(fn (array $o) => [
+                    'key' => (string) $o['key'],
+                    'text' => $o['text'],
+                ], $opciones),
+            ];
+        } else {
+            $params = $this->engine->sampleParams($item->params, $seed);
+            $propio = [
+                'statement' => $this->engine->renderStatement($item->statement, $params),
+                'params' => $params,
+                'answer_unit' => $item->answer_unit,
+                'tolerance' => $item->tolerance,
+                'tolerance_kind' => $item->tolerance_kind,
+            ];
+        }
 
         return response()->json([
             'item_id' => $item->id,
+            'kind' => $item->kind,
             'objective_id' => $shown->id,
             'objective_code' => $shown->native_code,
             'objective_statement' => $shown->statement['es'] ?? null,
             'attempt_no' => $attemptNo,
-            'statement' => $this->engine->renderStatement($item->statement, $params),
-            'params' => $params,
-            'answer_unit' => $item->answer_unit,
-            'tolerance' => $item->tolerance,
-            'tolerance_kind' => $item->tolerance_kind,
+            ...$propio,
             'reason' => $reason,
             // El cliente NO puede fiarse de la prop `auth` para saber si esto se
             // guarda: se renderizó cuando la sesión aún vivía. Si caducó a media
@@ -118,9 +145,19 @@ class PracticeController extends Controller
      */
     public function submitAttempt(PracticeItem $item, Request $request)
     {
+        // Cada tipo exige LO SUYO y prohíbe lo del otro: responder un texto con
+        // un número (o al revés) es un cliente equivocado, y vale más que grite
+        // un 422 a que se registre un fallo que el alumno no cometió.
+        $esChoice = $item->esChoice();
+
         $data = $request->validate([
             'user_id' => 'prohibited',
-            'answer' => 'required|numeric',
+            'answer' => $esChoice ? 'prohibited' : 'required|numeric',
+            // La clave tiene que ser UNA DE LAS DEL ÍTEM. Una inventada es un
+            // 422, no un falso «incorrecto»: el alumno no ha fallado nada.
+            'answer_key' => $esChoice
+                ? ['required', 'string', Rule::in($item->clavesValidas())]
+                : 'prohibited',
             'time_ms' => 'nullable|integer|min:0',
             'intento' => 'nullable|integer|min:1|max:500',
         ]);
@@ -130,15 +167,38 @@ class PracticeController extends Controller
             ? (int) ($data['intento'] ?? 1)
             : $item->attempts()->where('user_id', $quien->userId())->count() + 1;
         $seed = $this->engine->seedFor($item->id, $quien->seedKey(), $attemptNo);
-        $params = $this->engine->sampleParams($item->params, $seed);
 
-        // LA CORRECCIÓN ES LA MISMA para el invitado y para el alumno: un solo
-        // sitio de llamada, por encima de la bifurcación. Lo único que cambia
-        // más abajo es si el resultado se guarda y si califica.
-        $result = $this->engine->verify(
-            $item->solution_expr, $params, (float) $data['answer'],
-            $item->tolerance, $item->tolerance_kind,
-        );
+        // LA CORRECCIÓN ES LA MISMA para el invitado y para el alumno: se
+        // resuelve aquí, por encima de la bifurcación. Lo único que cambia más
+        // abajo es si el resultado se guarda y si califica.
+        if ($esChoice) {
+            // Ni semilla ni orden: se compara la clave elegida con la clave
+            // correcta del ítem. Por eso el camino `choice` es inmune a que
+            // `next` y `submitAttempt` calculen distinto el número de intento
+            // —y por tanto la semilla—, que es un problema real del camino
+            // numérico (ver la nota del PR sobre el 409 y el reintento).
+            $result = $this->engine->verifyChoice(
+                (string) $item->answer_key, (string) $data['answer_key'],
+            );
+            // Nada que instanciar: en un choice no se sortea ningún número.
+            $params = [];
+            $veredicto = [
+                'is_correct' => $result['is_correct'],
+                'expected_key' => $result['expected_key'],
+                'answer_key' => (string) $data['answer_key'],
+            ];
+        } else {
+            $params = $this->engine->sampleParams($item->params, $seed);
+            $result = $this->engine->verify(
+                $item->solution_expr, $params, (float) $data['answer'],
+                $item->tolerance, $item->tolerance_kind,
+            );
+            $veredicto = [
+                'is_correct' => $result['is_correct'],
+                'expected' => $result['expected'],
+                'answer' => (float) $data['answer'],
+            ];
+        }
 
         if ($quien->isGuest()) {
             // 200 y no 201: no se creó nada. Ni intento, ni dominio, ni AGS —
@@ -146,9 +206,7 @@ class PracticeController extends Controller
             // la interfaz no tenga que adivinarlo por ausencia de sesión.
             return response()->json([
                 'attempt_no' => $attemptNo,
-                'is_correct' => $result['is_correct'],
-                'expected' => $result['expected'],
-                'answer' => (float) $data['answer'],
+                ...$veredicto,
                 'se_guarda' => false,
             ]);
         }
@@ -160,7 +218,7 @@ class PracticeController extends Controller
         // mismo attempt_no (unique por ítem+usuario), la perdedora responde 409 y el
         // cliente reintenta — nunca un 500.
         try {
-            $attempt = $this->persistAttempt($item, $userId, $attemptNo, $seed, $params, $data, $result);
+            $attempt = $this->persistAttempt($item, $userId, $attemptNo, $seed, $params, $data, $veredicto);
         } catch (UniqueConstraintViolationException) {
             return response()->json([
                 'message' => 'Intento duplicado: otra petición registró este intento primero. Pide el siguiente ítem y reintenta.',
@@ -173,14 +231,13 @@ class PracticeController extends Controller
         // auditoría LTI sobra desde que la ruta exige auth.
         $this->queueLtiScore($userId, $item->objective_id);
 
-        // `expected` se revela solo DESPUÉS de responder (retroalimentación);
-        // el siguiente intento trae números nuevos, así que no regala nada.
+        // La explicación —`expected` o `expected_key`— se revela solo DESPUÉS
+        // de responder; el siguiente intento trae números nuevos (o una
+        // barajada nueva), así que no regala nada.
         return response()->json([
             'id' => $attempt->id,
             'attempt_no' => $attemptNo,
-            'is_correct' => $result['is_correct'],
-            'expected' => $result['expected'],
-            'answer' => $attempt->answer,
+            ...$veredicto,
             'se_guarda' => true,
         ], 201);
     }
@@ -209,21 +266,30 @@ class PracticeController extends Controller
         }
     }
 
-    private function persistAttempt($item, int $userId, int $attemptNo, string $seed, array $params, array $data, array $result)
+    /**
+     * @param  array<string, mixed>  $veredicto  Lo mismo que se le devuelve al
+     *                                           cliente: es también lo que se guarda, para que no puedan
+     *                                           divergir la respuesta y el registro.
+     */
+    private function persistAttempt($item, int $userId, int $attemptNo, string $seed, array $params, array $data, array $veredicto)
     {
-        return DB::transaction(function () use ($item, $userId, $attemptNo, $seed, $params, $data, $result) {
+        return DB::transaction(function () use ($item, $userId, $attemptNo, $seed, $params, $data, $veredicto) {
             $attempt = $item->attempts()->create([
                 'user_id' => $userId,
                 'attempt_no' => $attemptNo,
                 'seed' => $seed,
                 'params' => $params,
-                'answer' => (float) $data['answer'],
-                'expected' => $result['expected'],
-                'is_correct' => $result['is_correct'],
+                // Un choice deja `answer`/`expected` en null y llena
+                // `answer_key`; un numérico, al revés. Nada de rellenar la
+                // columna del otro tipo con un valor inventado.
+                'answer' => $veredicto['answer'] ?? null,
+                'expected' => $veredicto['expected'] ?? null,
+                'answer_key' => $veredicto['answer_key'] ?? null,
+                'is_correct' => $veredicto['is_correct'],
                 'time_ms' => $data['time_ms'] ?? null,
             ]);
 
-            $this->tracker->apply($userId, $item->objective_id, $result['is_correct'], $attempt->created_at);
+            $this->tracker->apply($userId, $item->objective_id, $veredicto['is_correct'], $attempt->created_at);
 
             return $attempt;
         });

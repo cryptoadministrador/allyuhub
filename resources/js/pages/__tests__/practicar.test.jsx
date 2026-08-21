@@ -475,3 +475,153 @@ describe('Practicar — como VISITANTE (sin sesión)', () => {
         expect(violacionesGraves(await axe(container))).toEqual([]);
     });
 });
+
+/**
+ * OPCIÓN MÚLTIPLE. El mismo bucle, otra forma de responder: lo que llega del
+ * servidor son POSICIONES ya barajadas («1».."4") y su texto, jamás cuál es la
+ * buena. La página no decide nada — solo recoge la elección y la manda.
+ */
+const ITEM_CHOICE = {
+    item_id: 'item-choice',
+    kind: 'choice',
+    objective_id: 'obj-lengua',
+    objective_code: 'LL.4.1.1',
+    objective_statement: 'Reconocer la variedad lingüística.',
+    attempt_no: 1,
+    statement: { es: '¿Cuál de estas palabras es un sustantivo?' },
+    options: [
+        { key: 'c', text: { es: 'Rápidamente' } },
+        { key: 'a', text: { es: 'Montaña' } },
+        { key: 'd', text: { es: 'Corrió' } },
+        { key: 'b', text: { es: 'Azul' } },
+    ],
+    reason: 'práctica normal',
+    se_guarda: true,
+};
+
+const OBJETIVO_LENGUA = {
+    id: 'obj-lengua',
+    native_code: 'LL.4.1.1',
+    statement: 'Reconocer la variedad lingüística.',
+    has_items: true,
+};
+
+describe('Practicar — ítems de opción múltiple', () => {
+    it('pinta las opciones como un grupo de radios accesible', async () => {
+        encolarFetch(respuestaJson(200, ITEM_CHOICE));
+        render(<Practicar objective={OBJETIVO_LENGUA} mastery={0} />);
+
+        await screen.findByText(/sustantivo/);
+
+        const grupo = screen.getByRole('group', { name: /elige una respuesta/i });
+        const radios = within(grupo).getAllByRole('radio');
+        expect(radios).toHaveLength(4);
+
+        // El nombre accesible de cada opción es SU TEXTO, no una letra suelta.
+        expect(within(grupo).getByRole('radio', { name: /montaña/i })).toBeInTheDocument();
+        // Una sola respuesta: mismo `name`, así que son excluyentes.
+        expect(new Set(radios.map((r) => r.name)).size).toBe(1);
+        // Y no hay campo numérico a la vez.
+        expect(screen.queryByLabelText(/tu respuesta/i)).not.toBeInTheDocument();
+    });
+
+    it('la marca de correcta no está en el DOM antes de responder', async () => {
+        encolarFetch(respuestaJson(200, ITEM_CHOICE));
+        const { container } = render(<Practicar objective={OBJETIVO_LENGUA} mastery={0} />);
+        await screen.findByText(/sustantivo/);
+
+        expect(container.innerHTML).not.toMatch(/correcta|is_correct|expected/i);
+    });
+
+    it('manda la CLAVE elegida como answer_key, no un número suelto', async () => {
+        const fetchMock = encolarFetch(
+            respuestaJson(200, ITEM_CHOICE),
+            respuestaJson(201, { attempt_no: 1, is_correct: true, expected_key: 'a', answer_key: 'a', se_guarda: true }),
+        );
+
+        const user = userEvent.setup();
+        render(<Practicar objective={OBJETIVO_LENGUA} mastery={0} />);
+        await screen.findByText(/sustantivo/);
+
+        await user.click(screen.getByRole('radio', { name: /montaña/i }));
+        await user.click(screen.getByRole('button', { name: /comprobar/i }));
+
+        await screen.findByText('Correcto.');
+        const enviado = JSON.parse(fetchMock.mock.calls[1][1].body);
+        expect(enviado.answer_key).toBe('a');
+        expect(enviado).not.toHaveProperty('answer');
+    });
+
+    it('al fallar dice cuál era la buena, con su texto', async () => {
+        const user = userEvent.setup();
+        encolarFetch(
+            respuestaJson(200, ITEM_CHOICE),
+            respuestaJson(201, { attempt_no: 1, is_correct: false, expected_key: 'a', answer_key: 'b', se_guarda: true }),
+            respuestaJson(200, []),
+        );
+
+        render(<Practicar objective={OBJETIVO_LENGUA} mastery={0} />);
+        await screen.findByText(/sustantivo/);
+
+        await user.click(screen.getByRole('radio', { name: /azul/i }));
+        await user.click(screen.getByRole('button', { name: /comprobar/i }));
+
+        const veredicto = await screen.findByText('Incorrecto.');
+        const tarjeta = veredicto.closest('[tabindex="-1"]');
+        // La explicación nombra la opción buena por su TEXTO, que es lo que el
+        // alumno recuerda — no «la posición 2», que no significa nada.
+        expect(tarjeta).toHaveTextContent(/montaña/i);
+    });
+
+    it('no se puede enviar sin elegir nada', async () => {
+        const fetchMock = encolarFetch(respuestaJson(200, ITEM_CHOICE));
+        const user = userEvent.setup();
+        render(<Practicar objective={OBJETIVO_LENGUA} mastery={0} />);
+        await screen.findByText(/sustantivo/);
+
+        await user.click(screen.getByRole('button', { name: /comprobar/i }));
+
+        expect(fetchMock).toHaveBeenCalledTimes(1);   // solo el next
+    });
+
+    it('se resuelve entero con teclado', async () => {
+        const fetchMock = encolarFetch(
+            respuestaJson(200, ITEM_CHOICE),
+            respuestaJson(201, { attempt_no: 1, is_correct: true, expected_key: 'a', answer_key: 'a', se_guarda: true }),
+        );
+        const user = userEvent.setup();
+        render(<Practicar objective={OBJETIVO_LENGUA} mastery={0} />);
+        await screen.findByText(/sustantivo/);
+
+        // La página ya deja el foco en la primera opción al servir el ítem
+        // (mismo gesto que con el campo numérico), así que las flechas mueven
+        // la selección sin tener que buscar el grupo a tientas.
+        expect(screen.getByRole('radio', { name: /rápidamente/i })).toHaveFocus();
+
+        await user.keyboard('{ArrowDown}');
+        expect(screen.getByRole('radio', { name: /montaña/i })).toBeChecked();
+
+        await user.tab();
+        await user.keyboard('{Enter}');
+
+        await screen.findByText('Correcto.');
+        expect(JSON.parse(fetchMock.mock.calls[1][1].body).answer_key).toBe('a');
+    });
+
+    it('el visitante ve su aviso también en un choice', async () => {
+        auth = { user: null };
+        encolarFetch(respuestaJson(200, { ...ITEM_CHOICE, se_guarda: false }));
+        render(<Practicar objective={OBJETIVO_LENGUA} mastery={null} />);
+        await screen.findByText(/sustantivo/);
+
+        expect(screen.getByText(/tu avance no se guarda/i)).toBeInTheDocument();
+    });
+
+    it('no tiene violaciones graves de accesibilidad', async () => {
+        encolarFetch(respuestaJson(200, ITEM_CHOICE));
+        const { container } = render(<Practicar objective={OBJETIVO_LENGUA} mastery={0} />);
+        await screen.findByText(/sustantivo/);
+
+        expect(violacionesGraves(await axe(container))).toEqual([]);
+    });
+});
