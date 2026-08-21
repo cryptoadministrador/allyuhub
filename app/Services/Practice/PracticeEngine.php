@@ -91,6 +91,55 @@ class PracticeEngine
         ];
     }
 
+    // ---------- Opción múltiple ----------
+
+    /**
+     * Las opciones en el orden en que se PINTAN, barajado por la semilla.
+     *
+     * Ojo con el alcance: esto es cosmética y solo cosmética. La respuesta
+     * viaja por CLAVE inmutable, así que si `next` y `submitAttempt` barajaran
+     * distinto no pasaría absolutamente nada — no hay forma de que un orden
+     * discrepante califique mal, porque el orden no entra en la comparación.
+     * Se baraja para que la correcta no caiga siempre en el mismo sitio.
+     *
+     * Determinismo igual que los números: sha256(semilla:opcion:clave) da el
+     * peso de cada opción. Aquí `shuffle()` estaría tan prohibido como `rand()`:
+     * repetir la petición del mismo intento tiene que dar el mismo orden.
+     *
+     * @param  list<array{key: string, text: array<string, string>}>  $opciones
+     * @return list<array{key: string, text: array<string, string>}>
+     */
+    public function shuffleOptions(array $opciones, string $seed): array
+    {
+        $conPeso = array_map(fn (array $o) => [
+            'peso' => hash('sha256', "{$seed}:opcion:{$o['key']}"),
+            'opcion' => $o,
+        ], array_values($opciones));
+
+        // Desempate por clave: orden total, sin depender del orden de llegada.
+        usort($conPeso, fn (array $a, array $b) => [$a['peso'], $a['opcion']['key']]
+            <=> [$b['peso'], $b['opcion']['key']]);
+
+        return array_column($conPeso, 'opcion');
+    }
+
+    /**
+     * Corrige un ítem de opción múltiple: una comparación de claves y punto.
+     *
+     * Sin semilla, sin orden, sin estado. Esa es la gracia — el camino `choice`
+     * no depende del número de intento ni de nada que `next` y `submitAttempt`
+     * tengan que recalcular igual.
+     *
+     * @return array{expected_key: string, is_correct: bool}
+     */
+    public function verifyChoice(string $correcta, string $eleccion): array
+    {
+        return [
+            'expected_key' => $correcta,
+            'is_correct' => $eleccion === $correcta,
+        ];
+    }
+
     /** 8.0 → "8", 27.5 → "27.5" (sin ceros de relleno en los enunciados). */
     private static function formatNumber(float $v): string
     {
