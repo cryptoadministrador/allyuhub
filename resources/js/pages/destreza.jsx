@@ -1,5 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import AppLayout from '../layouts/AppLayout';
+import Chip from '../components/Chip';
 import DistintivoVerificacion from '../components/DistintivoVerificacion';
 import Migas from '../components/Migas';
 import { estiloDeAsignatura } from '../lib/color';
@@ -18,6 +19,7 @@ const RELACIONES = {
  */
 export default function Destreza({
     objective,
+    leccion,
     asignatura,
     breadcrumbs,
     resources,
@@ -74,9 +76,54 @@ export default function Destreza({
                 <p className="mt-3 text-lg leading-relaxed text-slate-900">{objective.statement}</p>
             </div>
 
+            {/* EL HUB. El bucle es leer → practicar, y el orden en pantalla
+                es el orden del bucle: un alumno que no sabe el tema tiene que
+                encontrar el texto ANTES que el botón de practicar, no debajo de
+                una sección de «recursos» que casi siempre está vacía. */}
+            <section aria-labelledby="leccion" className="mb-8">
+                <h2 id="leccion" className="mb-3 text-lg font-semibold tracking-tight text-slate-900">
+                    <span aria-hidden="true" className="mr-2 text-slate-400">1.</span>
+                    Aprende
+                </h2>
+
+                {leccion ? (
+                    <Link
+                        href={`/recurso/${leccion.id}`}
+                        className="group block rounded-lg border border-l-4 border-slate-200 bg-white p-4 transition-shadow hover:shadow-md focus:outline-2 focus:outline-offset-2 focus:outline-marca-600"
+                        style={{ borderLeftColor: 'var(--acento)' }}
+                    >
+                        <p className="text-base font-semibold text-slate-900 group-hover:underline">
+                            {leccion.title}
+                        </p>
+                        {leccion.summary && (
+                            <p className="mt-1 text-sm leading-relaxed text-slate-700">
+                                {leccion.summary}
+                            </p>
+                        )}
+                        <p className="mt-2 flex flex-wrap items-center gap-1.5">
+                            <Chip tono="marca" icono="📖">
+                                Lección de {leccion.bloques}{' '}
+                                {leccion.bloques === 1 ? 'apartado' : 'apartados'}
+                            </Chip>
+                            {leccion.duration_min && (
+                                <Chip>Unos {leccion.duration_min} min</Chip>
+                            )}
+                        </p>
+                    </Link>
+                ) : (
+                    /* Estado vacío HONESTO: hoy la mayoría de destrezas no
+                       tiene lección, y decirlo es más útil que callar. */
+                    <p role="status" className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-700">
+                        Esta destreza todavía no tiene lección escrita. Puedes practicarla igual:
+                        cada ejercicio te dice si acertaste y cuál era la respuesta.
+                    </p>
+                )}
+            </section>
+
             <section aria-labelledby="practica" className="mb-8">
-                <h2 id="practica" className="mb-2 text-lg font-medium">
-                    Práctica
+                <h2 id="practica" className="mb-3 text-lg font-semibold tracking-tight text-slate-900">
+                    <span aria-hidden="true" className="mr-2 text-slate-400">2.</span>
+                    Practica
                 </h2>
                 {objective.has_items ? (
                     <Link

@@ -11,6 +11,7 @@ use App\Models\PracticeAttempt;
 use App\Models\PracticeItem;
 use App\Models\Track;
 use App\Services\Practice\AdaptiveSelector;
+use App\Services\Practice\AttemptTicket;
 use App\Services\Practice\MasteryTracker;
 use App\Services\Practice\PracticeEngine;
 use App\Services\Practice\Practitioner;
@@ -18,6 +19,8 @@ use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
+use InvalidArgumentException;
 
 /**
  * Motor de práctica: instanciación determinista y verificación en servidor.
@@ -128,6 +131,14 @@ class PracticeController extends Controller
             'objective_code' => $shown->native_code,
             'objective_statement' => $shown->statement['es'] ?? null,
             'attempt_no' => $attemptNo,
+            // EL BILLETE. Firmado, y con el número de intento y la semilla
+            // con la que se instanciaron estos números dentro. Al responder, el
+            // servidor corrige contra ESTO y no contra un recuento de filas
+            // hecho un segundo más tarde, que es lo que hacía que un alumno se
+            // corrigiera contra números que no vio nunca.
+            'billete' => AttemptTicket::emitir(
+                $item->id, $quien->seedKey(), $attemptNo, $seed,
+            ),
             ...$propio,
             'reason' => $reason,
             // El cliente NO puede fiarse de la prop `auth` para saber si esto se
@@ -160,14 +171,25 @@ class PracticeController extends Controller
                 ? ['required', 'string', Rule::in($item->clavesValidas())]
                 : 'prohibited',
             'time_ms' => 'nullable|integer|min:0',
-            'intento' => 'nullable|integer|min:1|max:500',
+            // El número de intento YA NO LO MANDA EL CLIENTE ni lo deduce el
+            // servidor: viene firmado dentro del billete. Dos fuentes para el
+            // mismo dato es la forma exacta en que empezó este fallo.
+            'intento' => 'prohibited',
+            'billete' => 'required|string',
         ]);
         $quien = Practitioner::fromRequest($request);
 
-        $attemptNo = $quien->isGuest()
-            ? (int) ($data['intento'] ?? 1)
-            : $item->attempts()->where('user_id', $quien->userId())->count() + 1;
-        $seed = $this->engine->seedFor($item->id, $quien->seedKey(), $attemptNo);
+        // El billete es de ESTE ítem y de ESTE practicante, o no vale. Un 422
+        // —no un «incorrecto»— porque el alumno no ha fallado nada: lo que pasa
+        // es que su cliente está mandando algo que el servidor no emitió.
+        try {
+            $ticket = AttemptTicket::abrir($data['billete'], $item->id, $quien->seedKey());
+        } catch (InvalidArgumentException $e) {
+            throw ValidationException::withMessages(['billete' => $e->getMessage()]);
+        }
+
+        $attemptNo = $ticket['attempt_no'];
+        $seed = $ticket['seed'];
 
         // LA CORRECCIÓN ES LA MISMA para el invitado y para el alumno: se
         // resuelve aquí, por encima de la bifurcación. Lo único que cambia más

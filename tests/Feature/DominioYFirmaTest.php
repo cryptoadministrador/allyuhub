@@ -91,7 +91,10 @@ class DominioYFirmaTest extends TestCase
     private function responder(PracticeItem $item, string $clave)
     {
         return $this->actingAs($this->ana)
-            ->postJson("/api/v1/practice/items/{$item->id}/attempts", ['answer_key' => $clave]);
+            ->postJson("/api/v1/practice/items/{$item->id}/attempts", [
+                'answer_key' => $clave,
+                'billete' => $this->billeteComoNext($item->id, $this->ana->id),
+            ]);
     }
 
     // ================= 1. EL DOMINIO NO SE FALSIFICA =================
@@ -214,7 +217,10 @@ class DominioYFirmaTest extends TestCase
 
         foreach (range(1, 5) as $i) {
             $this->actingAs($this->ana)
-                ->postJson("/api/v1/practice/items/{$numerico->id}/attempts", ['answer' => 5])
+                ->postJson("/api/v1/practice/items/{$numerico->id}/attempts", [
+                    'answer' => 5,
+                    'billete' => $this->billeteComoNext($numerico->id, $this->ana->id),
+                ])
                 ->assertCreated();
         }
 

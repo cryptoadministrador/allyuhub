@@ -195,10 +195,13 @@ export default function Practicar({ objective, mastery: masteryInicial }) {
                         ? { answer_key: respuesta }
                         : { answer: Number(respuesta) }),
                     time_ms: Date.now() - inicioItem.current,
-                    // Al alumno el servidor le ignora este campo: su número de
-                    // intento sale de la base. Va siempre para que el cliente
-                    // sea uno solo, con sesión y sin ella.
-                    intento: item.attempt_no,
+                    // EL BILLETE que vino con el ítem, tal cual. Dentro lleva
+                    // firmados el número de intento y la semilla con la que se
+                    // generaron los números que el alumno tiene delante, así
+                    // que se corrige contra lo que vio y no contra lo que el
+                    // servidor deduzca de la tabla un segundo más tarde.
+                    // El cliente no lo lee ni lo construye: lo devuelve.
+                    billete: item.billete,
                 }),
             });
 

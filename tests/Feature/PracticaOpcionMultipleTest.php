@@ -136,9 +136,22 @@ class PracticaOpcionMultipleTest extends TestCase
         // que hace que CUALQUIER campo nuevo —se llame como se llame— caiga.
         $this->assertSame([
             'item_id', 'kind', 'objective_id', 'objective_code', 'objective_statement',
-            'attempt_no', 'statement', 'options', 'reason', 'se_guarda',
+            'attempt_no', 'billete', 'statement', 'options', 'reason', 'se_guarda',
         ], array_keys($json),
             'El payload de `next` cambió: cada campo nuevo es una vía por la que puede salir la respuesta.');
+
+        // El BILLETE pasa el mismo examen que los demás campos, y encima uno
+        // propio: va firmado pero NO cifrado, así que cualquiera puede leer lo
+        // que lleva dentro. Lo que lleva es el ítem, quién practica, el número
+        // de intento y la semilla — y la semilla ya determinaba unos parámetros
+        // que se sirven en claro. Si algún día alguien mete ahí algo más, esto
+        // lo caza: se descodifica y se busca la respuesta buena.
+        $dentro = base64_decode(strtr(explode('.', $json['billete'])[0], '-_', '+/'));
+        $this->assertSame(
+            ['itemId', 'quien', 'attemptNo', 'seed'],
+            array_keys(json_decode($dentro, true)),
+        );
+        $this->assertStringNotContainsString('Distractor dos', $dentro);
 
         // Y por si alguien mete la respuesta DENTRO de un campo permitido: el
         // rastro plantado en `attrs` no aparece por ningún lado.
@@ -170,7 +183,7 @@ class PracticaOpcionMultipleTest extends TestCase
 
         $this->assertSame([
             'item_id', 'kind', 'objective_id', 'objective_code', 'objective_statement',
-            'attempt_no', 'statement', 'params', 'answer_unit', 'tolerance',
+            'attempt_no', 'billete', 'statement', 'params', 'answer_unit', 'tolerance',
             'tolerance_kind', 'reason', 'se_guarda',
         ], array_keys($json));
 
@@ -181,7 +194,7 @@ class PracticaOpcionMultipleTest extends TestCase
     public function test_el_payload_del_intento_tiene_su_lista_cerrada(): void
     {
         $invitado = $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [
-            'answer_key' => 'a',
+            'answer_key' => 'a', 'billete' => $this->billete(self::ITEM_ID),
         ])->assertOk()->json();
 
         $this->assertSame(
@@ -190,7 +203,10 @@ class PracticaOpcionMultipleTest extends TestCase
         );
 
         $delAlumno = $this->actingAs($this->ana)
-            ->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', ['answer_key' => 'a'])
+            ->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [
+                'answer_key' => 'a',
+                'billete' => $this->billeteComoNext(self::ITEM_ID, $this->ana->id),
+            ])
             ->assertCreated()->json();
 
         $this->assertSame(
@@ -264,13 +280,17 @@ class PracticaOpcionMultipleTest extends TestCase
 
     public function test_elegir_la_buena_es_correcto_y_otra_es_incorrecto(): void
     {
-        $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', ['answer_key' => 'b'])
+        $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [
+            'answer_key' => 'b', 'billete' => $this->billete(self::ITEM_ID),
+        ])
             ->assertOk()
             ->assertJsonPath('is_correct', true)
             ->assertJsonPath('expected_key', 'b');
 
         foreach (['a', 'c', 'd'] as $mala) {
-            $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', ['answer_key' => $mala])
+            $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [
+                'answer_key' => $mala, 'billete' => $this->billete(self::ITEM_ID),
+            ])
                 ->assertOk()
                 ->assertJsonPath('is_correct', false)
                 // La explicación llega DESPUÉS de responder, como en numérico.
@@ -288,7 +308,7 @@ class PracticaOpcionMultipleTest extends TestCase
     {
         foreach ([1, 2, 7, 99, 500] as $intento) {
             $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [
-                'answer_key' => 'b', 'intento' => $intento,
+                'answer_key' => 'b', 'billete' => $this->billete(self::ITEM_ID, intento: $intento),
             ])->assertOk()->assertJsonPath('is_correct', true);
         }
     }
@@ -297,7 +317,7 @@ class PracticaOpcionMultipleTest extends TestCase
     {
         foreach (['9', 'z', '0', '', 'todas', 'B'] as $inventada) {
             $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [
-                'answer_key' => $inventada,
+                'answer_key' => $inventada, 'billete' => $this->billete(self::ITEM_ID),
             ])->assertStatus(422);
         }
     }
@@ -305,7 +325,9 @@ class PracticaOpcionMultipleTest extends TestCase
     /** Un ítem de opción múltiple no se responde con un número suelto. */
     public function test_un_choice_no_acepta_una_respuesta_numerica(): void
     {
-        $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', ['answer' => 3])
+        $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [
+            'answer' => 3, 'billete' => $this->billete(self::ITEM_ID),
+        ])
             ->assertStatus(422)
             ->assertJsonValidationErrors('answer_key');
     }
@@ -323,7 +345,7 @@ class PracticaOpcionMultipleTest extends TestCase
                 ->assertOk();
             $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [
                 'answer_key' => 'b',
-                'intento' => $intento,
+                'billete' => $this->billete(self::ITEM_ID, intento: $intento),
             ])->assertOk()->assertJsonPath('se_guarda', false);
         }
 
@@ -336,7 +358,10 @@ class PracticaOpcionMultipleTest extends TestCase
     {
         $this->actingAs($this->ana);
 
-        $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', ['answer_key' => 'b'])
+        $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [
+            'answer_key' => 'b',
+            'billete' => $this->billeteComoNext(self::ITEM_ID, $this->ana->id),
+        ])
             ->assertCreated()
             ->assertJsonPath('is_correct', true)
             ->assertJsonPath('se_guarda', true);
@@ -377,6 +402,8 @@ class PracticaOpcionMultipleTest extends TestCase
                 'text' => $opcion['text']['es'],
             ] + $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [
                 'answer_key' => $opcion['key'],
+                // El billete que vino CON el ítem: circuito completo.
+                'billete' => $servido['billete'],
             ])->assertOk()->json();
         }
 
@@ -414,17 +441,23 @@ class PracticaOpcionMultipleTest extends TestCase
         // se tocaron y tienen que seguir funcionando igual.
         $this->assertSame('numeric', $numerico->fresh()->kind);
 
-        $this->postJson("/api/v1/practice/items/{$numerico->id}/attempts", ['answer' => 5])
+        $this->postJson("/api/v1/practice/items/{$numerico->id}/attempts", [
+            'answer' => 5, 'billete' => $this->billete($numerico->id),
+        ])
             ->assertOk()
             ->assertJsonPath('is_correct', true)
             ->assertJsonPath('expected', 5);
 
-        $this->postJson("/api/v1/practice/items/{$numerico->id}/attempts", ['answer' => 99])
+        $this->postJson("/api/v1/practice/items/{$numerico->id}/attempts", [
+            'answer' => 99, 'billete' => $this->billete($numerico->id),
+        ])
             ->assertOk()
             ->assertJsonPath('is_correct', false);
 
         // Y un numérico no acepta que le respondan con una posición.
-        $this->postJson("/api/v1/practice/items/{$numerico->id}/attempts", ['answer_key' => '1'])
+        $this->postJson("/api/v1/practice/items/{$numerico->id}/attempts", [
+            'answer_key' => '1', 'billete' => $this->billete($numerico->id),
+        ])
             ->assertStatus(422)
             ->assertJsonValidationErrors('answer');
     }

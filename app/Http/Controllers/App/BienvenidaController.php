@@ -31,8 +31,19 @@ class BienvenidaController extends Controller
                 'destrezas' => LearningObjective::count(),
                 'verificadas' => LearningObjective::where('is_verified', true)->count(),
                 'grados' => CurNode::where('node_type', 'grado')->count(),
-                'simuladores' => Resource::where('status', 'published')
-                    ->where('kind', 'simulator')->count(),
+                // Por `published()`, como todas las demás rutas que sirven
+                // recursos, y no por un `status` escrito al lado: es la tercera
+                // vez que esas dos formas divergen, y esta es la superficie más
+                // pública que hay. Hoy la cifra saldría igual; con la puerta
+                // atada a la procedencia, ya no.
+                //
+                // Y `simulation`, no `simulator`: el vocabulario lo declara la
+                // migración de `resources` y lo usa el Deep Linking. Nadie
+                // escribe nunca 'simulator' — salvo el fixture del test, con la
+                // MISMA errata, que es por lo que esto llevaba verde desde el
+                // primer día contando cero para siempre.
+                'simuladores' => Resource::published()
+                    ->whereIn('kind', Resource::INTERACTIVOS)->count(),
             ]),
             'entrar' => route('entrar'),
         ]);

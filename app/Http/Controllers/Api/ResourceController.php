@@ -23,9 +23,14 @@ class ResourceController extends Controller
     /** GET /api/v1/resources/{slug} — solo publicados: un borrador no existe. */
     public function show(Resource $resource)
     {
-        // Sin esto, la API filtraba el bundle_url de simuladores en borrador
-        // (index() sí filtraba; show() no). La página /recurso ya lo hacía bien.
-        abort_unless($resource->status === 'published', 404);
+        // Por el MISMO scope que `index()`, no por una condición escrita a mano
+        // al lado. Aquí vivía `status === 'published'`, que es lo que `published()`
+        // significaba el día que se escribió; cuando el scope pasó a exigir
+        // además la firma del docente, esta línea se quedó atrás y `show()`
+        // servía el texto íntegro de una lección sin revisar —`currentVersion`
+        // trae `config`, o sea la lección entera—. Es la segunda vez que estas
+        // dos rutas divergen: el comentario que había aquí contaba la primera.
+        abort_unless(Resource::published()->whereKey($resource->id)->exists(), 404);
 
         return $resource->load([
             'currentVersion',

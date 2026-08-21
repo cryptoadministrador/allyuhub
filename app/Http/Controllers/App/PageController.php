@@ -45,18 +45,40 @@ class PageController extends Controller
         ]);
     }
 
-    /** GET /recurso/{resource} — un simulador publicado con su bundle. */
+    /**
+     * GET /recurso/{resource} — la LECCIÓN (o el simulador) publicado.
+     *
+     * `published()` ya exige que la versión vigente esté firmada, así que aquí
+     * no hay una segunda comprobación que pudiera divergir de la del catálogo.
+     */
     public function recurso(Resource $resource)
     {
-        abort_unless($resource->status === 'published', 404);
+        abort_unless(Resource::published()->whereKey($resource->id)->exists(), 404);
+
+        $version = $resource->currentVersion;
 
         return Inertia::render('Recurso', [
-            'resource' => [
+            'recurso' => [
                 'id' => $resource->id,
                 'slug' => $resource->slug,
+                'kind' => $resource->kind,
                 'title' => $resource->title['es'] ?? $resource->slug,
-                'bundle_url' => $resource->currentVersion?->bundle_url,
+                'summary' => $resource->summary['es'] ?? null,
+                'duration_min' => $resource->duration_min,
+                // Los bloques van YA validados y con las fórmulas convertidas a
+                // árbol MathML: el cliente no interpreta nada, solo pinta.
+                'bloques' => $version?->config['bloques'] ?? [],
+                // Solo para lo que no es lectura (Fase 2): un simulador sigue
+                // teniendo su bundle. Una lección no tiene, y no debe tener.
+                'bundle_url' => $resource->esLeccion() ? null : $version?->bundle_url,
             ],
+            'destrezas' => $resource->objectives()
+                ->get(['learning_objectives.id', 'native_code', 'statement'])
+                ->map(fn (LearningObjective $o) => [
+                    'id' => $o->id,
+                    'native_code' => $o->native_code,
+                    'statement' => $o->statement['es'] ?? '',
+                ])->values(),
         ]);
     }
 
@@ -217,7 +239,13 @@ class PageController extends Controller
                 ->map(fn (CurNode $n) => [
                     'id' => $n->id, 'title' => $n->title['es'] ?? '', 'node_type' => $n->node_type,
                 ])->values(),
+            // La LECCIÓN va aparte del resto de recursos: en el hub de la
+            // destreza no es «un recurso más», es el primer paso. Leer, luego
+            // practicar — sin eso la lección y la práctica serían dos sitios
+            // sin relación y el alumno no encontraría el texto.
+            'leccion' => $this->leccionDe($detalle),
             'resources' => collect($detalle->resources)
+                ->reject(fn ($r) => $r->kind === Resource::LECTURA)
                 ->map(fn ($r) => [
                     'id' => $r->id, 'slug' => $r->slug, 'kind' => $r->kind,
                     'title' => $r->title['es'] ?? $r->slug,
@@ -240,6 +268,35 @@ class PageController extends Controller
                     'statement' => $p->statement['es'] ?? '',
                 ])->values(),
         ]);
+    }
+
+    /**
+     * La lección de una destreza: el recurso de tipo lectura, si lo hay.
+     *
+     * Llega ya filtrada por `published()` —que exige versión firmada— desde la
+     * misma consulta que alimenta la ficha, así que no hay una segunda
+     * comprobación de la puerta que pudiera divergir.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function leccionDe(LearningObjective $detalle): ?array
+    {
+        $leccion = collect($detalle->resources)
+            ->first(fn ($r) => $r->kind === Resource::LECTURA);
+
+        if ($leccion === null) {
+            return null;
+        }
+
+        return [
+            'id' => $leccion->id,
+            'title' => $leccion->title['es'] ?? $leccion->slug,
+            'summary' => $leccion->summary['es'] ?? null,
+            'duration_min' => $leccion->duration_min,
+            // Cuántos bloques tiene, para que la tarjeta diga si son dos
+            // párrafos o una lección entera. El contenido se pide al abrirla.
+            'bloques' => count($leccion->currentVersion?->config['bloques'] ?? []),
+        ];
     }
 
     /**

@@ -195,6 +195,59 @@ modalidades y 2025-00031-A regula el Bachillerato Técnico EPJA (100 días/ciclo
    y solo mira `node_type = 'asignatura'` (los códigos `CN`/`CS`/`M` también
    los llevan los nodos de área). El seeder ya los persiste en instalación nueva.
    **Falta**: colores para los marcos internacionales (CAIE/IB) y PCEI.
+8. ~~La destreza ENSEÑA~~ **HECHO (fase 1: lecciones)**: una lección es un
+   `resource` de `kind = 'reading'` cuyo texto vive INLINE en
+   `resource_versions.config` (no hay `bundle_url`: no es un bundle de CDN, y
+   no hay tabla nueva para lo que `resources`/`resource_versions` ya modelan).
+   El contenido son BLOQUES TIPADOS (`parrafo | ejemplo | formula | lista |
+   aviso | imagen`), nunca HTML: `App\Services\Lesson\Bloques` los valida al
+   sembrar y `Recurso.jsx` pinta cada tipo con su componente, así que un
+   `<script>` en el texto se LEE como texto. La matemática se convierte a un
+   ÁRBOL MathML en el servidor (`App\Services\Lesson\MathML`, subconjunto de
+   LaTeX en lista blanca) y `Formula.jsx` lo monta con `createElement`: cero
+   KaTeX, cero `dangerouslySetInnerHTML`, +5.5 KB de bundle en total.
+   `/destreza` pasa a ser un hub con el orden **1. Aprende → 2. Practica**, y
+   cuando no hay lección lo DICE en vez de esconder la sección.
+   Operación:
+   ```bash
+   php artisan lecciones:sembrar [--dry-run]   # nacen SIN firmar
+   php artisan lecciones:firmar --bloque=M.4.1 --docente=7
+   ```
+   Banco en `database/data/lecciones.php`, idempotente por clave natural
+   (destreza, slug). Cubre **Básica Superior entera** (LL.4, M.4, CN.4, CS.4:
+   16 bloques × 3 grados) y el informe lista destreza a destreza lo que falta
+   en `storage/app/lecciones-sin-cobertura.txt`.
+   **Falta**: el resto de subniveles, y ofrecer lecciones por Deep Linking
+   (hoy Moodle solo puede incrustar simuladores y destrezas con práctica).
+
+   Dos reglas que cuestan caro si se rompen:
+   - **La firma se le exige a lo GENERADO, no a un `kind`.** `published()` pide
+     `reviewed_at` cuando `resources.origen = 'generado'` (espejo de
+     `practice_items.origen`). Estuvo atada a `kind = 'reading'` y era cierta
+     por una circunstancia, no por naturaleza: la Fase 2 son simuladores
+     DECLARATIVOS generados por un pipeline de IA, así que habrían entrado por
+     `kind = 'simulation'` y salido al alumno sin que nadie tocara esa línea —
+     el agujero se abría solo. Lo curado (un simulador que un operador da de
+     alta uno a uno) sale sin firma, y por eso la migración hace backfill a
+     `curado`: sin él, esa migración habría vaciado el catálogo.
+   - **Toda ruta que sirva o CUENTE un recurso pasa por `published()`**, nunca
+     por un `status === 'published'` escrito al lado. Ya divergió tres veces:
+     `GET /api/v1/resources/{slug}` llegó a servir el texto íntegro de una
+     lección sin revisar, y la portada contaba a mano. El oráculo que lo fija
+     recorre TODAS las rutas de una vez, la portada incluida
+     (`LeccionTest::test_ninguna_ruta_sirve_una_leccion_sin_firmar`).
+   - **`kind` tiene un vocabulario cerrado** —`simulation|lab|video|reading|
+     practice_set|project`, declarado en la migración de `resources`— y se usa
+     por constante (`Resource::SIMULACION`, `Resource::INTERACTIVOS`). La
+     portada contaba `'simulator'`, que no existe; el fixture de su test traía
+     la MISMA errata, así que pasaba en verde diciendo «0 simuladores» para
+     siempre. `BienvenidaTest` compara ahora contra el vocabulario de la
+     migración, no contra una lista escrita a mano en el test.
+
+   Y una trampa de los tests: Inertia serializa las props como JSON con escapes
+   unicode, así que buscar «ecuación» en el cuerpo NUNCA la encuentra (viaja
+   como `ecuaci\u00f3n`). Los centinelas de no-filtración van sin acentos, y
+   siempre con control positivo.
 
 ## Dos tipos de ítem: `numeric` y `choice`
 
@@ -268,6 +321,37 @@ Dos cosas que hay que saber antes de tocar esto:
    (que decide mirando historial, y él no tiene). Sin eso veía un solo ítem de cada
    destreza y el resto del banco era inalcanzable sin sesión.
 
+## El billete del intento (no lo deduzcas otra vez)
+
+`next` firma un **billete** —HMAC de la `APP_KEY` sobre `{item, quién, intento,
+semilla}`— y `submitAttempt` lo EXIGE. El cliente no lo lee ni lo construye: lo
+guarda con el ítem y lo devuelve tal cual. `intento` en el POST es `prohibited`.
+
+Antes, `submitAttempt` re-derivaba `attempt_no` contando filas. Coincidía con lo
+que sirvió `next` mientras nada se moviera entre las dos peticiones — pero se
+mueve: otra pestaña, un reintento tras el 409 (cuya propia respuesta invita a
+reintentar), una petición repetida. Cambiaba la cuenta, con ella la semilla y con
+ella los números: el alumno resolvía «12 kg» y el servidor lo corregía contra
+7 kg, poniéndole mal una respuesta buena. Desde el aula eso parece una
+plataforma que miente.
+
+Tres cosas que no se tocan:
+
+- **Va FIRMADO**, no en claro. Sin firma el cliente elegiría su `attempt_no`: no
+  le daría respuestas correctas —la verificación sigue en servidor— pero sí
+  podría reservar números y tumbar el intento legítimo de otra pestaña.
+- **Va atado al ÍTEM y a QUIÉN** (`Practitioner::seedKey`, la misma identidad con
+  la que se sella la semilla). Sin lo primero, el billete de un ejercicio vale
+  para responder otro; sin lo segundo, el de un invitado vale para escribirle un
+  intento a un alumno. Lo del ítem lo encontró una mutación, no una lectura.
+- **No caduca, a propósito.** Guardárselo no sirve de nada: hay que acertar
+  igual, y el índice único (ítem, usuario, intento) impide gastarlo dos veces.
+  Una caducidad añadiría un reloj que sincronizar a cambio de nada.
+
+En los tests, `TestCase::billete()` emite uno y `billeteComoNext()` reproduce el
+que `next` daría en ese instante. Los tests del CIRCUITO COMPLETO no usan el
+atajo: piden `next` y devuelven el billete de la respuesta.
+
 ## Regla de color (no la violes)
 
 El color de asignatura **jamás** es el único portador de significado: siempre va
@@ -292,3 +376,77 @@ color que no cumple, el test cae.
   siempre texto, y el icono como refuerzo. Ver «Regla de color» arriba.
 - No meter una librería de gráficas por un anillo o una barra: `resources/js/components/Anillo.jsx`
   son 60 líneas de SVG. El guardián del CI corta el bundle en 450 KB.
+- No renderizar contenido con `dangerouslySetInnerHTML`, y no meter KaTeX ni
+  MathJax: la matemática se convierte a MathML en el SERVIDOR y el navegador la
+  pinta nativa. KaTeX solo son ~280 KB sobre un presupuesto de 450.
+- No duplicar la regla de dónde aterriza un bloque del currículo: vive en
+  `App\Services\Lesson\DestinosDeBloque` y la usan los DOS sembradores
+  (práctica y lecciones). Si divergen, un alumno lee el bloque en una destreza
+  y practica el mismo bloque en otra, y nadie se entera.
+- No ordenar códigos curriculares como cadenas: `M.4.1.10` va DESPUÉS de
+  `M.4.1.2`. Y ojo con `sortBy([closure, closure])`, que NO ordena por los
+  closures — compara null con null y deja el orden de llegada.
+- No construir claves a partir de un prefijo de un UUID de `HasUuids`: son
+  UUID ordenados por tiempo, así que ese prefijo es una marca de tiempo y dos
+  filas creadas en la misma milésima colisionan. Hash del id, no prefijo.
+- No hacer que un test escriba sobre un fichero VERSIONADO y lo restaure en un
+  `finally`. `practica:sembrar` acepta `--banco=<ruta>` justo para eso: el
+  `finally` aguanta mientras el proceso termine, pero una interrupción o dos
+  suites a la vez dejan un fichero del repo destruido, en silencio y con pinta
+  de cambio legítimo. Pasó.
+
+## Memoria larga: la bóveda
+
+La memoria de largo plazo de este proyecto **no vive aquí**. Vive en:
+
+`C:\Users\Carlos\Desktop\Obsidian\Talo\01-Proyectos\AllyuHub.md`
+
+Y el conocimiento reutilizable que salió de aquí, en
+`C:\Users\Carlos\Desktop\Obsidian\Talo\03-Recursos\AllyuHub — *.md`.
+
+### Al empezar
+
+Antes de cualquier trabajo de peso —una decisión de arquitectura, un módulo
+nuevo, un trámite, un cambio que afecte a otros— **lee la nota del proyecto**.
+Contiene las decisiones ya tomadas con su motivo, los callejones sin salida (lo
+que se intentó y falló) y las tareas pendientes reales.
+
+No repropongas nada que ahí figure como descartado. Si crees que esta vez sería
+distinto, dilo explícitamente y explica qué cambió.
+
+### Al terminar
+
+**Nunca escribas dentro de `Talo/`.** Esa carpeta la gobierna el humano.
+
+Si la sesión produjo algo que merezca quedar registrado —una decisión, un
+aprendizaje caro, un callejón sin salida, tareas cerradas— escribe una bitácora
+en:
+
+`C:\Users\Carlos\Desktop\Obsidian\_entrada\bitacora\AllyuHub <YYYY-MM-DD>.md`
+
+con este frontmatter y solo las secciones que tengan contenido:
+
+```yaml
+---
+titulo: AllyuHub — <fecha>
+tipo: captura
+creado: <YYYY-MM-DD>
+proyecto: AllyuHub
+tags:
+  - bitacora
+---
+```
+
+Secciones: `## Qué cambió`, `## Decisiones nuevas`, `## Lo que costó`,
+`## Callejones sin salida`, `## Tareas` (cerradas y nuevas), y
+`## Contradice a la bóveda` —esta última es la más importante: si lo de hoy
+invalida algo que la nota da por bueno, dilo ahí.
+
+Si la sesión fue trabajo rutinario, **no escribas nada**. Una bitácora vacía es
+peor que ninguna.
+
+### Frontera
+
+El repo manda en el código y los `TODO` de implementación. La bóveda manda en el
+porqué, lo descartado y los pendientes de nivel proyecto. **No espejes tareas
+entre los dos.**

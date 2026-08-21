@@ -143,8 +143,11 @@ class AppPagesTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Recurso')
-                ->where('resource.title', 'Laboratorio: plano inclinado')
-                ->where('resource.bundle_url', 'https://cdn.allyuhub.test/sims/plano/1.0.0/')
+                ->where('recurso.title', 'Laboratorio: plano inclinado')
+                ->where('recurso.bundle_url', 'https://cdn.allyuhub.test/sims/plano/1.0.0/')
+                // Un simulador no tiene bloques de lectura, y el lector no se
+                // los inventa: pinta su enlace al bundle.
+                ->where('recurso.bloques', [])
             );
 
         $draft = Resource::create([
