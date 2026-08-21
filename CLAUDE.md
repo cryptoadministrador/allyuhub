@@ -217,6 +217,22 @@ Tres reglas que no se negocian:
    `answer`/`expected` en NULL y llena `answer_key`; un numérico, al revés.
    Rellenar con `0.0` o `''` escondería un bug de bifurcación.
 
+**Un ítem no llega a un alumno hasta que alguien lo FIRMA.**
+`LearningObjective::practiceItems()` solo devuelve lo que tiene `reviewed_at`
+— el filtro vive en la relación, no en cada consulta, porque de ahí cuelgan
+también `has_items` del catálogo, el Deep Linking de Moodle y los conteos del
+blueprint: con la puerta solo en el selector, una destreza anunciaría «con
+ejercicios» y daría 404 al entrar. Para contar TODO (informes, administración)
+está `todosLosPracticeItems()`. Se publica con
+**`php artisan practica:firmar --bloque=LL.4.1`**.
+
+**El dominio exige aciertos en DOS ítems distintos** (`MasteryTracker::apply`),
+y la nota al aula también. Un `choice` no re-aleatoriza nada entre intentos y
+al fallar revela cuál era la buena, así que con una sola pregunta bastaban tres
+clics para sellar `mastered_at` —que no se borra nunca— y empujar la nota al
+cuaderno del profesor. La regla se aplica también al numérico: el dominio de una
+destreza con un único ítem no significa nada, haya trampa o no.
+
 Para llenar el banco: **`php artisan practica:sembrar`** (idempotente por
 (objetivo, seq); `--incluir-no-verificadas` para el grafo de demostración).
 Los ítems se anclan a un BLOQUE por el prefijo del código y aterrizan en la

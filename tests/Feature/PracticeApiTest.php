@@ -63,6 +63,9 @@ class PracticeApiTest extends TestCase
             'tolerance' => 0.02,
             'tolerance_kind' => 'rel',
             'answer_unit' => 'N',
+            // Firmado: este fixture prueba el MOTOR, y un ítem sin
+            // revisar no llega al motor (ver DominioYFirmaTest).
+            'reviewed_at' => now(),
         ]);
 
         $this->ana = User::factory()->create();    // id 1
@@ -183,6 +186,9 @@ class PracticeApiTest extends TestCase
             'tolerance_kind' => 'abs',
             'answer_unit' => '°',
             'seq' => 1,
+            // Firmado: este fixture prueba el MOTOR, y un ítem sin
+            // revisar no llega al motor (ver DominioYFirmaTest).
+            'reviewed_at' => now(),
         ]);
 
         // Sin intentos: sale el primero (seq 0).

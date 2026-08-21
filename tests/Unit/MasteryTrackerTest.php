@@ -47,9 +47,16 @@ class MasteryTrackerTest extends TestCase
         $this->user = User::factory()->create();
     }
 
-    private function apply(bool $isCorrect): ObjectiveMastery
+    /**
+     * @param  int  $itemsAcertados  Ítems DISTINTOS acertados de esa destreza.
+     *                               Por defecto los dos que exige el dominio: estos tests miden la
+     *                               ARITMÉTICA de la EMA, y el listón de los dos ítems tiene los suyos.
+     */
+    private function apply(bool $isCorrect, int $itemsAcertados = MasteryTracker::ITEMS_TO_MASTER): ObjectiveMastery
     {
-        return (new MasteryTracker)->apply($this->user->id, $this->objective->id, $isCorrect);
+        return (new MasteryTracker)->apply(
+            $this->user->id, $this->objective->id, $isCorrect, $itemsAcertados,
+        );
     }
 
     public function test_acierto_sube_por_media_movil_exponencial(): void
@@ -96,6 +103,37 @@ class MasteryTrackerTest extends TestCase
         $this->assertEqualsWithDelta(0.821494, $m->mastery, 1e-3);
         $this->assertNotNull($m->mastered_at);
         $this->assertTrue($m->is_mastered);
+    }
+
+    /**
+     * EL LISTÓN DE LOS DOS ÍTEMS. Una destreza con una sola pregunta no puede
+     * dominarse por mucho que se repita: un `choice` no re-aleatoriza nada
+     * entre intentos y al fallar se revela cuál era la buena, así que sellar
+     * dominio ahí sería sellarlo por insistir. La aritmética sube igual —eso no
+     * cambia—; lo que no se sella es el hito.
+     */
+    public function test_con_un_solo_item_acertado_no_se_sella_por_muchos_aciertos(): void
+    {
+        foreach (range(1, 10) as $i) {
+            $m = $this->apply(true, itemsAcertados: 1);
+        }
+
+        $this->assertGreaterThan(MasteryTracker::MASTERY_THRESHOLD, (float) $m->mastery);
+        $this->assertGreaterThanOrEqual(MasteryTracker::STREAK_TO_MASTER, $m->streak);
+        $this->assertNull($m->mastered_at, 'Se selló el dominio con un único ítem.');
+        $this->assertFalse($m->is_mastered);
+    }
+
+    /** Y en cuanto acierta un segundo ítem distinto, el hito se sella. */
+    public function test_el_segundo_item_acertado_desbloquea_el_hito(): void
+    {
+        foreach (range(1, 5) as $i) {
+            $this->apply(true, itemsAcertados: 1);
+        }
+
+        $m = $this->apply(true, itemsAcertados: 2);
+
+        $this->assertNotNull($m->mastered_at);
     }
 
     public function test_mastered_es_un_hito_pero_el_mastery_sigue_vivo(): void

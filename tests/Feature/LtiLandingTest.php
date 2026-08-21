@@ -62,6 +62,9 @@ class LtiLandingTest extends TestCase
             'objective_id' => $this->destreza->id,
             'statement' => ['es' => 'm={m}'], 'params' => ['m' => ['min' => 1, 'max' => 5, 'step' => 1]],
             'solution_expr' => 'm', 'tolerance' => 0.02, 'tolerance_kind' => 'rel',
+            // Firmado: este fixture prueba el MOTOR, y un ítem sin
+            // revisar no llega al motor (ver DominioYFirmaTest).
+            'reviewed_at' => now(),
         ]);
         $this->sim = Resource::create([
             'slug' => 'plano-inclinado', 'kind' => 'lab',

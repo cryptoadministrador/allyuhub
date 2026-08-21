@@ -272,7 +272,10 @@ return [
     // — Básica Media —
     ['CS.3.1', 'choice', 'Antes de la llegada de los españoles, ¿qué pueblo había extendido su dominio sobre el actual territorio ecuatoriano?',
         ['a' => 'Los incas', 'b' => 'Los mayas', 'c' => 'Los aztecas', 'd' => 'Los guaraníes'], 'a'],
-    ['CS.3.2', 'choice', '¿Cuántas regiones naturales tiene el Ecuador continental e insular?',
+    // Sin «e insular» en el enunciado: era una pista —la correcta es la única
+    // que dice «Insular»— y además hacía defendible la opción de tres regiones
+    // para quien leyera «Ecuador continental».
+    ['CS.3.2', 'choice', '¿Cuántas regiones naturales tiene el Ecuador?',
         [
             'a' => 'Cuatro: Costa, Sierra, Amazonía e Insular',
             'b' => 'Dos: Costa y Sierra',
@@ -386,7 +389,9 @@ return [
         ], 'a'],
     ['CS.EC.5.2', 'choice', 'En la democracia moderna, ¿para qué sirve la división de poderes?',
         [
-            'a' => 'Para que ningún poder del Estado controle a los demás sin contrapeso',
+            // Sin doble negación: «ningún poder … sin contrapeso» costaba de leer
+            // más que de entender, que es lo contrario de lo que debe pedir un ítem.
+            'a' => 'Para que cada poder limite y controle a los otros',
             'b' => 'Para que las decisiones se tomen más rápido',
             'c' => 'Para que el presidente pueda gobernar sin oposición',
             'd' => 'Para reducir el número de funcionarios',

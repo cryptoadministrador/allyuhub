@@ -54,6 +54,10 @@ class PracticeItemSeeder extends Seeder
                     'tolerance' => $tol,
                     'tolerance_kind' => $kind,
                     'answer_unit' => $unit,
+                    // Firmados: son 17 ítems escritos a mano contra las 8
+                    // destrezas verificadas, con la física revisada dos veces
+                    // (ver la cabecera). No pasan por `practica:firmar`.
+                    'reviewed_at' => now(),
                 ],
             );
         }

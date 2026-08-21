@@ -9,6 +9,7 @@ use App\Models\LearningObjective;
 use App\Models\ObjectiveMastery;
 use App\Models\PracticeItem;
 use App\Models\User;
+use App\Services\Practice\PracticeEngine;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -57,24 +58,49 @@ class MasteryApiTest extends TestCase
             'solution_expr' => 'm * g * sin(deg2rad(theta))',
             'tolerance' => 0.02,
             'tolerance_kind' => 'rel',
+            // Firmado: este fixture prueba el MOTOR, y un ítem sin
+            // revisar no llega al motor (ver DominioYFirmaTest).
+            'reviewed_at' => now(),
         ]);
 
         $this->ana = User::factory()->create();
         $this->luis = User::factory()->create();
     }
 
-    /** Responde el intento en curso del ítem, bien o mal según $correct. */
-    private function attempt(User $user, bool $correct): void
+    /** Responde el intento en curso del ítem, bien o mal. */
+    private function attempt(User $user, bool $correct, ?string $itemId = null): void
     {
-        $params = $this->actingAs($user)->getJson(
-            "/api/v1/objectives/{$this->objective->id}/practice/next"
-        )->json('params');
-
+        $itemId ??= self::ITEM_ID;
+        $item = PracticeItem::findOrFail($itemId);
+        $engine = new PracticeEngine;
+        $n = $item->attempts()->where('user_id', $user->id)->count() + 1;
+        $params = $engine->sampleParams($item->params, $engine->seedFor($item->id, $user->id, $n));
         $expected = $params['m'] * $params['g'] * sin(deg2rad($params['theta']));
 
-        $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [
+        $this->actingAs($user)->postJson("/api/v1/practice/items/{$itemId}/attempts", [
             'answer' => $correct ? $expected : $expected + 50,
         ])->assertCreated();
+    }
+
+    /**
+     * Un SEGUNDO ítem de la misma destreza. El hito de dominio exige aciertos
+     * en dos ítems distintos: con uno solo se sacaría repitiendo la misma
+     * pregunta (ver DominioYFirmaTest).
+     */
+    private function segundoItem(): string
+    {
+        return PracticeItem::create([
+            'objective_id' => $this->objective->id, 'seq' => 1,
+            'statement' => ['es' => 'Otro: m={m} kg, θ={theta}°, g={g}.'],
+            'params' => [
+                'm' => ['min' => 2, 'max' => 18, 'step' => 0.5],
+                'theta' => ['min' => 12, 'max' => 40, 'step' => 1],
+                'g' => ['const' => 9.8],
+            ],
+            'solution_expr' => 'm * g * sin(deg2rad(theta))',
+            'tolerance' => 0.02, 'tolerance_kind' => 'rel',
+            'reviewed_at' => now(),
+        ])->id;
     }
 
     public function test_el_intento_actualiza_el_mastery_de_la_destreza(): void
@@ -123,9 +149,12 @@ class MasteryApiTest extends TestCase
 
     public function test_mastered_llega_al_endpoint_tras_la_racha(): void
     {
-        foreach (range(1, 4) as $i) {
+        $otro = $this->segundoItem();
+
+        foreach (range(1, 3) as $i) {
             $this->attempt($this->ana, true);
         }
+        $this->attempt($this->ana, true, $otro);
 
         $this->actingAs($this->ana)->getJson('/api/v1/practice/mastery')
             ->assertOk()
