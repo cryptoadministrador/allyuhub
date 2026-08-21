@@ -18,23 +18,29 @@ use Illuminate\Support\Facades\DB;
  * Atado a la procedencia, la regla sobrevive al cambio de circunstancia: lo
  * GENERADO se firma, lo que un operador da de alta a mano no.
  *
- * `curado` por defecto y en el backfill porque eso es exactamente lo que hay
- * hoy en producción: los simuladores que alguien registró uno a uno. Las
- * lecciones nacen `generado` desde su sembrador.
+ * El backfill pone `curado` porque eso es exactamente lo que hay hoy en
+ * producción: los simuladores que alguien registró uno a uno. El DEFAULT, en
+ * cambio, es `generado` — lo contrario, y a propósito: ver abajo.
  */
 return new class extends Migration
 {
     public function up(): void
     {
         Schema::table('resources', function (Blueprint $table) {
-            // Mismo vocabulario y mismo default que practice_items.origen: dos
-            // columnas que significan lo mismo tienen que leerse igual.
-            $table->string('origen')->default('curado')->after('kind');
+            // El default CIERRA. `practice_items.origen` puede permitirse nacer
+            // en `curado` porque allí nadie lo lee para decidir qué se ve; aquí
+            // gobierna `scopePublished()`. Heredar el default permisivo de una
+            // columna descriptiva a otra que es una PUERTA es la consistencia
+            // equivocada: una puerta falla cerrada. Quien siembre sin declarar
+            // procedencia se queda sin publicar —molesto— en vez de con
+            // contenido sin firmar delante de un alumno.
+            $table->string('origen')->default('generado')->after('kind');
         });
 
-        // Explícito aunque el default ya lo cubra: una migración que depende de
-        // que el default se aplique a las filas viejas es una migración que
-        // funciona por casualidad del motor.
+        // Explícito aunque parezca redundante: las filas que ya existen son las
+        // que registró un operador a mano, y esas son `curado`. Una migración
+        // que dependa del default para las filas viejas funciona por casualidad
+        // del motor — y aquí, además, diría lo contrario de lo que queremos.
         DB::table('resources')->update(['origen' => 'curado']);
     }
 
