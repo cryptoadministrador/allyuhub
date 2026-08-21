@@ -165,6 +165,9 @@ class LtiContextTest extends TestCase
             'objective_id' => $objective->id,
             'statement' => ['es' => 'm={m}'], 'params' => ['m' => ['min' => 1, 'max' => 2, 'step' => 1]],
             'solution_expr' => 'm', 'tolerance' => 0.02, 'tolerance_kind' => 'rel',
+            // Firmado: este fixture prueba el MOTOR, y un ítem sin
+            // revisar no llega al motor (ver DominioYFirmaTest).
+            'reviewed_at' => now(),
         ]);
 
         return $objective;

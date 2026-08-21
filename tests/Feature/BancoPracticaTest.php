@@ -18,6 +18,12 @@ use Tests\TestCase;
 /**
  * ORÁCULOS de la siembra del banco.
  *
+ * Ojo con la relación que se usa para medir: `practiceItems` solo devuelve lo
+ * FIRMADO, y lo que siembra este comando nace sin firmar a propósito. La
+ * cobertura de aquí es la del banco —qué se ha sembrado— así que se mide con
+ * `todosLosPracticeItems`. Que lo sembrado llegue o no al alumno es otra
+ * pregunta, y vive en DominioYFirmaTest.
+ *
  * Lo que se prueba aquí no es «el comando corre», sino tres cosas que un banco
  * de ejercicios de verdad tiene que cumplir: que cada asignatura × subnivel
  * queda cubierta, que re-sembrar no duplica ni revienta con los códigos que se
@@ -110,7 +116,7 @@ class BancoPracticaTest extends TestCase
         foreach ($ramas as $bloque) {
             $this->assertGreaterThan(0,
                 LearningObjective::where('native_code', 'like', $bloque.'.%')
-                    ->whereHas('practiceItems')->count(),
+                    ->whereHas('todosLosPracticeItems')->count(),
                 "El bloque de rama {$bloque} se quedó sin ítem.");
         }
     }
@@ -171,7 +177,7 @@ class BancoPracticaTest extends TestCase
 
         $conItem = LearningObjective::query()
             ->where('native_code', 'M.4.1.1')
-            ->whereHas('practiceItems')
+            ->whereHas('todosLosPracticeItems')
             ->count();
 
         $this->assertSame(3, $conItem, 'El bloque replicado no llegó a los tres grados.');
@@ -184,7 +190,7 @@ class BancoPracticaTest extends TestCase
         $this->artisan('practica:sembrar')->assertSuccessful();
 
         $conItem = LearningObjective::query()
-            ->whereHas('practiceItems')
+            ->whereHas('todosLosPracticeItems')
             ->where('native_code', 'like', 'M.4.1.%')
             ->pluck('native_code')->unique()->values()->all();
 
@@ -239,7 +245,7 @@ class BancoPracticaTest extends TestCase
         ));
 
         // Una entrada por destreza y nada más: ni zombis ni duplicados.
-        foreach (LearningObjective::whereHas('practiceItems')->get() as $objetivo) {
+        foreach (LearningObjective::whereHas('todosLosPracticeItems')->get() as $objetivo) {
             $delBanco = $objetivo->practiceItems()->where('seq', SeedPracticeBank::BASE_SEQ)->count();
             $this->assertLessThanOrEqual(1, $delBanco,
                 "{$objetivo->native_code} acabó con {$delBanco} ítems del banco.");
@@ -590,7 +596,7 @@ class BancoPracticaTest extends TestCase
         foreach ($delBanco as $bloque) {
             $conItem = LearningObjective::query()
                 ->where('native_code', 'like', $bloque.'.%')
-                ->whereHas('practiceItems')
+                ->whereHas('todosLosPracticeItems')
                 ->count();
 
             $this->assertGreaterThan(0, $conItem, "El bloque {$bloque} se quedó sin ningún ítem.");
@@ -611,7 +617,7 @@ class BancoPracticaTest extends TestCase
         // el informe tiene que reconocer que faltan las otras dos, no redondear.
         $sinItem = LearningObjective::query()
             ->where('is_verified', true)
-            ->whereDoesntHave('practiceItems')
+            ->whereDoesntHave('todosLosPracticeItems')
             ->count();
         $this->assertGreaterThan(0, $sinItem);
 
@@ -631,6 +637,9 @@ class BancoPracticaTest extends TestCase
             'statement' => ['es' => 'Ítem anterior {a}'],
             'params' => ['a' => ['const' => 1]],
             'solution_expr' => 'a', 'tolerance' => 0.01, 'tolerance_kind' => 'abs',
+            // Firmado: este fixture prueba el MOTOR, y un ítem sin
+            // revisar no llega al motor (ver DominioYFirmaTest).
+            'reviewed_at' => now(),
         ]);
 
         $this->artisan('practica:sembrar')->assertSuccessful();

@@ -205,6 +205,55 @@ class SeedPracticeBank extends Command
     }
 
     /**
+     * Lo sembrado NO se publica solo: espera la firma de un docente.
+     *
+     * Sin este aviso, `practica:sembrar` diría «240 ítems creados» y el alumno
+     * no vería ninguno, sin ninguna pista de por qué.
+     */
+    private function avisarDeLaFirma(): void
+    {
+        $pendientes = PracticeItem::whereNull('reviewed_at')->count();
+
+        if ($pendientes === 0) {
+            return;
+        }
+
+        $this->newLine();
+        $this->warn("{$pendientes} ítem(s) pendiente(s) de firma: NO se sirven todavía.");
+        $this->line('  Un ítem sin revisar no llega a un alumno. Para publicar un bloque');
+        $this->line('  ya revisado:  php artisan practica:firmar --bloque=LL.4.1');
+    }
+
+    /**
+     * Cuántas destrezas tienen ejercicios pero NO pueden alcanzar dominio.
+     *
+     * El dominio exige aciertos en dos ítems distintos (MasteryTracker), así
+     * que una destreza con uno solo se practica y se corrige, pero no sella
+     * `mastered_at` ni mueve la nota. Es correcto —el dominio de una destreza
+     * con una única pregunta no significa nada— pero hay que decirlo: es el
+     * hueco de contenido más accionable que deja este banco.
+     */
+    private function avisarDeLasQueNoSePuedenDominar(Collection $versiones): void
+    {
+        // Subconsulta y no `withCount()->having()`: sin `groupBy`, SQLite
+        // rechaza el HAVING («non-aggregate query») y pgsql lo aceptaría — la
+        // clase de divergencia que el CI dual existe para cazar.
+        $conUnoSolo = LearningObjective::query()
+            ->whereIn('version_id', $versiones)
+            ->whereRaw('(select count(*) from practice_items where practice_items.objective_id = learning_objectives.id) = 1')
+            ->count();
+
+        if ($conUnoSolo === 0) {
+            return;
+        }
+
+        $this->newLine();
+        $this->warn("{$conUnoSolo} destreza(s) tienen un solo ítem: se practican, pero no");
+        $this->line('  pueden alcanzar dominio ni calificar (hacen falta dos ítems distintos).');
+        $this->line('  Es el hueco más accionable del banco: una pregunta más por bloque.');
+    }
+
+    /**
      * Ítems del banco cuyo bloque ya no está en el fichero.
      *
      * Con `seq` fijo no puede haber duplicados, pero sí RESTOS: si se borra una
@@ -367,7 +416,7 @@ class SeedPracticeBank extends Command
         $destrezas = LearningObjective::query()
             ->whereIn('version_id', $versiones)
             ->when($soloVerificadas, fn ($q) => $q->where('is_verified', true))
-            ->withCount('practiceItems')
+            ->withCount('todosLosPracticeItems as practice_items_count')
             ->get(['id', 'native_code']);
 
         if ($destrezas->isEmpty()) {
@@ -406,6 +455,11 @@ class SeedPracticeBank extends Command
                 $k, $v['total'], $v['con'], sprintf('%.1f', $v['con'] / $v['total'] * 100),
             ], array_keys($porAmbito), $porAmbito),
         );
+
+        // Dos avisos que la siembra tiene que dar, o deja 240 ítems invisibles y
+        // un montón de destrezas que no pueden dominarse, sin que nadie lo sepa.
+        $this->avisarDeLaFirma();
+        $this->avisarDeLasQueNoSePuedenDominar($versiones);
 
         if ($sinItem !== []) {
             sort($sinItem);

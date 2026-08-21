@@ -96,6 +96,9 @@ class InicioPageTest extends TestCase
             ],
             'solution_expr' => 'm * g * sin(deg2rad(theta))',
             'tolerance' => 0.02, 'tolerance_kind' => 'rel', 'answer_unit' => 'N',
+            // Firmado: este fixture prueba el MOTOR, y un ítem sin
+            // revisar no llega al motor (ver DominioYFirmaTest).
+            'reviewed_at' => now(),
         ]);
     }
 
@@ -214,10 +217,21 @@ class InicioPageTest extends TestCase
 
     public function test_el_siguiente_paso_es_exactamente_el_del_selector_en_avance(): void
     {
-        // Cuatro aciertos ⇒ base dominada ⇒ el selector AVANZA.
-        foreach (range(1, 4) as $i) {
-            $this->intento($this->base, true);
-        }
+        // Un intento real primero: `/inicio` deduce «continúa donde ibas» del
+        // último intento, y sin él tampoco habría «siguiente paso» que comparar.
+        $this->intento($this->base, true);
+
+        // Base dominada ⇒ el selector AVANZA. El hito se fija DIRECTAMENTE:
+        // este test mide la divergencia entre /inicio y el selector, y hacerlo
+        // pasar por el motor de dominio lo ataba a las reglas de ese motor
+        // (que ahora exige aciertos en dos ítems distintos).
+        ObjectiveMastery::updateOrCreate(
+            ['user_id' => $this->ana->id, 'objective_id' => $this->base->id],
+            [
+                'mastery' => 0.9, 'streak' => 4, 'attempts_count' => 4,
+                'mastered_at' => now(), 'last_attempt_at' => now(),
+            ],
+        );
 
         $decision = app(AdaptiveSelector::class)->next($this->base->fresh(), $this->ana->id);
         $this->assertSame(AdaptiveSelector::REASON_ADVANCE, $decision['reason'], 'El escenario no provoca avance');

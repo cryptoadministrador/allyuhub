@@ -65,6 +65,9 @@ class PracticeAuthTest extends TestCase
             ],
             'solution_expr' => 'm * g * sin(deg2rad(theta))',
             'tolerance' => 0.02, 'tolerance_kind' => 'rel',
+            // Firmado: este fixture prueba el MOTOR, y un ítem sin
+            // revisar no llega al motor (ver DominioYFirmaTest).
+            'reviewed_at' => now(),
         ]);
 
         $this->ana = User::factory()->create();

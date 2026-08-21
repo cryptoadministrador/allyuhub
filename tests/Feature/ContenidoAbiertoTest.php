@@ -75,6 +75,9 @@ class ContenidoAbiertoTest extends TestCase
             ],
             'solution_expr' => 'a + b',
             'tolerance' => 0.01, 'tolerance_kind' => 'abs',
+            // Firmado: este fixture prueba el MOTOR, y un ítem sin
+            // revisar no llega al motor (ver DominioYFirmaTest).
+            'reviewed_at' => now(),
         ]);
 
         $this->ana = User::factory()->create();
@@ -202,6 +205,32 @@ class ContenidoAbiertoTest extends TestCase
             ->assertOk()->json();
 
         $this->postJson("/api/v1/practice/items/{$item['item_id']}/attempts", ['answer' => 5])
+            ->assertCreated()
+            ->assertJsonPath('is_correct', true);
+
+        // Un segundo ítem DISTINTO: la nota no viaja al aula mientras el alumno
+        // solo haya acertado uno (ver DominioYFirmaTest).
+        $segundo = PracticeItem::create([
+            'objective_id' => $this->objective->id, 'seq' => 1,
+            'statement' => ['es' => 'Suma {a} + {b}'],
+            'params' => ['a' => ['const' => 4], 'b' => ['const' => 4]],
+            'solution_expr' => 'a + b', 'tolerance' => 0.01, 'tolerance_kind' => 'abs',
+            'reviewed_at' => now(),
+        ]);
+        $this->postJson("/api/v1/practice/items/{$segundo->id}/attempts", ['answer' => 8])
+            ->assertCreated()
+            ->assertJsonPath('is_correct', true);
+
+        // Un segundo ítem DISTINTO: la nota no viaja al aula mientras el alumno
+        // solo haya acertado uno (ver DominioYFirmaTest).
+        $segundo = PracticeItem::create([
+            'objective_id' => $this->objective->id, 'seq' => 1,
+            'statement' => ['es' => 'Suma {a} + {b}'],
+            'params' => ['a' => ['const' => 4], 'b' => ['const' => 4]],
+            'solution_expr' => 'a + b', 'tolerance' => 0.01, 'tolerance_kind' => 'abs',
+            'reviewed_at' => now(),
+        ]);
+        $this->postJson("/api/v1/practice/items/{$segundo->id}/attempts", ['answer' => 8])
             ->assertCreated()
             ->assertJsonPath('is_correct', true);
 
@@ -369,6 +398,9 @@ class ContenidoAbiertoTest extends TestCase
                 'statement' => ['es' => "Ejercicio {$seq}: {a} + {b}"],
                 'params' => ['a' => ['const' => $seq], 'b' => ['const' => 1]],
                 'solution_expr' => 'a + b', 'tolerance' => 0.01, 'tolerance_kind' => 'abs',
+                // Firmado: este fixture prueba el MOTOR, y un ítem sin
+                // revisar no llega al motor (ver DominioYFirmaTest).
+                'reviewed_at' => now(),
             ]);
         }
 

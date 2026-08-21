@@ -26,6 +26,10 @@ class PracticeItemFactory extends Factory
             'tolerance_kind' => 'rel',
             'answer_unit' => 'N',
             'seq' => 0,
+            // Firmado por defecto: la factory existe para probar el MOTOR, y
+            // un ítem sin firmar no llega al motor. Lo pendiente de revisión se
+            // prueba poniendo `reviewed_at` a null explícitamente.
+            'reviewed_at' => now(),
         ];
     }
 }

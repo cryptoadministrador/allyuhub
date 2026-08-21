@@ -105,6 +105,9 @@ class AdaptivePracticeTest extends TestCase
             'tolerance' => 0.02,
             'tolerance_kind' => 'rel',
             'answer_unit' => 'N',
+            // Firmado: este fixture prueba el MOTOR, y un ítem sin
+            // revisar no llega al motor (ver DominioYFirmaTest).
+            'reviewed_at' => now(),
         ]);
     }
 
@@ -112,6 +115,18 @@ class AdaptivePracticeTest extends TestCase
     {
         return $this->actingAs($this->ana)
             ->getJson("/api/v1/objectives/{$objective->id}/practice/next");
+    }
+
+    /** Sella el dominio de una destreza, sin pasar por el motor de mastery. */
+    private function dominar(LearningObjective $objective): void
+    {
+        ObjectiveMastery::updateOrCreate(
+            ['user_id' => $this->ana->id, 'objective_id' => $objective->id],
+            [
+                'mastery' => 0.9, 'streak' => 4, 'attempts_count' => 4,
+                'mastered_at' => now(), 'last_attempt_at' => now(),
+            ],
+        );
     }
 
     /** Contesta el intento en curso del ítem del objetivo, bien o mal. */
@@ -160,12 +175,17 @@ class AdaptivePracticeTest extends TestCase
             ->assertJsonPath('reason', 'práctica normal');
     }
 
+    /**
+     * El estado «dominado» se fija DIRECTAMENTE, no se deriva de una tanda de
+     * aciertos. Aquí se prueba el SELECTOR, y hacerlo pasar por el motor de
+     * dominio ataba este test a las reglas de ese motor: cuando el hito pasó a
+     * exigir dos ítems distintos, cuatro aciertos sobre el único ítem del
+     * fixture dejaron de sellar nada y el test se cayó sin que el selector
+     * hubiera cambiado una línea.
+     */
     public function test_no_retrocede_a_prerrequisito_ya_dominado(): void
     {
-        // Domina el prerrequisito (racha de 4 con mastery ≥ 0.8).
-        foreach (range(1, 4) as $i) {
-            $this->attempt($this->prereq, true);
-        }
+        $this->dominar($this->prereq);
         // Luego fracasa la destreza base.
         $this->attempt($this->base, false);
         $this->attempt($this->base, false);
@@ -178,9 +198,7 @@ class AdaptivePracticeTest extends TestCase
 
     public function test_avanza_al_dominar_la_destreza(): void
     {
-        foreach (range(1, 4) as $i) {
-            $this->attempt($this->base, true);
-        }
+        $this->dominar($this->base);
 
         // base dominada → propone la destreza que la tiene de prerrequisito.
         $this->next($this->base)->assertOk()
