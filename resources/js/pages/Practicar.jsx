@@ -1,4 +1,4 @@
-import { Head } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import AppLayout from '../layouts/AppLayout';
 import { RAZONES_DESVIO } from '../lib/razones';
@@ -36,16 +36,71 @@ async function pedirJson(url, opciones = {}) {
     return respuesta;
 }
 
+/**
+ * El aviso honesto del invitado. Va DOS veces —encima del ejercicio y dentro
+ * del bloque de resultado— porque el momento en que un alumno se pregunta «¿me
+ * ha contado esto?» es justo después de acertar, no al abrir la página.
+ *
+ * Con sesión no aparece ninguna de las dos: al alumno no se le repite en cada
+ * pantalla algo que ya es su caso normal.
+ */
+function AvisoDeInvitado({ compacto = false }) {
+    if (compacto) {
+        return (
+            <p className="mt-3 text-sm text-slate-700">
+                Esto no se ha guardado.{' '}
+                <a
+                    href="/entrar"
+                    className="font-medium underline hover:text-marca-700 focus:outline-2 focus:outline-offset-2 focus:outline-marca-600"
+                >
+                    Entra desde tu aula virtual
+                </a>{' '}
+                para conservar tu avance.
+            </p>
+        );
+    }
+
+    return (
+        <div className="mb-6 flex gap-3 rounded-lg border border-l-4 border-amber-200 border-l-amber-500 bg-amber-50 p-3">
+            <span aria-hidden="true" className="text-xl leading-none">
+                👋
+            </span>
+            <p className="text-sm leading-relaxed text-amber-900">
+                Estás practicando como visitante: <strong>tu avance no se guarda</strong>.{' '}
+                <a
+                    href="/entrar"
+                    className="font-medium underline hover:text-amber-950 focus:outline-2 focus:outline-offset-2 focus:outline-marca-600"
+                >
+                    Entra desde tu aula virtual
+                </a>{' '}
+                para conservarlo y que cuente en tu curso.
+            </p>
+        </div>
+    );
+}
+
 export default function Practicar({ objective, mastery: masteryInicial }) {
-    // estado: cargando | listo | enviando | respondido | sin-items | sesion | error
+    // estado: cargando | listo | enviando | respondido | sin-items | sesion |
+    //         demasiadas | error
     const [estado, setEstado] = useState('cargando');
     const [item, setItem] = useState(null);
     const [respuesta, setRespuesta] = useState('');
     const [resultado, setResultado] = useState(null);
     const [mastery, setMastery] = useState(masteryInicial);
+    const [tanteo, setTanteo] = useState({ aciertos: 0, respondidos: 0 });
     const inicioItem = useRef(null);
     const inputRef = useRef(null);
     const feedbackRef = useRef(null);
+
+    const { props: compartidas } = usePage();
+    const invitado = !compartidas.auth?.user;
+    const invitadoRef = useRef(invitado);
+    invitadoRef.current = invitado;
+
+    // El invitado no tiene historial en el servidor del que deducir por qué
+    // intento va, así que lo lleva él. En un ref y no en estado: `cargarSiguiente`
+    // lo lee y no debe re-crearse (dispararía el efecto de carga en bucle).
+    const intento = useRef(1);
 
     const cargarSiguiente = useCallback(async () => {
         setEstado('cargando');
@@ -53,13 +108,26 @@ export default function Practicar({ objective, mastery: masteryInicial }) {
         setRespuesta('');
 
         try {
-            const r = await pedirJson(`/api/v1/objectives/${objective.id}/practice/next`);
+            const r = await pedirJson(
+                `/api/v1/objectives/${objective.id}/practice/next?intento=${intento.current}`,
+            );
 
             if (r.status === 401) return setEstado('sesion');
             if (r.status === 404) return setEstado('sin-items');
+            if (r.status === 429) return setEstado('demasiadas');
             if (!r.ok) return setEstado('error');
 
-            setItem(await r.json());
+            const siguiente = await r.json();
+
+            // La prop `auth` se renderizó cuando la sesión aún vivía; el
+            // servidor es el único que sabe si AHORA se guarda. Si el alumno
+            // creía tener sesión y ya no la tiene, se le dice — antes seguía
+            // practicando en el vacío con la barra congelada (auditoría).
+            if (!invitadoRef.current && siguiente.se_guarda === false) {
+                return setEstado('sesion');
+            }
+
+            setItem(siguiente);
             inicioItem.current = Date.now();
             setEstado('listo');
         } catch {
@@ -92,16 +160,46 @@ export default function Practicar({ objective, mastery: masteryInicial }) {
                 body: JSON.stringify({
                     answer: Number(respuesta),
                     time_ms: Date.now() - inicioItem.current,
+                    // Al alumno el servidor le ignora este campo: su número de
+                    // intento sale de la base. Va siempre para que el cliente
+                    // sea uno solo, con sesión y sin ella.
+                    intento: item.attempt_no,
                 }),
             });
 
             if (r.status === 401) return setEstado('sesion');
             if (r.status === 409) return cargarSiguiente();   // intento duplicado: pedir el siguiente
+            if (r.status === 429) return setEstado('demasiadas');
             if (!r.ok) return setEstado('error');
 
-            setResultado(await r.json());
+            const veredicto = await r.json();
+
+            // Misma comprobación que al pedir el ítem: si el alumno creía tener
+            // sesión y el servidor dice que esto no se ha guardado, se le avisa
+            // en vez de darle un «Correcto» que no cuenta para nada.
+            if (!invitado && veredicto.se_guarda === false) {
+                return setEstado('sesion');
+            }
+
+            setResultado(veredicto);
             setEstado('respondido');
-            await actualizarMastery();
+
+            if (invitado) {
+                // El tanteo del invitado vive AQUÍ y solo aquí: al recargar
+                // desaparece, que es exactamente lo que dice el aviso. Y el
+                // siguiente ejercicio necesita otro número de intento para no
+                // repetir los mismos números.
+                // El servidor acepta como mucho intento=500; al llegar se
+                // vuelve a empezar en vez de pedir un 501 que dejaba la página
+                // muerta con un mensaje falso (auditoría).
+                intento.current = ((item.attempt_no ?? 1) % 500) + 1;
+                setTanteo((t) => ({
+                    aciertos: t.aciertos + (veredicto.is_correct ? 1 : 0),
+                    respondidos: t.respondidos + 1,
+                }));
+            } else {
+                await actualizarMastery();
+            }
         } catch {
             setEstado('error');
         }
@@ -120,7 +218,15 @@ export default function Practicar({ objective, mastery: masteryInicial }) {
     }
 
     const razon = item && RAZONES[item.reason];
-    const porcentaje = mastery === null || mastery === undefined ? 0 : Math.round(mastery * 100);
+    // Dos medidas distintas, y a propósito. El alumno ve su DOMINIO —la EMA que
+    // el servidor guarda y que viaja a Moodle—. El invitado no tiene dominio
+    // que enseñar, así que ve sus aciertos de esta sesión: un número honesto,
+    // calculado aquí, que no finge ser un expediente. Fingir un «dominio» de
+    // invitado obligaría además a duplicar la fórmula del MasteryTracker en el
+    // cliente, y esa es exactamente la clase de copia que acaba divergiendo.
+    const porcentaje = invitado
+        ? (tanteo.respondidos === 0 ? 0 : Math.round((tanteo.aciertos / tanteo.respondidos) * 100))
+        : (mastery === null || mastery === undefined ? 0 : Math.round(mastery * 100));
 
     // El selector adaptativo puede DESVIAR a otra destreza (refuerzo de un
     // prerrequisito o avance). La cabecera tiene que hablar de la destreza del
@@ -138,6 +244,8 @@ export default function Practicar({ objective, mastery: masteryInicial }) {
 
             <p className="mb-4 text-sm text-slate-600">{enunciado}</p>
 
+            {invitado && <AvisoDeInvitado />}
+
             {/* Barra de dominio: progressbar real, con texto además del color.
                 La transición es explícita sobre `width` y se apaga si el
                 sistema pide menos movimiento (motion-reduce): una barra que
@@ -145,9 +253,15 @@ export default function Practicar({ objective, mastery: masteryInicial }) {
             <div className="mb-6">
                 <div className="mb-1 flex justify-between text-sm">
                     <span id="etiqueta-dominio">
-                        Dominio de {desviado ? codigo : 'la destreza'}
+                        {invitado
+                            ? 'Aciertos en esta visita'
+                            : `Dominio de ${desviado ? codigo : 'la destreza'}`}
                     </span>
-                    <span aria-hidden="true">{porcentaje} %</span>
+                    <span aria-hidden="true">
+                        {invitado
+                            ? `${tanteo.aciertos} de ${tanteo.respondidos}`
+                            : `${porcentaje} %`}
+                    </span>
                 </div>
                 <div
                     role="progressbar"
@@ -155,7 +269,9 @@ export default function Practicar({ objective, mastery: masteryInicial }) {
                     aria-valuenow={porcentaje}
                     aria-valuemin={0}
                     aria-valuemax={100}
-                    aria-valuetext={`${porcentaje} por ciento`}
+                    aria-valuetext={invitado
+                        ? `${tanteo.aciertos} de ${tanteo.respondidos} correctos`
+                        : `${porcentaje} por ciento`}
                     className="h-3 overflow-hidden rounded-full bg-slate-200"
                 >
                     <div
@@ -175,9 +291,40 @@ export default function Practicar({ objective, mastery: masteryInicial }) {
             )}
 
             {estado === 'sesion' && (
-                <p role="alert">
-                    Tu sesión caducó. <a className="underline" href="/entrar">Vuelve a entrar desde Moodle</a>.
-                </p>
+                <div role="alert" className="rounded-lg border border-l-4 border-amber-200 border-l-amber-500 bg-amber-50 p-4">
+                    <p className="font-semibold text-amber-900">Tu sesión caducó</p>
+                    <p className="mt-1 text-sm leading-relaxed text-amber-900">
+                        Lo que respondas a partir de ahora no se guardaría.{' '}
+                        <a className="font-medium underline" href="/entrar">
+                            Vuelve a entrar desde tu aula virtual
+                        </a>{' '}
+                        y sigues donde ibas — lo que ya tenías guardado sigue ahí.
+                    </p>
+                    <p className="mt-3 text-sm text-amber-900">
+                        También puedes{' '}
+                        <a className="font-medium underline" href="/catalogo">
+                            seguir practicando como visitante
+                        </a>
+                        , sin que cuente.
+                    </p>
+                </div>
+            )}
+
+            {estado === 'demasiadas' && (
+                <div role="alert" className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+                    <p className="text-amber-900">
+                        Has pedido muchos ejercicios seguidos. Espera un minuto y vuelve a
+                        intentarlo — el límite es por conexión, así que si estás en el colegio
+                        puede que lo hayáis alcanzado entre varios.
+                    </p>
+                    <button
+                        type="button"
+                        onClick={cargarSiguiente}
+                        className="mt-3 rounded bg-marca-600 px-4 py-2 font-medium text-white hover:bg-marca-700 focus:outline-2 focus:outline-offset-2 focus:outline-marca-600"
+                    >
+                        Reintentar
+                    </button>
+                </div>
             )}
 
             {estado === 'error' && (
@@ -287,6 +434,8 @@ export default function Practicar({ objective, mastery: masteryInicial }) {
                                 {Math.round(resultado.expected * 1000) / 1000}
                                 {item?.answer_unit ? ` ${item.answer_unit}` : ''}.
                             </p>
+                            {invitado && <AvisoDeInvitado compacto />}
+
                             <button
                                 type="button"
                                 onClick={cargarSiguiente}

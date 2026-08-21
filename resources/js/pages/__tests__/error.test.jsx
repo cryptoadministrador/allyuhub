@@ -52,12 +52,20 @@ describe('página de error con marca', () => {
         expect(screen.queryByRole('link', { name: /aula virtual/i })).not.toBeInTheDocument();
     });
 
-    it('sin sesión NO ofrece páginas que le rebotarían a /entrar', () => {
+    /**
+     * Contenido abierto: al visitante SÍ se le ofrece el catálogo —es suyo—
+     * pero nunca una página que lo rebotaría a /entrar. Ese es el oráculo que
+     * este test conserva; lo que cambió es qué páginas rebotan.
+     */
+    it('sin sesión ofrece el catálogo y NO lo que le rebotaría a /entrar', () => {
         auth = { user: null };
         render(<ErrorPagina status={404} />);
 
+        expect(screen.getByRole('link', { name: /explorar el currículo/i }))
+            .toHaveAttribute('href', '/catalogo');
         expect(screen.getByRole('link', { name: /aula virtual/i })).toHaveAttribute('href', '/entrar');
-        ['/inicio', '/catalogo', '/buscar'].forEach((ruta) => {
+
+        ['/inicio', '/progreso'].forEach((ruta) => {
             expect(document.querySelector(`a[href="${ruta}"]`)).toBeNull();
         });
     });

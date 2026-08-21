@@ -84,11 +84,25 @@ describe('AppLayout — marca y navegación', () => {
         expect(screen.getByRole('link', { name: /Química 2\.º BGU/ })).toHaveAttribute('href', '/docente/ctx-2');
     });
 
-    it('sin sesión no pinta navegación de alumno ni nombre', () => {
+    /**
+     * Contenido abierto: el visitante navega con la MISMA barra, no con una
+     * versión mutilada. Lo que no aparece es su casa y su progreso — porque
+     * todavía no existen, no porque se le escondan.
+     */
+    it('sin sesión ofrece catálogo y búsqueda, y la puerta para guardar', () => {
         montar({ user: null });
 
-        expect(screen.queryByRole('link', { name: 'Mi progreso' })).not.toBeInTheDocument();
-        expect(screen.getByRole('link', { name: /allyuhub/i })).toBeInTheDocument();
+        const nav = screen.getByRole('navigation', { name: /principal/i });
+        expect(within(nav).getByRole('link', { name: 'Catálogo' })).toHaveAttribute('href', '/catalogo');
+        expect(within(nav).getByRole('link', { name: 'Buscar' })).toHaveAttribute('href', '/buscar');
+
+        expect(within(nav).queryByRole('link', { name: 'Mi progreso' })).not.toBeInTheDocument();
+        expect(within(nav).queryByRole('link', { name: 'Inicio' })).not.toBeInTheDocument();
+
+        // La marca lleva a la portada pública, no a /inicio (que lo rebotaría).
+        expect(screen.getByRole('link', { name: /allyuhub/i })).toHaveAttribute('href', '/');
+        expect(screen.getAllByRole('link', { name: /entrar y guardar mi avance/i })[0])
+            .toHaveAttribute('href', '/entrar');
     });
 });
 

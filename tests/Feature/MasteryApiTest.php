@@ -6,6 +6,7 @@ use App\Models\CurNode;
 use App\Models\Framework;
 use App\Models\FrameworkVersion;
 use App\Models\LearningObjective;
+use App\Models\ObjectiveMastery;
 use App\Models\PracticeItem;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -131,8 +132,21 @@ class MasteryApiTest extends TestCase
             ->assertJsonPath('0.is_mastered', true);
     }
 
-    public function test_sin_sesion_no_hay_mastery(): void
+    /**
+     * Contenido abierto: el endpoint ya no responde 401 —rompería el bucle de
+     * práctica del invitado, que lo consulta tras cada intento— pero un
+     * invitado no tiene dominio, así que recibe una lista VACÍA. Lo que este
+     * test vigila es que no reciba el de nadie: Ana tiene dominio real sembrado
+     * arriba y no puede asomar por aquí.
+     */
+    public function test_el_invitado_recibe_una_lista_vacia_jamas_la_de_otro(): void
     {
-        $this->getJson('/api/v1/practice/mastery')->assertUnauthorized();
+        foreach (range(1, 4) as $i) {
+            $this->attempt($this->ana, true);
+        }
+        $this->assertGreaterThan(0, ObjectiveMastery::where('user_id', $this->ana->id)->count());
+
+        auth()->logout();
+        $this->getJson('/api/v1/practice/mastery')->assertOk()->assertExactJson([]);
     }
 }

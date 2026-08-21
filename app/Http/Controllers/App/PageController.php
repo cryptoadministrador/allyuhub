@@ -26,7 +26,10 @@ class PageController extends Controller
     /** GET /practicar/{objective} — el bucle de práctica de una destreza. */
     public function practicar(Request $request, LearningObjective $objective)
     {
-        $mastery = ObjectiveMastery::query()
+        // El invitado no tiene dominio guardado que mostrar: `null`, y la página
+        // arranca su barra efímera en cero. Ni una consulta con `user_id = null`,
+        // que en PostgreSQL no casa con nada pero tampoco significa nada.
+        $mastery = $request->user() === null ? null : ObjectiveMastery::query()
             ->where('user_id', $request->user()->id)
             ->where('objective_id', $objective->id)
             ->value('mastery');

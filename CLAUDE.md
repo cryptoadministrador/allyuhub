@@ -12,9 +12,11 @@ Léelos antes de tomar decisiones de arquitectura.
 
 - Laravel 13 · PHP 8.4 · PostgreSQL 16 (extensiones: ltree, pg_trgm) · SQLite en tests
 - API pública en `routes/api.php` (prefijo `/api/v1`): SOLO lectura del grafo y el
-  catálogo. Los endpoints de práctica viven en `routes/web.php` bajo el mismo prefijo,
-  con `auth` de sesión: el alumno es SIEMPRE `Auth::id()` — un `user_id` en el request
-  es 422 (`prohibited`). La deuda del user_id de payload está CERRADA.
+  catálogo. Los endpoints de práctica viven en `routes/web.php` bajo el mismo prefijo.
+  **Ya no exigen sesión** (contenido abierto, modelo Khan): un invitado pide ítems y
+  recibe corrección real, pero no escribe ni una fila ni dispara AGS. Con sesión, el
+  alumno es SIEMPRE `Auth::id()` — un `user_id` en el request es 422 (`prohibited`).
+  La deuda del user_id de payload está CERRADA. Ver «La frontera» abajo.
 - Frontend: Inertia + React 19 (Vite 8 + Tailwind 4), páginas en **`resources/js/pages`**
   y layouts en `resources/js/layouts` — TODO EN MINÚSCULA: es el default de Inertia 3
   (`resource_path('js/pages')`). En Windows/macOS da igual porque el sistema de archivos
@@ -193,6 +195,31 @@ modalidades y 2025-00031-A regula el Bachillerato Técnico EPJA (100 días/ciclo
    y solo mira `node_type = 'asignatura'` (los códigos `CN`/`CS`/`M` también
    los llevan los nodos de área). El seeder ya los persiste en instalación nueva.
    **Falta**: colores para los marcos internacionales (CAIE/IB) y PCEI.
+
+## La frontera del contenido abierto (modelo Khan)
+
+Se **navega** y se **practica** sin sesión; se **guarda** y se **califica** solo con
+sesión LTI. Abiertas: `/catalogo`, `/catalogo/{node}`, `/destreza/{objective}`,
+`/buscar`, `/practicar/{objective}`, `/recurso/{resource}` y los cuatro endpoints de
+`/api/v1/practice/*`. Cerradas: `/inicio`, `/progreso`, `/docente/*`.
+
+**Regla de oro**: un invitado no escribe NI UNA FILA atribuida a un usuario
+—`practice_attempts`, `objective_masteries`, `users`— ni encola `PushLtiScore`.
+Quién practica lo decide `App\Services\Practice\Practitioner`, y la corrección es
+la MISMA para los dos: un único `PracticeEngine::verify()` por encima de la
+bifurcación. Lo que cambia debajo es si se persiste y si califica (200 para el
+invitado, 201 para el alumno).
+
+Dos cosas que hay que saber antes de tocar esto:
+
+1. **`se_guarda` en la respuesta no es decorativo.** Desde que los endpoints no
+   exigen sesión, NUNCA devuelven 401: a un alumno con la sesión caducada se le
+   atiende como invitado. La prop `auth` del cliente se renderizó cuando la sesión
+   aún vivía, así que lo único que delata la caducidad es ese campo. Si lo quitas,
+   el alumno practica en el vacío sin enterarse.
+2. **El invitado rota de ítem por número de intento**, no por el selector adaptativo
+   (que decide mirando historial, y él no tiene). Sin eso veía un solo ítem de cada
+   destreza y el resto del banco era inalcanzable sin sesión.
 
 ## Regla de color (no la violes)
 

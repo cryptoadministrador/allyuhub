@@ -100,15 +100,28 @@ class AdaptiveSelector
     }
 
     /**
+     * Los ítems de una destreza en el ORDEN ESTABLE de la rotación (seq,
+     * created_at, id). Vive aquí para que el orden se defina una sola vez: lo
+     * usan la rotación del alumno (abajo) y la del invitado, que rota por
+     * número de intento porque no tiene historial que contar.
+     *
+     * @return Collection<int, PracticeItem>
+     */
+    public function itemsOf(LearningObjective $objective): Collection
+    {
+        return $objective->practiceItems()
+            ->orderBy('seq')->orderBy('created_at')->orderBy('id')
+            ->get();
+    }
+
+    /**
      * Rotación v1: el ítem menos practicado del objetivo, con orden estable.
      *
      * @return array{item: PracticeItem, attempt_no: int}|null
      */
     public function pickItem(LearningObjective $objective, int $userId): ?array
     {
-        $items = $objective->practiceItems()
-            ->orderBy('seq')->orderBy('created_at')->orderBy('id')
-            ->get();
+        $items = $this->itemsOf($objective);
         if ($items->isEmpty()) {
             return null;
         }

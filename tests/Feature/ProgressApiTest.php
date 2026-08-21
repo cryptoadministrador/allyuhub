@@ -115,8 +115,16 @@ class ProgressApiTest extends TestCase
 
     public function test_validaciones(): void
     {
-        // Sin sesión → 401 (la identidad ya no viaja en la petición).
-        $this->getJson('/api/v1/practice/progress?track=PCEI-BI')->assertUnauthorized();
+        // Sin sesión → 200 con el trayecto y el avance a CERO: el invitado ve
+        // la forma del recorrido, nunca el expediente de otro. La identidad
+        // sigue sin viajar en la petición.
+        $this->getJson('/api/v1/practice/progress?track=PCEI-BI')
+            ->assertOk()
+            ->assertJsonPath('se_guarda', false)
+            ->assertJsonPath('phases.0.mastered', 0)
+            ->assertJsonPath('phases.0.in_progress', 0);
+        // Y el track sigue siendo obligatorio también sin sesión.
+        $this->getJson('/api/v1/practice/progress')->assertStatus(422);
 
         $this->actingAs($this->ana);
         $this->getJson('/api/v1/practice/progress')->assertStatus(422);   // falta track

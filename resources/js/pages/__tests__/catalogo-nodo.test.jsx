@@ -1,13 +1,17 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import CatalogoNodo from '../catalogo-nodo';
 import { respuestaJson, violacionesGraves } from '../../test/helpers';
 
+// `sesion` es mutable: el contenido es abierto, así que la misma página se
+// pinta para un alumno y para un visitante y hay que poder probar las dos.
+let sesion = { user: { id: 1, name: 'Ana' } };
+
 vi.mock('@inertiajs/react', () => ({
     Head: () => null,
-    usePage: () => ({ props: { auth: { user: { id: 1, name: 'Ana' } } } }),
+    usePage: () => ({ props: { auth: sesion } }),
     Link: ({ href, children, ...rest }) => (
         <a href={href} {...rest}>
             {children}
@@ -180,6 +184,21 @@ describe('catalogo-nodo — accesibilidad', () => {
     ])('estado %s sin violaciones serias', async (_nombre, p) => {
         const { container } = render(<CatalogoNodo {...p} />);
 
+        expect(violacionesGraves(await axe(container))).toEqual([]);
+    });
+});
+
+/** ORÁCULO 9 — el nodo del catálogo, también sin sesión. */
+describe('catalogo-nodo — como VISITANTE', () => {
+    afterEach(() => {
+        sesion = { user: { id: 1, name: 'Ana' } };
+    });
+
+    it('lista las destrezas y no tiene violaciones graves', async () => {
+        sesion = { user: null };
+        const { container } = render(<CatalogoNodo {...props()} />);
+
+        expect(screen.getByText('CN.F.5.1.12')).toBeInTheDocument();
         expect(violacionesGraves(await axe(container))).toEqual([]);
     });
 });

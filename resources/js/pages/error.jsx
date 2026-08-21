@@ -76,14 +76,27 @@ export default function ErrorPagina({ status }) {
                             </li>
                         </>
                     ) : (
-                        <li>
-                            <a
-                                href="/entrar"
-                                className="inline-block rounded bg-marca-600 px-4 py-2 font-medium text-white hover:bg-marca-700 focus:outline-2 focus:outline-offset-2 focus:outline-marca-600"
-                            >
-                                Entrar desde tu aula virtual
-                            </a>
-                        </li>
+                        // El visitante ya no está en un callejón: el catálogo es
+                        // suyo también. Se le ofrece primero lo que puede hacer
+                        // ahora mismo, y después la puerta para guardar.
+                        <>
+                            <li>
+                                <Link
+                                    href="/catalogo"
+                                    className="inline-block rounded bg-marca-600 px-4 py-2 font-medium text-white hover:bg-marca-700 focus:outline-2 focus:outline-offset-2 focus:outline-marca-600"
+                                >
+                                    Explorar el currículo
+                                </Link>
+                            </li>
+                            <li>
+                                <a
+                                    href="/entrar"
+                                    className="inline-block rounded border border-slate-300 px-4 py-2 font-medium text-slate-700 hover:bg-slate-50 focus:outline-2 focus:outline-offset-2 focus:outline-marca-600"
+                                >
+                                    Entrar desde tu aula virtual
+                                </a>
+                            </li>
+                        </>
                     )}
                 </ul>
             </section>

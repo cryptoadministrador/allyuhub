@@ -1,6 +1,6 @@
 import { render, screen, within } from '@testing-library/react';
 import { axe } from 'vitest-axe';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import Catalogo from '../catalogo';
 import { violacionesGraves } from '../../test/helpers';
 
@@ -10,9 +10,13 @@ import { violacionesGraves } from '../../test/helpers';
  * seguía 30/30. Es la página que abre todo el Frente 1.
  */
 
+// `sesion` es mutable: el contenido es abierto, así que la misma página se
+// pinta para un alumno y para un visitante y hay que poder probar las dos.
+let sesion = { user: { id: 1, name: 'Ana' } };
+
 vi.mock('@inertiajs/react', () => ({
     Head: () => null,
-    usePage: () => ({ props: { auth: { user: { id: 1, name: 'Ana' } } } }),
+    usePage: () => ({ props: { auth: sesion } }),
     Link: ({ href, children, ...rest }) => (
         <a href={href} {...rest}>
             {children}
@@ -153,6 +157,32 @@ describe('catalogo — la puerta del currículo', () => {
         ['vacía', []],
     ])('accesibilidad: portada %s sin violaciones serias', async (_nombre, arbol) => {
         const { container } = render(<Catalogo frameworks={MARCOS} tree={arbol} />);
+
+        expect(violacionesGraves(await axe(container))).toEqual([]);
+    });
+});
+
+/**
+ * ORÁCULO 9 — el catálogo es ahora la primera pantalla que ve alguien que
+ * llega de fuera. Sin sesión tiene que verse igual de bien y de accesible.
+ */
+describe('catalogo — como VISITANTE', () => {
+    afterEach(() => {
+        sesion = { user: { id: 1, name: 'Ana' } };
+    });
+
+    it('el visitante ve exactamente el mismo currículo', () => {
+        sesion = { user: null };
+        render(<Catalogo frameworks={MARCOS} tree={ARBOL} />);
+
+        expect(screen.getByRole('link', { name: '8.º de Básica' }))
+            .toHaveAttribute('href', '/catalogo/n-g8');
+        expect(screen.getByRole('heading', { name: 'Educación General Básica' })).toBeInTheDocument();
+    });
+
+    it('no tiene violaciones graves de accesibilidad', async () => {
+        sesion = { user: null };
+        const { container } = render(<Catalogo frameworks={MARCOS} tree={ARBOL} />);
 
         expect(violacionesGraves(await axe(container))).toEqual([]);
     });

@@ -18,13 +18,32 @@ Route::get('/', BienvenidaController::class)->name('bienvenida');
 // Sesión caducada o acceso sin launch: la única puerta de entrada es Moodle.
 Route::view('/entrar', 'entrar')->name('entrar');
 
-// Páginas de la app (Inertia + React). La identidad es SIEMPRE la sesión.
+/*
+|--------------------------------------------------------------------------
+| CONTENIDO ABIERTO (modelo Khan) — se NAVEGA y se PRACTICA sin sesión.
+|
+| El currículo es público: un rector, un docente o un papá tienen que poder
+| verlo y probar los ejercicios sin credenciales. Entrar desde Moodle deja de
+| ser una pared y pasa a ser lo que activa GUARDAR el avance y que la nota
+| viaje al aula (AGS) — ver el grupo `auth` de abajo.
+|
+| Estas páginas NO leen `Auth::id()`: con invitado, `auth.user` es null en las
+| props compartidas y la vista se adapta (CTA + aviso de «no se guarda»).
+|--------------------------------------------------------------------------
+*/
+Route::get('/catalogo', [PageController::class, 'catalogo'])->name('catalogo');
+Route::get('/catalogo/{node}', [PageController::class, 'catalogoNodo'])->name('catalogo.nodo');
+Route::get('/destreza/{objective}', [PageController::class, 'destreza'])->name('destreza');
+Route::get('/buscar', [PageController::class, 'buscar'])->name('buscar');
+Route::get('/practicar/{objective}', [PageController::class, 'practicar'])->name('practicar');
+Route::get('/recurso/{resource}', [PageController::class, 'recurso'])->name('recurso');
+
+// Lo del alumno y lo del docente SIGUE cerrado: su casa, su progreso guardado
+// y el panel del curso son suyos, y la identidad es SIEMPRE la sesión.
 Route::middleware('auth')->group(function () {
     // La casa del alumno: dónde iba, qué toca y cómo va.
     Route::get('/inicio', InicioController::class)->name('inicio');
 
-    Route::get('/practicar/{objective}', [PageController::class, 'practicar'])->name('practicar');
-    Route::get('/recurso/{resource}', [PageController::class, 'recurso'])->name('recurso');
     Route::get('/progreso', [PageController::class, 'progreso'])->name('progreso');
 
     // El panel del docente (misión vista-docente): autorización dura por
@@ -38,23 +57,24 @@ Route::middleware('auth')->group(function () {
         ->whereUuid('context')->name('docente.track');
     Route::get('/docente/{context}/alumno/{user}', [DocenteController::class, 'alumno'])
         ->whereUuid('context')->whereNumber('user')->name('docente.alumno');
-
-    // El catálogo navegable del currículo (misión ANTY).
-    Route::get('/catalogo', [PageController::class, 'catalogo'])->name('catalogo');
-    Route::get('/catalogo/{node}', [PageController::class, 'catalogoNodo'])->name('catalogo.nodo');
-    Route::get('/destreza/{objective}', [PageController::class, 'destreza'])->name('destreza');
-    Route::get('/buscar', [PageController::class, 'buscar'])->name('buscar');
 });
 
 /*
 |--------------------------------------------------------------------------
-| API de práctica — MISMAS URLs /api/v1/practice/* de siempre, pero en el
-| grupo web con `auth`: el alumno es SIEMPRE el de la sesión (Auth::id()),
-| y un user_id en el request es un 422 explícito (regla prohibited).
+| API de práctica — MISMAS URLs /api/v1/practice/* de siempre, ahora ABIERTAS.
+|
+| Sin sesión: se sirve el ítem y se CORRIGE en el servidor (mismo motor), pero
+| no se persiste NADA atribuido a un usuario ni se dispara AGS. Con sesión:
+| exactamente como siempre — intento, dominio y nota al aula.
+| El alumno sigue siendo SIEMPRE el de la sesión: un `user_id` en el request es
+| un 422 explícito (regla prohibited), con sesión y sin ella.
+|
+| `throttle:practica` limita al INVITADO (60/min por IP) para que nadie
+| martille el generador; con sesión no impone límite (como hasta hoy).
 | Los errores salen en JSON por el shouldRenderJsonWhen de bootstrap.
 |--------------------------------------------------------------------------
 */
-Route::prefix('api/v1')->middleware('auth')->group(function () {
+Route::prefix('api/v1')->middleware('throttle:practica')->group(function () {
     Route::get('objectives/{objective}/practice/next', [PracticeController::class, 'next']);
     Route::post('practice/items/{item}/attempts', [PracticeController::class, 'submitAttempt']);
     Route::get('practice/mastery', [PracticeController::class, 'mastery']);

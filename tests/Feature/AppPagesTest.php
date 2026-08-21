@@ -58,9 +58,20 @@ class AppPagesTest extends TestCase
         $this->ana = User::factory()->create();
     }
 
-    public function test_practicar_exige_sesion(): void
+    /**
+     * Contenido abierto: practicar ya no exige sesión. Lo que el invitado NO
+     * recibe es dominio guardado — esa prop es la que distingue una visita de
+     * un expediente.
+     */
+    public function test_practicar_esta_abierto_pero_sin_dominio_guardado(): void
     {
-        $this->get("/practicar/{$this->objective->id}")->assertRedirect('/entrar');
+        $this->get("/practicar/{$this->objective->id}")
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Practicar')
+                ->where('mastery', null)
+                ->where('auth.user', null)
+            );
     }
 
     public function test_practicar_monta_el_componente_con_props_minimas(): void

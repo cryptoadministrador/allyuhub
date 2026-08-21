@@ -1,12 +1,16 @@
 import { render, screen } from '@testing-library/react';
 import { axe } from 'vitest-axe';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import Destreza from '../destreza';
 import { violacionesGraves } from '../../test/helpers';
 
+// `sesion` es mutable: el contenido es abierto, así que la misma página se
+// pinta para un alumno y para un visitante y hay que poder probar las dos.
+let sesion = { user: { id: 1, name: 'Ana' } };
+
 vi.mock('@inertiajs/react', () => ({
     Head: () => null,
-    usePage: () => ({ props: { auth: { user: { id: 1, name: 'Ana' } } } }),
+    usePage: () => ({ props: { auth: sesion } }),
     Link: ({ href, children, ...rest }) => (
         <a href={href} {...rest}>
             {children}
@@ -120,6 +124,31 @@ describe('destreza — la ficha', () => {
         ['vacía y provisional', props({ objective: { id: 'd2', native_code: 'CN.X', statement: 'Marcador', is_verified: false, has_items: false } })],
     ])('accesibilidad: ficha %s sin violaciones serias', async (_nombre, p) => {
         const { container } = render(<Destreza {...p} />);
+
+        expect(violacionesGraves(await axe(container))).toEqual([]);
+    });
+});
+
+/**
+ * ORÁCULO 9 — la ficha es el sitio desde el que un visitante entra a practicar:
+ * el botón tiene que estar ahí y llevar a la página abierta.
+ */
+describe('destreza — como VISITANTE', () => {
+    afterEach(() => {
+        sesion = { user: { id: 1, name: 'Ana' } };
+    });
+
+    it('ofrece practicar sin pedir sesión', () => {
+        sesion = { user: null };
+        render(<Destreza {...props()} />);
+
+        expect(screen.getByRole('link', { name: /practicar esta destreza/i }))
+            .toHaveAttribute('href', `/practicar/${props().objective.id}`);
+    });
+
+    it('no tiene violaciones graves de accesibilidad', async () => {
+        sesion = { user: null };
+        const { container } = render(<Destreza {...props()} />);
 
         expect(violacionesGraves(await axe(container))).toEqual([]);
     });
