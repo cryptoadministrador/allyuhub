@@ -7,6 +7,7 @@ use App\Jobs\PushLtiScore;
 use App\Models\LearningObjective;
 use App\Models\LtiResourceLink;
 use App\Models\ObjectiveMastery;
+use App\Models\PracticeAttempt;
 use App\Models\PracticeItem;
 use App\Models\Track;
 use App\Services\Practice\AdaptiveSelector;
@@ -218,7 +219,9 @@ class PracticeController extends Controller
         // mismo attempt_no (unique por ítem+usuario), la perdedora responde 409 y el
         // cliente reintenta — nunca un 500.
         try {
-            $attempt = $this->persistAttempt($item, $userId, $attemptNo, $seed, $params, $data, $veredicto);
+            [$attempt, $itemsAcertados] = $this->persistAttempt(
+                $item, $userId, $attemptNo, $seed, $params, $data, $veredicto,
+            );
         } catch (UniqueConstraintViolationException) {
             return response()->json([
                 'message' => 'Intento duplicado: otra petición registró este intento primero. Pide el siguiente ítem y reintenta.',
@@ -229,7 +232,13 @@ class PracticeController extends Controller
         // gradebook de Moodle (cola con backoff; una consulta fija por intento).
         // $userId ES el usuario autenticado — el cinturón defensivo de la
         // auditoría LTI sobra desde que la ruta exige auth.
-        $this->queueLtiScore($userId, $item->objective_id);
+        //
+        // Con un solo ítem acertado la nota no sale: mismo listón que el
+        // dominio, porque una nota que se saca repitiendo la misma pregunta
+        // ocupa una casilla del cuaderno del profesor sin decir nada.
+        if ($this->tracker->califica($itemsAcertados)) {
+            $this->queueLtiScore($userId, $item->objective_id);
+        }
 
         // La explicación —`expected` o `expected_key`— se revela solo DESPUÉS
         // de responder; el siguiente intento trae números nuevos (o una
@@ -270,6 +279,8 @@ class PracticeController extends Controller
      * @param  array<string, mixed>  $veredicto  Lo mismo que se le devuelve al
      *                                           cliente: es también lo que se guarda, para que no puedan
      *                                           divergir la respuesta y el registro.
+     * @return array{0: PracticeAttempt, 1: int} El intento y cuántos
+     *                                           ítems DISTINTOS de esa destreza lleva acertados el alumno.
      */
     private function persistAttempt($item, int $userId, int $attemptNo, string $seed, array $params, array $data, array $veredicto)
     {
@@ -289,9 +300,17 @@ class PracticeController extends Controller
                 'time_ms' => $data['time_ms'] ?? null,
             ]);
 
-            $this->tracker->apply($userId, $item->objective_id, $veredicto['is_correct'], $attempt->created_at);
+            // Se cuenta DESPUÉS de guardar el intento —para que el acierto que
+            // acaba de ocurrir cuente— y una sola vez: sirve para sellar el
+            // dominio y, más abajo, para decidir si la nota viaja al aula.
+            $itemsAcertados = $this->tracker->itemsAcertados($userId, $item->objective_id);
 
-            return $attempt;
+            $this->tracker->apply(
+                $userId, $item->objective_id, $veredicto['is_correct'],
+                $itemsAcertados, $attempt->created_at,
+            );
+
+            return [$attempt, $itemsAcertados];
         });
     }
 

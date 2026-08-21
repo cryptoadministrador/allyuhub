@@ -3,6 +3,8 @@
 namespace App\Services\Practice;
 
 use App\Models\ObjectiveMastery;
+use App\Models\PracticeAttempt;
+use App\Models\PracticeItem;
 use DateTimeInterface;
 
 /**
@@ -19,8 +21,18 @@ use DateTimeInterface;
  * lo que premia un acierto sobre dominio bajo, para no hundir a quien explora.
  *
  * `streak` es FIRMADA: >0 = aciertos seguidos, <0 = fallos seguidos. El hito
- * `mastered_at` se sella con racha ≥ 3 y mastery ≥ 0.8, y NO se borra después:
- * el selector adaptativo usa el mastery vivo para decidir refuerzos.
+ * `mastered_at` se sella con racha ≥ 3, mastery ≥ 0.8 y aciertos en al menos
+ * DOS ÍTEMS DISTINTOS, y NO se borra después: el selector adaptativo usa el
+ * mastery vivo para decidir refuerzos.
+ *
+ * POR QUÉ LOS DOS ÍTEMS. Un ítem de opción múltiple no re-aleatoriza nada entre
+ * intentos, y al fallar se revela cuál era la buena — así que con una sola
+ * pregunta bastaban tres clics para sellar el dominio de una destreza y empujar
+ * la nota al cuaderno del profesor. El camino numérico era inmune porque los
+ * números cambian, pero la regla se aplica a los dos: el dominio de una destreza
+ * con un único ítem no significa nada, haya trampa o no. Esconder la
+ * explicación no habría servido —con cuatro opciones se fuerza bruta igual— y
+ * habría costado la retroalimentación, que sí está bien puesta.
  */
 class MasteryTracker
 {
@@ -32,11 +44,24 @@ class MasteryTracker
 
     public const STREAK_TO_MASTER = 3;
 
-    /** Registra el resultado de un intento. Llamar SIEMPRE dentro de la transacción del intento. */
+    /** Ítems DISTINTOS que hay que haber acertado para que el dominio cuente. */
+    public const ITEMS_TO_MASTER = 2;
+
+    /**
+     * Registra el resultado de un intento. Llamar SIEMPRE dentro de la
+     * transacción del intento.
+     *
+     * `$itemsAcertados` lo calcula quien llama (con `itemsAcertados()`, después
+     * de guardar el intento y antes de esto) y no este método: así el tracker
+     * sigue siendo aritmética pura y comprobable en un test unitario, y la
+     * cuenta se hace UNA vez por intento en lugar de dos —aquí y otra vez para
+     * decidir si la nota viaja al aula.
+     */
     public function apply(
         int $userId,
         string $objectiveId,
         bool $isCorrect,
+        int $itemsAcertados = 0,
         ?DateTimeInterface $at = null,
     ): ObjectiveMastery {
         // Read-modify-write protegido: sin el lock, dos intentos simultáneos del
@@ -69,12 +94,44 @@ class MasteryTracker
 
         if ($m->mastered_at === null
             && $m->streak >= self::STREAK_TO_MASTER
-            && $m->mastery >= self::MASTERY_THRESHOLD) {
+            && $m->mastery >= self::MASTERY_THRESHOLD
+            && $itemsAcertados >= self::ITEMS_TO_MASTER) {
             $m->mastered_at = $m->last_attempt_at;
         }
 
         $m->save();
 
         return $m;
+    }
+
+    /**
+     * Cuántos ítems DISTINTOS de esa destreza ha acertado ya el alumno.
+     *
+     * Distintos, no intentos: acertar veinte veces la misma pregunta sigue
+     * siendo una pregunta. El intento en curso ya está en la tabla cuando esto
+     * se llama —`persistAttempt` lo crea antes, en la misma transacción— así
+     * que el acierto que acaba de ocurrir cuenta.
+     */
+    public function itemsAcertados(int $userId, string $objectiveId): int
+    {
+        return PracticeAttempt::query()
+            ->where('user_id', $userId)
+            ->where('is_correct', true)
+            ->whereIn('item_id', PracticeItem::where('objective_id', $objectiveId)->select('id'))
+            ->distinct()
+            ->count('item_id');
+    }
+
+    /**
+     * ¿Tiene sentido publicar una nota de esta destreza en el aula?
+     *
+     * Mismo listón que el dominio: mientras el alumno solo haya acertado un
+     * ítem, la nota no diría nada del aprendizaje y sí ocuparía una casilla del
+     * cuaderno del profesor. Se practica y se corrige con normalidad; lo único
+     * que espera es la calificación.
+     */
+    public function califica(int $itemsAcertados): bool
+    {
+        return $itemsAcertados >= self::ITEMS_TO_MASTER;
     }
 }

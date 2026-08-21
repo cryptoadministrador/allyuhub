@@ -69,6 +69,9 @@ class CatalogoPagesTest extends TestCase
             'objective_id' => $this->verificada->id,
             'statement' => ['es' => 'μs = {mu}'], 'params' => ['mu' => ['min' => 0.2, 'max' => 0.9, 'step' => 0.05]],
             'solution_expr' => 'rad2deg(atan(mu))', 'tolerance' => 0.5, 'tolerance_kind' => 'abs',
+            // Firmado: este fixture prueba el MOTOR, y un ítem sin
+            // revisar no llega al motor (ver DominioYFirmaTest).
+            'reviewed_at' => now(),
         ]);
 
         $this->marcador = LearningObjective::create([

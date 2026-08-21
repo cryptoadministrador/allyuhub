@@ -79,6 +79,9 @@ class PracticaOpcionMultipleTest extends TestCase
                 ['key' => 'd', 'text' => ['es' => 'Azul']],
             ],
             'answer_key' => 'b',
+            // Firmado: este fixture prueba el MOTOR, y un ítem sin
+            // revisar no llega al motor (ver DominioYFirmaTest).
+            'reviewed_at' => now(),
         ]);
 
         $this->ana = User::factory()->create();
@@ -156,6 +159,9 @@ class PracticaOpcionMultipleTest extends TestCase
             'statement' => ['es' => 'Suma {a} + {b}'],
             'params' => ['a' => ['const' => 2], 'b' => ['const' => 3]],
             'solution_expr' => 'a + b', 'tolerance' => 0.01, 'tolerance_kind' => 'abs',
+            // Firmado: este fixture prueba el MOTOR, y un ítem sin
+            // revisar no llega al motor (ver DominioYFirmaTest).
+            'reviewed_at' => now(),
         ]);
         $this->item->delete();   // que el selector sirva el numérico
 
@@ -399,6 +405,9 @@ class PracticaOpcionMultipleTest extends TestCase
             'params' => ['a' => ['const' => 2], 'b' => ['const' => 3]],
             'solution_expr' => 'a + b',
             'tolerance' => 0.01, 'tolerance_kind' => 'abs',
+            // Firmado: este fixture prueba el MOTOR, y un ítem sin
+            // revisar no llega al motor (ver DominioYFirmaTest).
+            'reviewed_at' => now(),
         ]);
 
         // Sin declarar `kind`, un ítem es numérico: los 17 del banco viejo no

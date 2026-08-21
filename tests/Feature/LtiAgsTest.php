@@ -49,6 +49,8 @@ class LtiAgsTest extends TestCase
 
     private PracticeItem $item;
 
+    private PracticeItem $item2;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -81,6 +83,27 @@ class LtiAgsTest extends TestCase
             ],
             'solution_expr' => 'm * g * sin(deg2rad(theta))',
             'tolerance' => 0.02, 'tolerance_kind' => 'rel',
+            // Firmado: este fixture prueba el MOTOR, y un ítem sin
+            // revisar no llega al motor (ver DominioYFirmaTest).
+            'reviewed_at' => now(),
+        ]);
+
+        // Segundo ítem de la MISMA destreza: la nota solo viaja al aula
+        // cuando el alumno ha acertado dos ítems distintos, porque el
+        // dominio de una destreza con una sola pregunta no significa nada.
+        $this->item2 = PracticeItem::create([
+            'objective_id' => $this->objective->id, 'seq' => 1,
+            'statement' => ['es' => 'm={m} kg, θ={theta}°, g={g}'],
+            'params' => [
+                'm' => ['min' => 1, 'max' => 20, 'step' => 0.5],
+                'theta' => ['min' => 10, 'max' => 45, 'step' => 1],
+                'g' => ['const' => 9.8],
+            ],
+            'solution_expr' => 'm * g * sin(deg2rad(theta))',
+            'tolerance' => 0.02, 'tolerance_kind' => 'rel',
+            // Firmado: este fixture prueba el MOTOR, y un ítem sin
+            // revisar no llega al motor (ver DominioYFirmaTest).
+            'reviewed_at' => now(),
         ]);
     }
 
@@ -115,16 +138,32 @@ class LtiAgsTest extends TestCase
     }
 
     /** Contesta el intento en curso, correcto o no, por la API de práctica. */
-    private function attempt(User $user, bool $correct = true): void
+    /**
+     * Contesta UN ítem de la destreza.
+     *
+     * `$segundo` elige el otro ítem del fixture. Hace falta porque la nota solo
+     * viaja al aula cuando el alumno ha acertado dos ítems DISTINTOS: con uno
+     * solo, el dominio se sacaría repitiendo la misma pregunta y la casilla del
+     * cuaderno del profesor no diría nada (ver DominioYFirmaTest).
+     */
+    private function attempt(User $user, bool $correct = true, bool $segundo = false): void
     {
+        $item = $segundo ? $this->item2 : $this->item;
         $engine = new PracticeEngine;
-        $attemptNo = $this->item->attempts()->where('user_id', $user->id)->count() + 1;
-        $params = $engine->sampleParams($this->item->params, $engine->seedFor($this->item->id, $user->id, $attemptNo));
+        $attemptNo = $item->attempts()->where('user_id', $user->id)->count() + 1;
+        $params = $engine->sampleParams($item->params, $engine->seedFor($item->id, $user->id, $attemptNo));
         $expected = $params['m'] * $params['g'] * sin(deg2rad($params['theta']));
 
-        $this->actingAs($user)->postJson("/api/v1/practice/items/{$this->item->id}/attempts", [
+        $this->actingAs($user)->postJson("/api/v1/practice/items/{$item->id}/attempts", [
             'answer' => $correct ? $expected : $expected + 50,
         ])->assertCreated();
+    }
+
+    /** Acierta los DOS ítems: el mínimo para que la nota pueda viajar. */
+    private function attemptDosItems(User $user): void
+    {
+        $this->attempt($user);
+        $this->attempt($user, segundo: true);
     }
 
     public function test_el_launch_con_ags_persiste_el_resource_link(): void
@@ -152,7 +191,8 @@ class LtiAgsTest extends TestCase
         ]);
 
         $user = $this->launchWithAgs();
-        $this->attempt($user, correct: true);   // mastery: 0 → 0.35
+        // Dos ítems distintos: hasta el segundo, la nota no sale.
+        $this->attemptDosItems($user);
 
         // 1) El grant client-credentials va FIRMADO por la Tool.
         Http::assertSent(function ($request) {
@@ -183,7 +223,9 @@ class LtiAgsTest extends TestCase
             $this->assertSame('Bearer tok-123', $request->header('Authorization')[0]);
 
             $score = json_decode($request->body(), true);
-            $this->assertEqualsWithDelta(35.0, $score['scoreGiven'], 0.01);   // 0.35 × 100
+            // 0.5775 × 100: el primer acierto no publica (un solo ítem no
+            // califica), así que el primer score que sale es el del segundo.
+            $this->assertEqualsWithDelta(57.75, $score['scoreGiven'], 0.01);
             $this->assertSame(100, $score['scoreMaximum']);
             $this->assertSame('moodle-user-7', $score['userId']);             // el sub LTI, no el id local
             $this->assertSame('Completed', $score['activityProgress']);
@@ -203,8 +245,11 @@ class LtiAgsTest extends TestCase
         ]);
 
         $user = $this->launchWithAgs();
-        $this->attempt($user, correct: true);    // 0.35
-        $this->attempt($user, correct: false);   // 0.35 × 0.7 = 0.245
+        // El primer acierto NO publica —un solo ítem no califica—, así que el
+        // primer score que sale es el del segundo ítem: 0.35 → 0.5775.
+        $this->attempt($user, correct: true);                   // 0.35, sin publicar
+        $this->attempt($user, correct: true, segundo: true);    // 0.5775, publica
+        $this->attempt($user, correct: false);                  // 0.5775 × 0.7 = 0.40425
 
         $scores = [];
         Http::recorded(function ($request) use (&$scores) {
@@ -216,8 +261,8 @@ class LtiAgsTest extends TestCase
         });
 
         $this->assertCount(2, $scores);
-        $this->assertEqualsWithDelta(35.0, $scores[0], 0.01);
-        $this->assertEqualsWithDelta(24.5, $scores[1], 0.01);
+        $this->assertEqualsWithDelta(57.75, $scores[0], 0.01);
+        $this->assertEqualsWithDelta(40.43, $scores[1], 0.01);
     }
 
     public function test_sin_ags_el_intento_no_dispara_nada(): void

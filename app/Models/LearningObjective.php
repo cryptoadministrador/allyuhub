@@ -44,8 +44,26 @@ class LearningObjective extends Model
         return $this->hasMany(Alignment::class, 'source_id');
     }
 
-    /** Ítems de práctica parametrizada anclados a esta destreza. */
+    /**
+     * Ítems de práctica anclados a esta destreza — SOLO LOS FIRMADOS.
+     *
+     * El filtro vive en la relación y no en cada consulta a propósito: de aquí
+     * cuelgan `has_items` del catálogo y de la ficha, el `whereHas` del Deep
+     * Linking de Moodle, los conteos del blueprint y la rotación del motor. Con
+     * la puerta puesta solo en el selector, una destreza anunciaría «con
+     * ejercicios» y luego daría 404 al entrar — un botón que lleva a ninguna
+     * parte es peor que un botón ausente (regla de la casa).
+     *
+     * Para contar TODO —incluido lo pendiente de firma— está la relación de
+     * abajo, que es la que usa el informe de la siembra.
+     */
     public function practiceItems(): HasMany
+    {
+        return $this->hasMany(PracticeItem::class, 'objective_id')->whereNotNull('reviewed_at');
+    }
+
+    /** Todos los ítems, firmados o no. Solo para administrar e informar. */
+    public function todosLosPracticeItems(): HasMany
     {
         return $this->hasMany(PracticeItem::class, 'objective_id');
     }
