@@ -235,7 +235,7 @@ modalidades y 2025-00031-A regula el Bachillerato Técnico EPJA (100 días/ciclo
 
    Y una trampa de los tests: Inertia serializa las props como JSON con escapes
    unicode, así que buscar «ecuación» en el cuerpo NUNCA la encuentra (viaja
-   como `ecuación`). Los centinelas de no-filtración van sin acentos, y
+   como `ecuaci\u00f3n`). Los centinelas de no-filtración van sin acentos, y
    siempre con control positivo.
 
 ## Dos tipos de ítem: `numeric` y `choice`
