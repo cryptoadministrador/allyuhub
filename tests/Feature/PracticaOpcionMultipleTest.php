@@ -124,17 +124,73 @@ class PracticaOpcionMultipleTest extends TestCase
             $this->assertSame(['key', 'text'], array_keys($opcion));
         }
 
-        // EL ORÁCULO: sobre el cuerpo COMPLETO, ni una pista de cuál es la
-        // buena — ni el nombre del campo, ni lo que alguien dejara en attrs.
+        // EL ORÁCULO: el payload tiene EXACTAMENTE estos campos y ninguno más.
+        //
+        // Buscar nombres prohibidos («answer_key», «correcta») no basta: solo
+        // prueba que no se te olvidó ese nombre. Una mutación que añadía
+        // `'correcta' => $item->answer_key` pasaba por encima de tres
+        // `assertStringNotContainsString` (bucle B, M7). La lista cerrada es lo
+        // que hace que CUALQUIER campo nuevo —se llame como se llame— caiga.
+        $this->assertSame([
+            'item_id', 'kind', 'objective_id', 'objective_code', 'objective_statement',
+            'attempt_no', 'statement', 'options', 'reason', 'se_guarda',
+        ], array_keys($json),
+            'El payload de `next` cambió: cada campo nuevo es una vía por la que puede salir la respuesta.');
+
+        // Y por si alguien mete la respuesta DENTRO de un campo permitido: el
+        // rastro plantado en `attrs` no aparece por ningún lado.
         $cuerpo = $respuesta->getContent();
         $this->assertStringNotContainsString('La buena es', $cuerpo);
         $this->assertStringNotContainsString('nota_interna', $cuerpo);
-        $this->assertStringNotContainsString('answer_key', $cuerpo);
         $this->assertStringNotContainsString('solution_expr', $cuerpo);
-        $this->assertArrayNotHasKey('expected_key', $json);
 
         // Las tres opciones viajan con su clave inmutable, indistinguibles.
         $this->assertEqualsCanonicalizing(['a', 'b', 'c'], array_column($json['options'], 'key'));
+    }
+
+    /** El payload NUMÉRICO tiene su propia lista cerrada, por lo mismo. */
+    public function test_el_payload_numerico_tampoco_crece_por_su_cuenta(): void
+    {
+        $numerico = PracticeItem::create([
+            'objective_id' => $this->objective->id, 'seq' => 5,
+            'statement' => ['es' => 'Suma {a} + {b}'],
+            'params' => ['a' => ['const' => 2], 'b' => ['const' => 3]],
+            'solution_expr' => 'a + b', 'tolerance' => 0.01, 'tolerance_kind' => 'abs',
+        ]);
+        $this->item->delete();   // que el selector sirva el numérico
+
+        $json = $this->getJson("/api/v1/objectives/{$this->objective->id}/practice/next")
+            ->assertOk()->json();
+
+        $this->assertSame([
+            'item_id', 'kind', 'objective_id', 'objective_code', 'objective_statement',
+            'attempt_no', 'statement', 'params', 'answer_unit', 'tolerance',
+            'tolerance_kind', 'reason', 'se_guarda',
+        ], array_keys($json));
+
+        $this->assertSame($numerico->id, $json['item_id']);
+    }
+
+    /** Y la respuesta del intento: la explicación llega, pero nada más. */
+    public function test_el_payload_del_intento_tiene_su_lista_cerrada(): void
+    {
+        $invitado = $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [
+            'answer_key' => 'a',
+        ])->assertOk()->json();
+
+        $this->assertSame(
+            ['attempt_no', 'is_correct', 'expected_key', 'answer_key', 'se_guarda'],
+            array_keys($invitado),
+        );
+
+        $delAlumno = $this->actingAs($this->ana)
+            ->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', ['answer_key' => 'a'])
+            ->assertCreated()->json();
+
+        $this->assertSame(
+            ['id', 'attempt_no', 'is_correct', 'expected_key', 'answer_key', 'se_guarda'],
+            array_keys($delAlumno),
+        );
     }
 
     /**
