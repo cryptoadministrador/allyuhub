@@ -16,7 +16,9 @@ import { RAZONES_DESVIO } from '../lib/razones';
 const RAZONES = RAZONES_DESVIO;
 
 // Etiqueta visual de cada opción. Decorativa: el nombre accesible del radio es
-// el texto de la opción. Con más de 6 opciones se cae a la posición numérica.
+// el texto de la opción. Con más de 6 opciones se cae a la POSICIÓN — nunca a
+// la clave, que pintarla sería enseñar en pantalla lo que solo debe viajar en
+// el `value`.
 const LETRAS = ['A', 'B', 'C', 'D', 'E', 'F'];
 
 function tokenXsrf() {
@@ -97,11 +99,16 @@ export default function Practicar({ objective, mastery: masteryInicial }) {
     const [resultado, setResultado] = useState(null);
     const [mastery, setMastery] = useState(masteryInicial);
     const [tanteo, setTanteo] = useState({ aciertos: 0, respondidos: 0 });
+    const [faltaElegir, setFaltaElegir] = useState(false);
     const inicioItem = useRef(null);
     const inputRef = useRef(null);
     const feedbackRef = useRef(null);
 
     const esChoice = item?.kind === 'choice';
+    // Un choice sin opciones es un ítem roto en la base, no una pantalla en
+    // blanco: `options` es una columna nullable y nada garantiza que esté.
+    const opciones = esChoice ? (item.options ?? []) : [];
+    const itemRoto = esChoice && opciones.length === 0;
 
     const { props: compartidas } = usePage();
     const invitado = !compartidas.auth?.user;
@@ -117,6 +124,7 @@ export default function Practicar({ objective, mastery: masteryInicial }) {
         setEstado('cargando');
         setResultado(null);
         setRespuesta('');
+        setFaltaElegir(false);
 
         try {
             const r = await pedirJson(
@@ -162,7 +170,18 @@ export default function Practicar({ objective, mastery: masteryInicial }) {
 
     async function enviar(evento) {
         evento.preventDefault();
-        if (respuesta.trim() === '' || estado !== 'listo') return;
+        if (estado !== 'listo') return;
+
+        // Sin responder no se envía — pero tampoco se calla. Antes era un
+        // `return` mudo: quien navega con teclado o lector de pantalla pulsaba
+        // «Comprobar» y no pasaba absolutamente nada, sin saber por qué.
+        if (respuesta.trim() === '') {
+            setFaltaElegir(true);
+            inputRef.current?.focus();
+
+            return;
+        }
+        setFaltaElegir(false);
 
         setEstado('enviando');
         try {
@@ -356,7 +375,23 @@ export default function Practicar({ objective, mastery: masteryInicial }) {
                 </div>
             )}
 
-            {(estado === 'listo' || estado === 'enviando') && item && (
+            {estado === 'listo' && itemRoto && (
+                <div role="alert" className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+                    <p className="text-amber-900">
+                        Este ejercicio está incompleto y no se puede responder. No es culpa
+                        tuya: ya está avisado para que lo revisen.
+                    </p>
+                    <button
+                        type="button"
+                        onClick={cargarSiguiente}
+                        className="mt-3 rounded bg-marca-600 px-4 py-2 font-medium text-white hover:bg-marca-700 focus:outline-2 focus:outline-offset-2 focus:outline-marca-600"
+                    >
+                        Probar con otro
+                    </button>
+                </div>
+            )}
+
+            {(estado === 'listo' || estado === 'enviando') && item && !itemRoto && (
                 <form onSubmit={enviar} aria-describedby={razon ? 'razon-adaptativa' : undefined}>
                     {/* El desvío adaptativo se explica en una TARJETA ámbar, no
                         en una línea suelta: es una decisión del motor que
@@ -391,7 +426,7 @@ export default function Practicar({ objective, mastery: masteryInicial }) {
                                 Elige una respuesta
                             </legend>
                             <div className="space-y-2">
-                                {item.options.map((opcion, i) => (
+                                {opciones.map((opcion, i) => (
                                     <label
                                         key={opcion.key}
                                         className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-marca-600 ${
@@ -406,7 +441,11 @@ export default function Practicar({ objective, mastery: masteryInicial }) {
                                             name="opcion"
                                             value={opcion.key}
                                             checked={respuesta === opcion.key}
-                                            onChange={(e) => setRespuesta(e.target.value)}
+                                            onChange={(e) => {
+                                                setRespuesta(e.target.value);
+                                                setFaltaElegir(false);
+                                            }}
+                                            aria-describedby={faltaElegir ? 'falta-elegir' : undefined}
                                             className="h-4 w-4 shrink-0 accent-marca-600"
                                         />
                                         {/* La letra es un ancla visual para
@@ -417,7 +456,7 @@ export default function Practicar({ objective, mastery: masteryInicial }) {
                                             aria-hidden="true"
                                             className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-700"
                                         >
-                                            {LETRAS[i] ?? opcion.key}
+                                            {LETRAS[i] ?? i + 1}
                                         </span>
                                         <span className="text-base leading-relaxed text-slate-900">
                                             {opcion.text.es}
@@ -439,7 +478,11 @@ export default function Practicar({ objective, mastery: masteryInicial }) {
                                     step="any"
                                     required
                                     value={respuesta}
-                                    onChange={(e) => setRespuesta(e.target.value)}
+                                    aria-describedby={faltaElegir ? 'falta-elegir' : undefined}
+                                    onChange={(e) => {
+                                        setRespuesta(e.target.value);
+                                        setFaltaElegir(false);
+                                    }}
                                     className="w-40 rounded border border-slate-300 px-3 py-2 focus:outline-2 focus:outline-marca-600"
                                 />
                             </label>
@@ -449,6 +492,18 @@ export default function Practicar({ objective, mastery: masteryInicial }) {
                                 </span>
                             )}
                         </div>
+                    )}
+
+                    {faltaElegir && (
+                        <p
+                            id="falta-elegir"
+                            role="alert"
+                            className="mb-3 text-sm font-medium text-rose-900"
+                        >
+                            {esChoice
+                                ? 'Elige una de las opciones antes de comprobar.'
+                                : 'Escribe tu respuesta antes de comprobar.'}
+                        </p>
                     )}
 
                     <button

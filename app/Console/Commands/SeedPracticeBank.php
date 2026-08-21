@@ -8,6 +8,7 @@ use App\Models\LearningObjective;
 use App\Models\PracticeItem;
 use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
+use RuntimeException;
 
 /**
  * Llena el banco de práctica sobre el currículo REAL ya importado.
@@ -34,14 +35,26 @@ use Illuminate\Support\Collection;
 class SeedPracticeBank extends Command
 {
     /**
-     * Los `seq` del banco empiezan alto para no pisar los 17 ítems de física
-     * que ya viven en 0..2 sobre las destrezas verificadas de mecánica y óptica.
+     * El `seq` que el banco ocupa en cada destreza.
+     *
+     * Es FIJO, no `100 + índice del array`. Con el índice, insertar una entrada
+     * al principio del fichero desplazaba el `seq` de todas las siguientes y la
+     * siembra dejaba un zombi por cada una: mismo contenido, `seq` viejo, sin
+     * que nada lo borrara. La idempotencia solo valía con el fichero congelado,
+     * que es justo cuando no hace falta.
+     *
+     * Con un `seq` fijo la clave natural (objetivo, seq) es estable pase lo que
+     * pase en el fichero: cada destreza tiene como mucho UN ítem del banco, y
+     * re-sembrar lo actualiza conservando su id — y con él los intentos que ya
+     * apunten a ese ítem. Empieza alto para no pisar los 17 ítems de física que
+     * viven en 0..2 sobre las destrezas de mecánica y óptica.
      */
     public const BASE_SEQ = 100;
 
     protected $signature = 'practica:sembrar
         {--marco=EC-MINEDEC : Código del marco curricular}
         {--incluir-no-verificadas : Siembra también sobre destrezas sin verificar (grafo de demostración)}
+        {--podar : Borra los ítems del banco cuyo bloque ya no está en el fichero}
         {--dry-run : Cuenta lo que haría sin escribir}';
 
     protected $description = 'Siembra el banco de ítems de práctica (numéricos y de opción múltiple) sobre el currículo';
@@ -51,23 +64,31 @@ class SeedPracticeBank extends Command
         $banco = require database_path('data/banco-practica.php');
         $marco = (string) $this->option('marco');
 
-        $versiones = FrameworkVersion::query()
+        // SOLO la versión vigente. Tomar todas las del marco significaría que
+        // el día que convivan `2016` y `2016+2023` cada entrada del banco
+        // sembraría por duplicado, una vez en cada currículo.
+        $version = FrameworkVersion::query()
             ->whereIn('framework_id', Framework::where('code', $marco)->select('id'))
-            ->pluck('id');
+            ->latest('valid_from')
+            ->first();
 
-        if ($versiones->isEmpty()) {
+        if ($version === null) {
             $this->error("No existe el marco {$marco} o no tiene versiones.");
 
             return self::FAILURE;
         }
+        $versiones = collect([$version->id]);
 
         $creados = 0;
         $actualizados = 0;
         $huecos = [];
         $sinVerificar = 0;
 
-        foreach ($banco as $i => $entrada) {
+        $bloquesDelBanco = [];
+
+        foreach ($banco as $entrada) {
             $prefijo = $entrada[0];
+            $bloquesDelBanco[] = $prefijo;
             $destinos = $this->destinosDe($prefijo, $versiones, $sinVerificar);
 
             if ($destinos->isEmpty()) {
@@ -86,13 +107,14 @@ class SeedPracticeBank extends Command
                 }
 
                 $item = PracticeItem::updateOrCreate(
-                    ['objective_id' => $objetivo->id, 'seq' => self::BASE_SEQ + $i],
+                    ['objective_id' => $objetivo->id, 'seq' => self::BASE_SEQ],
                     $atributos,
                 );
                 $item->wasRecentlyCreated ? $creados++ : $actualizados++;
             }
         }
 
+        $this->avisarDeHuerfanos($bloquesDelBanco);
         $this->informar($creados, $actualizados, $huecos, $sinVerificar, count($banco), $versiones);
 
         return self::SUCCESS;
@@ -152,11 +174,13 @@ class SeedPracticeBank extends Command
                 'solution_expr' => null,
                 // Las opciones NO llevan marca de correcta. La clave va a su
                 // columna, que no se serializa nunca.
-                'options' => array_map(
-                    fn (string $clave, string $texto) => ['key' => $clave, 'text' => ['es' => $texto]],
-                    array_keys($opciones), array_values($opciones),
-                ),
-                'answer_key' => $correcta,
+                ...$this->conClavesRepartidas($opciones, $correcta, $prefijo),
+                // Se anulan explícitamente: si una entrada pasa de `numeric` a
+                // `choice` conservando su sitio, el `updateOrCreate` dejaría la
+                // tolerancia y la unidad del ítem viejo colgando.
+                'tolerance' => 0,
+                'tolerance_kind' => 'abs',
+                'answer_unit' => null,
                 'shuffle' => true,
                 'origen' => 'curado',
                 'attrs' => ['revision' => $revision],
@@ -178,6 +202,109 @@ class SeedPracticeBank extends Command
             'origen' => 'curado',
             'attrs' => ['revision' => $revision],
         ];
+    }
+
+    /**
+     * Ítems del banco cuyo bloque ya no está en el fichero.
+     *
+     * Con `seq` fijo no puede haber duplicados, pero sí RESTOS: si se borra una
+     * entrada o se le cambia el prefijo, su ítem se queda con contenido viejo y
+     * nadie lo toca. Se avisa —no se borra solo— porque puede tener intentos
+     * de alumnos colgando: eso lo decide una persona, con `--podar`.
+     */
+    private function avisarDeHuerfanos(array $bloquesDelBanco): void
+    {
+        $huerfanos = PracticeItem::query()
+            ->where('seq', self::BASE_SEQ)
+            ->get(['id', 'attrs'])
+            ->filter(fn (PracticeItem $i) => ! in_array(
+                $i->attrs['revision']['bloque'] ?? null, $bloquesDelBanco, true,
+            ));
+
+        if ($huerfanos->isEmpty()) {
+            return;
+        }
+
+        $this->newLine();
+        $this->warn($huerfanos->count().' ítem(s) del banco apuntan a un bloque que ya no está en el fichero.');
+
+        if (! $this->option('podar')) {
+            $this->line('  Quedan tal cual, con su contenido viejo. Para borrarlos: --podar');
+
+            return;
+        }
+
+        $conIntentos = $huerfanos->filter(fn (PracticeItem $i) => $i->attempts()->exists());
+        PracticeItem::whereIn('id', $huerfanos->pluck('id')->diff($conIntentos->pluck('id')))->delete();
+
+        $this->line('  Podados '.($huerfanos->count() - $conIntentos->count()).'.');
+        if ($conIntentos->isNotEmpty()) {
+            $this->line('  '.$conIntentos->count().' se conservan: tienen intentos de alumnos colgando.');
+        }
+    }
+
+    /**
+     * Reparte las claves a..d entre las opciones, PERMUTADAS por el bloque.
+     *
+     * Aquí se cierra un agujero que era inofensivo por separado y catastrófico
+     * junto: en el fichero de datos la correcta se escribe SIEMPRE la primera
+     * —convención de autoría, para que un docente revise de un vistazo— y las
+     * opciones viajan al cliente con su clave. Asignando las letras por
+     * posición, `answer_key` salía `'a'` en las 60 preguntas del banco: la
+     * respuesta quedaba en el `value` de cada radio, legible con «inspeccionar
+     * elemento» y sin más herramienta. Barajar el orden de PINTADO no lo tapaba,
+     * porque la clave viaja intacta — que es justo lo que hace imposible
+     * calificar mal, y por eso no se toca.
+     *
+     * La permutación es determinista y sale del BLOQUE, no del contenido:
+     * re-sembrar da la misma clave (los intentos guardados siguen teniendo
+     * sentido) y corregir una errata de un enunciado no la mueve.
+     *
+     * @param  array<string, string>  $opciones  clave de autoría => texto
+     * @return array{options: list<array{key: string, text: array<string, string>}>, answer_key: string}
+     */
+    private function conClavesRepartidas(array $opciones, string $correcta, string $prefijo): array
+    {
+        $letras = array_slice(['a', 'b', 'c', 'd', 'e', 'f'], 0, count($opciones));
+
+        // Orden total derivado del bloque: reproducible entre ejecuciones y
+        // entre máquinas. Nada de shuffle() ni rand(), como en todo el motor.
+        $pesos = [];
+        foreach ($letras as $letra) {
+            $pesos[$letra] = hash('sha256', "{$prefijo}:clave:{$letra}");
+        }
+        asort($pesos);
+        $repartidas = array_values(array_keys($pesos));
+
+        $options = [];
+        $answerKey = null;
+        $i = 0;
+        foreach ($opciones as $claveDeAutoria => $texto) {
+            $letra = $repartidas[$i++];
+            $options[] = ['key' => $letra, 'text' => ['es' => $texto]];
+
+            if ((string) $claveDeAutoria === $correcta) {
+                $answerKey = $letra;
+            }
+        }
+
+        if ($answerKey === null) {
+            // El fichero declara una correcta que no está entre sus opciones:
+            // sembrarlo daría un ítem imposible de acertar, callando.
+            throw new RuntimeException(
+                "{$prefijo}: la clave correcta '{$correcta}' no está entre las opciones.",
+            );
+        }
+
+        // Ordenadas POR CLAVE, no por autoría. Si se guardaran en el orden del
+        // fichero, la correcta sería siempre el elemento 0 de `options`: con
+        // `shuffle = false` —que la columna permite— volvería a pintarse la
+        // primera, y leer el JSON de la columna la delataría igual.
+        usort($options, fn (array $a, array $b) => $a['key'] <=> $b['key']);
+
+        // El orden de PINTADO lo baraja la semilla en cada intento
+        // (PracticeEngine::shuffleOptions) sobre esta base ya neutra.
+        return ['options' => $options, 'answer_key' => $answerKey];
     }
 
     /**

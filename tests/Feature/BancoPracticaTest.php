@@ -7,7 +7,9 @@ use App\Models\CurNode;
 use App\Models\Framework;
 use App\Models\FrameworkVersion;
 use App\Models\LearningObjective;
+use App\Models\PracticeAttempt;
 use App\Models\PracticeItem;
+use App\Models\User;
 use App\Services\Practice\MathExpression;
 use App\Services\Practice\PracticeEngine;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -70,6 +72,46 @@ class BancoPracticaTest extends TestCase
                     }
                 }
             }
+        }
+    }
+
+    /** El subnivel de un prefijo: su primer segmento numérico. */
+    private function subnivelDe(string $prefijo): ?string
+    {
+        foreach (explode('.', $prefijo) as $parte) {
+            if (is_numeric($parte)) {
+                return $parte;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Y el mismo suelo para TODOS los ámbitos que el banco declara cubrir, no
+     * solo Básica Superior: si un bloque del fichero se queda sin ítem donde su
+     * grafo existe, es un hueco de cobertura, no un detalle.
+     */
+    public function test_todas_las_ramas_del_banco_estan_cubiertas_donde_existe_el_grafo(): void
+    {
+        $this->sembrarGrafo(
+            ['CN.F' => [1, 2, 3, 4, 5], 'CS.H' => [1, 2, 3], 'CS.FL' => [1, 2, 3]],
+            ['g11' => 5],
+        );
+        $this->artisan('practica:sembrar')->assertSuccessful();
+
+        $ramas = collect(require database_path('data/banco-practica.php'))
+            ->map(fn (array $e) => $e[0])
+            ->filter(fn (string $p) => str_starts_with($p, 'CN.F.')
+                || str_starts_with($p, 'CS.H.') || str_starts_with($p, 'CS.FL.'));
+
+        $this->assertCount(11, $ramas, 'Cambió el número de bloques de rama del banco.');
+
+        foreach ($ramas as $bloque) {
+            $this->assertGreaterThan(0,
+                LearningObjective::where('native_code', 'like', $bloque.'.%')
+                    ->whereHas('practiceItems')->count(),
+                "El bloque de rama {$bloque} se quedó sin ítem.");
         }
     }
 
@@ -167,6 +209,91 @@ class BancoPracticaTest extends TestCase
         // Y no les cambió el id: los intentos ya registrados siguen apuntando
         // al mismo sitio.
         $this->assertEquals($ids, PracticeItem::orderBy('id')->pluck('id'));
+    }
+
+    /**
+     * IDEMPOTENCIA DE VERDAD: con el fichero EDITADO entre siembras.
+     *
+     * El test de arriba resiembra el banco idéntico, que es el caso en el que
+     * cualquier implementación pasa. El caso real —alguien añade una pregunta
+     * al principio del fichero— rompía la anterior: el `seq` salía del índice
+     * del array, así que insertar una entrada desplazaba el de todas las
+     * siguientes y cada una dejaba un zombi con su contenido viejo.
+     */
+    public function test_editar_el_banco_entre_siembras_no_duplica(): void
+    {
+        $this->sembrarBasicaSuperior();
+        $this->artisan('practica:sembrar')->assertSuccessful();
+
+        $antes = PracticeItem::where('seq', SeedPracticeBank::BASE_SEQ)->count();
+        $this->assertGreaterThan(0, $antes);
+
+        // El fichero real no se toca: se simula la edición sembrando desde un
+        // banco con una entrada DELANTE, que es lo que desplazaba los índices.
+        $this->sembrarDesde(array_merge(
+            [['M.4.2', 'choice', '¿Cuánto mide un ángulo recto?',
+                ['a' => '90°', 'b' => '45°', 'c' => '180°'], 'a']],
+            [['M.4.1', 'numeric', 'Resuelve x/{a} = {k}. ¿Cuánto vale x?',
+                ['a' => ['min' => 2, 'max' => 9, 'step' => 1], 'k' => ['min' => 2, 'max' => 12, 'step' => 1]],
+                'a * k', 0.001, 'abs', null]],
+        ));
+
+        // Una entrada por destreza y nada más: ni zombis ni duplicados.
+        foreach (LearningObjective::whereHas('practiceItems')->get() as $objetivo) {
+            $delBanco = $objetivo->practiceItems()->where('seq', SeedPracticeBank::BASE_SEQ)->count();
+            $this->assertLessThanOrEqual(1, $delBanco,
+                "{$objetivo->native_code} acabó con {$delBanco} ítems del banco.");
+        }
+    }
+
+    /** Borrar una entrada deja un resto, y el comando lo DICE (y lo poda si se pide). */
+    public function test_los_items_de_un_bloque_retirado_se_avisan_y_se_pueden_podar(): void
+    {
+        $this->sembrarBasicaSuperior();
+        $this->artisan('practica:sembrar')->assertSuccessful();
+        $total = PracticeItem::where('seq', SeedPracticeBank::BASE_SEQ)->count();
+
+        // Se resiembra desde un banco con UNA sola entrada: el resto sobra.
+        $this->sembrarDesde([['M.4.1', 'numeric', 'Suma {a} + {b}',
+            ['a' => ['const' => 2], 'b' => ['const' => 3]], 'a + b', 0.01, 'abs', null]],
+            ['--podar' => true]);
+
+        $quedan = PracticeItem::where('seq', SeedPracticeBank::BASE_SEQ)->count();
+        $this->assertLessThan($total, $quedan, 'La poda no retiró nada.');
+        $this->assertGreaterThan(0, $quedan, 'La poda se llevó por delante lo que sí está en el banco.');
+    }
+
+    /** Y un ítem con intentos de alumnos NO se poda: eso lo decide una persona. */
+    public function test_la_poda_respeta_los_items_con_intentos(): void
+    {
+        $this->sembrarBasicaSuperior();
+        $this->artisan('practica:sembrar')->assertSuccessful();
+
+        $item = PracticeItem::where('seq', SeedPracticeBank::BASE_SEQ)->firstOrFail();
+        PracticeAttempt::create([
+            'item_id' => $item->id, 'user_id' => User::factory()->create()->id,
+            'attempt_no' => 1, 'seed' => str_repeat('a', 64), 'params' => [],
+            'answer_key' => 'a', 'is_correct' => true,
+        ]);
+
+        $this->sembrarDesde([['ZZ.9.9', 'numeric', 'Nada {a}',
+            ['a' => ['const' => 1]], 'a', 0.01, 'abs', null]], ['--podar' => true]);
+
+        $this->assertNotNull($item->fresh(), 'La poda borró un ítem con intentos colgando.');
+    }
+
+    /** Siembra desde un banco a medida, sin tocar el fichero real. */
+    private function sembrarDesde(array $banco, array $opciones = []): void
+    {
+        $ruta = database_path('data/banco-practica.php');
+        $original = file_get_contents($ruta);
+
+        try {
+            file_put_contents($ruta, '<?php return '.var_export($banco, true).';');
+            $this->artisan('practica:sembrar', $opciones)->assertSuccessful();
+        } finally {
+            file_put_contents($ruta, $original);
+        }
     }
 
     /** Un banco sin dónde aterrizar informa el hueco y termina bien. */
@@ -283,13 +410,18 @@ class BancoPracticaTest extends TestCase
     }
 
     /**
-     * CONVENCIÓN DE AUTORÍA: la opción correcta se escribe SIEMPRE la primera.
-     * Es lo que hace el fichero revisable de un vistazo —un docente lee la
-     * primera opción y ya sabe cuál se afirma que es la buena— y no filtra nada
-     * porque lo que se sirve son posiciones barajadas, nunca estas claves.
-     * Si alguien rompe la convención, este test lo dice.
+     * CONVENCIÓN DE AUTORÍA: en el fichero de datos la correcta se escribe
+     * SIEMPRE la primera, para que un docente revise de un vistazo.
+     *
+     * Esta convención es segura SOLO porque el sembrador reparte las claves
+     * permutadas por bloque (`conClavesRepartidas`). El test de abajo es el que
+     * lo garantiza — y es el que faltaba: la versión anterior de este docblock
+     * afirmaba que la convención «no filtra nada porque lo que se sirve son
+     * posiciones», premisa que dejó de ser cierta cuando el contrato pasó a
+     * servir la clave. Resultado: las 60 preguntas del banco nacían con
+     * `answer_key = 'a'` y la respuesta viajaba en el `value` de cada radio.
      */
-    public function test_la_opcion_correcta_se_escribe_siempre_primero(): void
+    public function test_la_opcion_correcta_se_escribe_siempre_primero_en_el_fichero(): void
     {
         foreach (require database_path('data/banco-practica.php') as $entrada) {
             if ($entrada[1] !== PracticeItem::CHOICE) {
@@ -300,6 +432,74 @@ class BancoPracticaTest extends TestCase
             $this->assertSame(array_key_first($opciones), $correcta,
                 "{$prefijo}: la correcta no es la primera; el fichero deja de ser revisable de un vistazo");
         }
+    }
+
+    /**
+     * EL ORÁCULO QUE FALTABA. La clave que se PERSISTE —y por tanto la que
+     * viaja al cliente en cada opción— no puede heredar la posición de autoría.
+     * Si lo hiciera, `answer_key` sería `'a'` en todo el banco y bastaría mirar
+     * el `value` de los radios para acertar siempre, sin leer la pregunta.
+     */
+    public function test_la_clave_correcta_no_es_siempre_la_misma_letra(): void
+    {
+        $this->sembrarBasicaSuperior();
+        $this->artisan('practica:sembrar')->assertSuccessful();
+
+        $claves = PracticeItem::where('kind', PracticeItem::CHOICE)
+            ->pluck('answer_key');
+
+        $this->assertGreaterThan(5, $claves->count(), 'Pocos ítems para medir la distribución.');
+
+        $distintas = $claves->unique()->values()->sort()->all();
+        $this->assertGreaterThanOrEqual(3, count($distintas),
+            'La correcta cae casi siempre en la misma clave: se lee en el DOM sin resolver nada. '.
+            'Repartidas: '.json_encode($claves->countBy()));
+
+        // Y ninguna letra acapara: con 4 opciones, ninguna debería pasar del 60 %.
+        foreach ($claves->countBy() as $letra => $veces) {
+            $this->assertLessThan($claves->count() * 0.6, $veces,
+                "La clave '{$letra}' es la correcta en {$veces} de {$claves->count()} ítems.");
+        }
+    }
+
+    /**
+     * Y la permutación tiene que ser ESTABLE: si cambiara al re-sembrar, los
+     * `answer_key` ya registrados en `practice_attempts` pasarían a significar
+     * otra opción y el historial del alumno quedaría reescrito en silencio.
+     */
+    public function test_la_clave_repartida_no_cambia_al_resembrar(): void
+    {
+        $this->sembrarBasicaSuperior();
+
+        $this->artisan('practica:sembrar')->assertSuccessful();
+        $antes = PracticeItem::where('kind', PracticeItem::CHOICE)
+            ->orderBy('id')->pluck('answer_key', 'id');
+
+        $this->artisan('practica:sembrar')->assertSuccessful();
+        $despues = PracticeItem::where('kind', PracticeItem::CHOICE)
+            ->orderBy('id')->pluck('answer_key', 'id');
+
+        $this->assertEquals($antes, $despues);
+    }
+
+    /**
+     * El texto de la opción correcta tampoco puede quedar identificable por su
+     * sitio en `options`: si fuera siempre la primera del array, mirar el JSON
+     * bastaría igualmente.
+     */
+    public function test_la_correcta_no_ocupa_siempre_la_misma_posicion_en_options(): void
+    {
+        $this->sembrarBasicaSuperior();
+        $this->artisan('practica:sembrar')->assertSuccessful();
+
+        $posiciones = PracticeItem::where('kind', PracticeItem::CHOICE)->get()
+            ->map(fn (PracticeItem $i) => array_search(
+                $i->answer_key, array_column($i->options, 'key'), true,
+            ))
+            ->countBy();
+
+        $this->assertGreaterThanOrEqual(2, $posiciones->count(),
+            'La correcta ocupa siempre la misma posición dentro de `options`.');
     }
 
     /** Lo sembrado nace marcado como pendiente de que un docente lo firme. */
@@ -376,9 +576,16 @@ class BancoPracticaTest extends TestCase
         $this->artisan('practica:sembrar')->assertSuccessful();
 
         // Los bloques que el banco declara cubrir en Básica Superior.
+        //
+        // El filtro mira el SUBNIVEL, que es el primer segmento numérico del
+        // prefijo — no `explode(...)[1]`, que en las ramas (`CN.F.5.1`) es la
+        // letra de la rama y excluía en silencio a Física, Química, Biología,
+        // Historia, Ciudadanía y Filosofía enteras (auditoría).
         $delBanco = collect(require database_path('data/banco-practica.php'))
             ->map(fn (array $e) => $e[0])
-            ->filter(fn (string $p) => str_ends_with(explode('.', $p)[1] ?? '', '4'));
+            ->filter(fn (string $p) => $this->subnivelDe($p) === '4');
+
+        $this->assertNotEmpty($delBanco, 'El banco no declara ningún bloque: el test no probaría nada.');
 
         foreach ($delBanco as $bloque) {
             $conItem = LearningObjective::query()

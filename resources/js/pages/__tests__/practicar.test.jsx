@@ -525,12 +525,34 @@ describe('Practicar — ítems de opción múltiple', () => {
         expect(screen.queryByLabelText(/tu respuesta/i)).not.toBeInTheDocument();
     });
 
-    it('la marca de correcta no está en el DOM antes de responder', async () => {
+    /**
+     * ORÁCULO VACUO CORREGIDO (auditoría). La versión anterior buscaba las
+     * cadenas «correcta|is_correct|expected» en el DOM: palabras que la página
+     * no renderiza jamás, así que pasaba con el bug puesto. Lo que hay que
+     * comprobar es que NADA distingue a la opción buena de los distractores —
+     * ni un atributo, ni una clase, ni el orden.
+     */
+    it('ninguna opción se distingue de las demás antes de responder', async () => {
         encolarFetch(respuestaJson(200, ITEM_CHOICE));
         const { container } = render(<Practicar objective={OBJETIVO_LENGUA} mastery={0} />);
         await screen.findByText(/sustantivo/);
 
-        expect(container.innerHTML).not.toMatch(/correcta|is_correct|expected/i);
+        const radios = screen.getAllByRole('radio');
+
+        // Todos los radios llevan EXACTAMENTE los mismos atributos, salvo el
+        // valor (la clave) y el id que React pueda poner.
+        const formas = radios.map((r) =>
+            [...r.attributes]
+                .map((a) => a.name)
+                .filter((n) => n !== 'value')
+                .sort()
+                .join(','),
+        );
+        expect(new Set(formas).size).toBe(1);
+
+        // Y sus etiquetas comparten clase: ninguna resaltada de antemano.
+        const clases = radios.map((r) => r.closest('label').className);
+        expect(new Set(clases).size).toBe(1);
     });
 
     it('manda la CLAVE elegida como answer_key, no un número suelto', async () => {
@@ -573,7 +595,12 @@ describe('Practicar — ítems de opción múltiple', () => {
         expect(tarjeta).toHaveTextContent(/montaña/i);
     });
 
-    it('no se puede enviar sin elegir nada', async () => {
+    /**
+     * Antes este test solo comprobaba que NO se enviaba nada, lo que bendecía
+     * el silencio: quien navega con teclado pulsaba «Comprobar» y no ocurría
+     * absolutamente nada, sin explicación (auditoría).
+     */
+    it('al enviar sin elegir lo dice, y devuelve el foco a las opciones', async () => {
         const fetchMock = encolarFetch(respuestaJson(200, ITEM_CHOICE));
         const user = userEvent.setup();
         render(<Practicar objective={OBJETIVO_LENGUA} mastery={0} />);
@@ -582,6 +609,23 @@ describe('Practicar — ítems de opción múltiple', () => {
         await user.click(screen.getByRole('button', { name: /comprobar/i }));
 
         expect(fetchMock).toHaveBeenCalledTimes(1);   // solo el next
+        expect(await screen.findByRole('alert')).toHaveTextContent(/elige una de las opciones/i);
+        expect(screen.getAllByRole('radio')[0]).toHaveFocus();
+
+        // Y al elegir, el aviso se retira solo.
+        await user.click(screen.getByRole('radio', { name: /montaña/i }));
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
+
+    /** Un choice sin opciones no puede dejar la página en blanco. */
+    it('un ítem roto se explica en vez de reventar', async () => {
+        encolarFetch(respuestaJson(200, { ...ITEM_CHOICE, options: undefined }));
+        render(<Practicar objective={OBJETIVO_LENGUA} mastery={0} />);
+
+        expect(await screen.findByRole('alert')).toHaveTextContent(/incompleto/i);
+        expect(screen.getByRole('button', { name: /probar con otro/i })).toBeInTheDocument();
+        // Y no se le ofrece responder algo que no existe.
+        expect(screen.queryByRole('button', { name: /comprobar/i })).not.toBeInTheDocument();
     });
 
     it('se resuelve entero con teclado', async () => {

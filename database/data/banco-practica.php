@@ -55,9 +55,10 @@ return [
     ['M.2.2', 'numeric', 'Un patio rectangular mide {l} metros de largo y {w} metros de ancho. ¿Cuántos metros mide su contorno?',
         ['l' => ['min' => 3, 'max' => 12, 'step' => 1], 'w' => ['min' => 2, 'max' => 9, 'step' => 1]],
         '2 * (l + w)', 0.001, 'abs', 'm'],
-    ['M.2.3', 'numeric', 'En una caja hay {r} pelotas rojas y {v} pelotas verdes. ¿Cuántas pelotas hay en total?',
+    // Bloque 3 = Estadística y probabilidad: leer un pictograma, no sumar.
+    ['M.2.3', 'numeric', 'En un pictograma, cada dibujo representa a 1 niño. Fútbol tiene {r} dibujos y básquet {v}. ¿Cuántos niños respondieron en total?',
         ['r' => ['min' => 4, 'max' => 15, 'step' => 1], 'v' => ['min' => 3, 'max' => 14, 'step' => 1]],
-        'r + v', 0.001, 'abs', null],
+        'r + v', 0.001, 'abs', 'niños'],
 
     // — Básica Media (5.º-7.º EGB) —
     ['M.3.1', 'numeric', 'Un paquete trae {u} cuadernos y se compran {p} paquetes. ¿Cuántos cuadernos son en total?',
@@ -74,12 +75,13 @@ return [
         '(a + b + c + d) / 4', 0.01, 'abs', 'puntos'],
 
     // — Básica Superior (8.º-10.º EGB) —
-    ['M.4.1', 'numeric', 'Resuelve la ecuación {a}x + {b} = {c}. ¿Cuánto vale x?',
-        [
-            'a' => ['min' => 2, 'max' => 9, 'step' => 1], 'b' => ['min' => 1, 'max' => 20, 'step' => 1],
-            'c' => ['min' => 25, 'max' => 90, 'step' => 1],
-        ],
-        '(c - b) / a', 0.01, 'abs', null],
+    // Entera POR CONSTRUCCIÓN. Con `{a}x + {b} = {c}` y rangos independientes,
+    // el 77 % de los casos pedía decimales (9x+20=25 → x=0.5556) en el primer
+    // bloque de álgebra de 8.º EGB, y con tolerancia absoluta de 0.01 había que
+    // dar cuatro cifras. Aquí la solución es siempre a·k.
+    ['M.4.1', 'numeric', 'Resuelve la ecuación x/{a} = {k}. ¿Cuánto vale x?',
+        ['a' => ['min' => 2, 'max' => 9, 'step' => 1], 'k' => ['min' => 2, 'max' => 12, 'step' => 1]],
+        'a * k', 0.001, 'abs', null],
     ['M.4.2', 'numeric', 'Un triángulo rectángulo tiene catetos de {a} cm y {b} cm. ¿Cuánto mide la hipotenusa?',
         ['a' => ['min' => 3, 'max' => 20, 'step' => 1], 'b' => ['min' => 4, 'max' => 20, 'step' => 1]],
         'sqrt(a^2 + b^2)', 0.02, 'rel', 'cm'],
@@ -173,12 +175,13 @@ return [
             'c' => 'Se disculpa sin matices',
             'd' => 'Aporta una prueba documental',
         ], 'a'],
-    ['LL.5.4', 'choice', '¿Cuál de estas afirmaciones es un HECHO y no una opinión?',
+    // Bloque 4 = Escritura: distinguir hecho de opinión es lectura (bloque 3).
+    ['LL.5.4', 'choice', 'Al redactar un texto argumentativo, ¿qué función cumple el párrafo de cierre?',
         [
-            'a' => 'El Ecuador tiene cuatro regiones naturales',
-            'b' => 'La Costa es la región más bonita del país',
-            'c' => 'Deberíamos viajar más por el Ecuador',
-            'd' => 'La comida serrana es la mejor',
+            'a' => 'Recoger la tesis y las razones expuestas para dejarlas asentadas',
+            'b' => 'Introducir un argumento nuevo que no se ha desarrollado',
+            'c' => 'Enumerar las fuentes consultadas',
+            'd' => 'Repetir literalmente el primer párrafo',
         ], 'a'],
     ['LL.5.5', 'choice', 'En un texto literario, ¿qué es una METÁFORA?',
         [
@@ -242,7 +245,8 @@ return [
             'd' => 'Digerir los alimentos',
         ], 'a'],
     ['CN.4.3', 'numeric', 'Un cuerpo tiene una masa de {m} g y ocupa un volumen de {v} cm³. ¿Cuál es su densidad en g/cm³?',
-        ['m' => ['min' => 20, 'max' => 300, 'step' => 5], 'v' => ['min' => 5, 'max' => 60, 'step' => 1]],
+        // Hasta 12.5 g/cm³: plomo (11.3) sí, tres veces el osmio no.
+        ['m' => ['min' => 20, 'max' => 250, 'step' => 5], 'v' => ['min' => 20, 'max' => 120, 'step' => 5]],
         'm / v', 0.02, 'rel', 'g/cm³'],
 
     // ================= ESTUDIOS SOCIALES =================
@@ -329,10 +333,12 @@ return [
             'd' => 'El agua que hierve',
         ], 'a'],
     ['CN.Q.5.2', 'numeric', 'Un átomo neutro tiene {p} protones y {n} neutrones. ¿Cuál es su número másico?',
-        ['p' => ['min' => 3, 'max' => 30, 'step' => 1], 'n' => ['min' => 3, 'max' => 40, 'step' => 1]],
+        // Rangos solapados: se evitan los núclidos disparatados tipo p=30, n=3.
+        ['p' => ['min' => 6, 'max' => 20, 'step' => 1], 'n' => ['min' => 6, 'max' => 24, 'step' => 1]],
         'p + n', 0.001, 'abs', null],
     ['CN.Q.5.3', 'numeric', 'Se disuelven {m} g de soluto en {v} mL de solución. ¿Cuál es la concentración en g/L?',
-        ['m' => ['min' => 2, 'max' => 60, 'step' => 1], 'v' => ['min' => 100, 'max' => 900, 'step' => 50]],
+        // Hasta 150 g/L: por debajo de la solubilidad del NaCl (~360 g/L).
+        ['m' => ['min' => 2, 'max' => 30, 'step' => 1], 'v' => ['min' => 200, 'max' => 1000, 'step' => 50]],
         'm / (v / 1000)', 0.02, 'rel', 'g/L'],
 
     ['CN.B.5.1', 'choice', '¿Qué estructura de la célula vegetal NO está presente en la célula animal?',
@@ -497,9 +503,11 @@ return [
     ['CN.F.5.1', 'numeric', 'Sobre un cuerpo de {m} kg actúa una fuerza neta de {f} N. ¿Cuál es su aceleración?',
         ['m' => ['min' => 2, 'max' => 40, 'step' => 1], 'f' => ['min' => 5, 'max' => 200, 'step' => 5]],
         'f / m', 0.02, 'rel', 'm/s²'],
-    ['CN.F.5.5', 'numeric', 'Un vehículo recorre {d} km en {t} horas a rapidez constante. ¿Cuál es su rapidez media en km/h?',
-        ['d' => ['min' => 20, 'max' => 400, 'step' => 10], 't' => ['min' => 0.5, 'max' => 6, 'step' => 0.5]],
-        'd / t', 0.02, 'rel', 'km/h'],
+    // Bloque 5 = «La física de nuestro entorno»: la cinemática es del bloque 1,
+    // y «un vehículo» a 800 km/h (400 km en 0.5 h) no es de este mundo.
+    ['CN.F.5.5', 'numeric', 'Un foco de {p} W permanece encendido {t} horas. ¿Cuánta energía consume, en kWh?',
+        ['p' => ['min' => 20, 'max' => 200, 'step' => 10], 't' => ['min' => 1, 'max' => 12, 'step' => 1]],
+        'p * t / 1000', 0.02, 'rel', 'kWh'],
     ['CN.Q.5.4', 'choice', '¿Qué caracteriza a los compuestos orgánicos?',
         [
             'a' => 'Están formados principalmente por cadenas de carbono',
