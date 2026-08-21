@@ -195,6 +195,48 @@ modalidades y 2025-00031-A regula el Bachillerato Técnico EPJA (100 días/ciclo
    y solo mira `node_type = 'asignatura'` (los códigos `CN`/`CS`/`M` también
    los llevan los nodos de área). El seeder ya los persiste en instalación nueva.
    **Falta**: colores para los marcos internacionales (CAIE/IB) y PCEI.
+8. ~~La destreza ENSEÑA~~ **HECHO (fase 1: lecciones)**: una lección es un
+   `resource` de `kind = 'reading'` cuyo texto vive INLINE en
+   `resource_versions.config` (no hay `bundle_url`: no es un bundle de CDN, y
+   no hay tabla nueva para lo que `resources`/`resource_versions` ya modelan).
+   El contenido son BLOQUES TIPADOS (`parrafo | ejemplo | formula | lista |
+   aviso | imagen`), nunca HTML: `App\Services\Lesson\Bloques` los valida al
+   sembrar y `Recurso.jsx` pinta cada tipo con su componente, así que un
+   `<script>` en el texto se LEE como texto. La matemática se convierte a un
+   ÁRBOL MathML en el servidor (`App\Services\Lesson\MathML`, subconjunto de
+   LaTeX en lista blanca) y `Formula.jsx` lo monta con `createElement`: cero
+   KaTeX, cero `dangerouslySetInnerHTML`, +5.5 KB de bundle en total.
+   `/destreza` pasa a ser un hub con el orden **1. Aprende → 2. Practica**, y
+   cuando no hay lección lo DICE en vez de esconder la sección.
+   Operación:
+   ```bash
+   php artisan lecciones:sembrar [--dry-run]   # nacen SIN firmar
+   php artisan lecciones:firmar --bloque=M.4.1 --docente=7
+   ```
+   Banco en `database/data/lecciones.php`, idempotente por clave natural
+   (destreza, slug). Cubre **Básica Superior entera** (LL.4, M.4, CN.4, CS.4:
+   16 bloques × 3 grados) y el informe lista destreza a destreza lo que falta
+   en `storage/app/lecciones-sin-cobertura.txt`.
+   **Falta**: el resto de subniveles, y ofrecer lecciones por Deep Linking
+   (hoy Moodle solo puede incrustar simuladores y destrezas con práctica).
+
+   Dos reglas que cuestan caro si se rompen:
+   - **La firma se le exige a la LECCIÓN, no a todo recurso.** `published()`
+     pide `reviewed_at` solo cuando `kind = 'reading'`, porque una lección la
+     produce un sembrador a decenas y un simulador lo da de alta un operador
+     uno a uno. Meter los simuladores en la misma puerta habría vaciado en
+     silencio el catálogo y el Deep Linking en cuanto alguien registrara el
+     siguiente.
+   - **Toda ruta que sirva un recurso pasa por `published()`**, nunca por un
+     `status === 'published'` escrito al lado. Ya divergió dos veces: la
+     segunda, `GET /api/v1/resources/{slug}` servía el texto íntegro de una
+     lección sin revisar. El oráculo que lo fija recorre TODAS las rutas de una
+     vez (`LeccionTest::test_ninguna_ruta_sirve_una_leccion_sin_firmar`).
+
+   Y una trampa de los tests: Inertia serializa las props como JSON con escapes
+   unicode, así que buscar «ecuación» en el cuerpo NUNCA la encuentra (viaja
+   como `ecuación`). Los centinelas de no-filtración van sin acentos, y
+   siempre con control positivo.
 
 ## Dos tipos de ítem: `numeric` y `choice`
 
@@ -292,3 +334,16 @@ color que no cumple, el test cae.
   siempre texto, y el icono como refuerzo. Ver «Regla de color» arriba.
 - No meter una librería de gráficas por un anillo o una barra: `resources/js/components/Anillo.jsx`
   son 60 líneas de SVG. El guardián del CI corta el bundle en 450 KB.
+- No renderizar contenido con `dangerouslySetInnerHTML`, y no meter KaTeX ni
+  MathJax: la matemática se convierte a MathML en el SERVIDOR y el navegador la
+  pinta nativa. KaTeX solo son ~280 KB sobre un presupuesto de 450.
+- No duplicar la regla de dónde aterriza un bloque del currículo: vive en
+  `App\Services\Lesson\DestinosDeBloque` y la usan los DOS sembradores
+  (práctica y lecciones). Si divergen, un alumno lee el bloque en una destreza
+  y practica el mismo bloque en otra, y nadie se entera.
+- No ordenar códigos curriculares como cadenas: `M.4.1.10` va DESPUÉS de
+  `M.4.1.2`. Y ojo con `sortBy([closure, closure])`, que NO ordena por los
+  closures — compara null con null y deja el orden de llegada.
+- No construir claves a partir de un prefijo de un UUID de `HasUuids`: son
+  UUID ordenados por tiempo, así que ese prefijo es una marca de tiempo y dos
+  filas creadas en la misma milésima colisionan. Hash del id, no prefijo.

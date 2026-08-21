@@ -608,6 +608,12 @@ class BancoPracticaTest extends TestCase
     {
         $this->sembrarBasicaSuperior();
 
+        // `storage/app` es disco de verdad y `RefreshDatabase` no lo limpia:
+        // sin este borrado, el test daba por bueno el fichero que había dejado
+        // una corrida anterior y habría pasado en verde aunque el comando
+        // dejara de escribirlo.
+        @unlink(storage_path('app/practica-sin-cobertura.txt'));
+
         $this->artisan('practica:sembrar')
             ->expectsOutputToContain('con al menos un ítem')
             ->expectsOutputToContain('SIN ningún ítem')

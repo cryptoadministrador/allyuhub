@@ -83,8 +83,12 @@ class CurriculumController extends Controller
     {
         return $objective->load([
             'node:id,title,path,node_type,version_id',
+            // `summary` y `current_version_id` hacen falta para la tarjeta de
+            // la lección en el hub de la destreza (resumen y nº de bloques).
             'resources' => fn ($q) => $q->published()
-                ->select('resources.id', 'slug', 'kind', 'title', 'duration_min', 'status'),
+                ->with('currentVersion:id,config')
+                ->select('resources.id', 'slug', 'kind', 'title', 'summary',
+                    'duration_min', 'status', 'current_version_id'),
         ])->setAttribute('alignments', Alignment::query()
             ->where(fn ($q) => $q->where('source_id', $objective->id)
                 ->orWhere('target_id', $objective->id))

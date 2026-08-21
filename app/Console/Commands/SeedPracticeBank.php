@@ -2,10 +2,9 @@
 
 namespace App\Console\Commands;
 
-use App\Models\Framework;
-use App\Models\FrameworkVersion;
 use App\Models\LearningObjective;
 use App\Models\PracticeItem;
+use App\Services\Lesson\DestinosDeBloque;
 use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
 use RuntimeException;
@@ -64,20 +63,17 @@ class SeedPracticeBank extends Command
         $banco = require database_path('data/banco-practica.php');
         $marco = (string) $this->option('marco');
 
-        // SOLO la versión vigente. Tomar todas las del marco significaría que
-        // el día que convivan `2016` y `2016+2023` cada entrada del banco
-        // sembraría por duplicado, una vez en cada currículo.
-        $version = FrameworkVersion::query()
-            ->whereIn('framework_id', Framework::where('code', $marco)->select('id'))
-            ->latest('valid_from')
-            ->first();
+        // Dónde aterriza un bloque lo decide `DestinosDeBloque`, la MISMA regla
+        // que usa el sembrador de lecciones. Aquí vivía una copia; tenerla dos
+        // veces era garantizar que un día divergen y el texto de un bloque
+        // acaba en una destreza distinta de la que tiene su ejercicio.
+        $versiones = DestinosDeBloque::versionesDe($marco);
 
-        if ($version === null) {
+        if ($versiones === null) {
             $this->error("No existe el marco {$marco} o no tiene versiones.");
 
             return self::FAILURE;
         }
-        $versiones = collect([$version->id]);
 
         $creados = 0;
         $actualizados = 0;
@@ -89,7 +85,11 @@ class SeedPracticeBank extends Command
         foreach ($banco as $entrada) {
             $prefijo = $entrada[0];
             $bloquesDelBanco[] = $prefijo;
-            $destinos = $this->destinosDe($prefijo, $versiones, $sinVerificar);
+            $destinos = DestinosDeBloque::para(
+                $prefijo, $versiones,
+                soloVerificadas: ! $this->option('incluir-no-verificadas'),
+                sinVerificar: $sinVerificar,
+            );
 
             if ($destinos->isEmpty()) {
                 $huecos[] = $prefijo;
@@ -118,38 +118,6 @@ class SeedPracticeBank extends Command
         $this->informar($creados, $actualizados, $huecos, $sinVerificar, count($banco), $versiones);
 
         return self::SUCCESS;
-    }
-
-    /**
-     * Las destrezas donde aterriza una entrada: la de código más bajo del
-     * bloque, UNA POR NODO. Un bloque replicado en tres grados da tres
-     * destinos, que es justo lo que se quiere.
-     *
-     * @return Collection<int, LearningObjective>
-     */
-    private function destinosDe(string $prefijo, Collection $versiones, int &$sinVerificar): Collection
-    {
-        $candidatas = LearningObjective::query()
-            ->whereIn('version_id', $versiones)
-            ->where('native_code', 'like', $prefijo.'.%')
-            ->get(['id', 'node_id', 'native_code', 'is_verified']);
-
-        if (! $this->option('incluir-no-verificadas')) {
-            $sinVerificar += $candidatas->where('is_verified', false)->count();
-            $candidatas = $candidatas->where('is_verified', true);
-        }
-
-        return $candidatas
-            ->groupBy('node_id')
-            ->map(fn (Collection $delNodo) => $delNodo
-                // Orden CURRICULAR, no de cadena: M.4.1.2 antes que M.4.1.10.
-                // Comparador EXPLÍCITO: `sortBy([closure, closure])` NO ordena
-                // por los closures —compara null con null y deja el orden de
-                // llegada—, y aquí eso hacía que el ítem aterrizara en la .10.
-                ->sort(fn ($a, $b) => [mb_strlen($a->native_code), $a->native_code]
-                    <=> [mb_strlen($b->native_code), $b->native_code])
-                ->first())
-            ->values();
     }
 
     /** @return array<string, mixed> */
@@ -363,16 +331,7 @@ class SeedPracticeBank extends Command
      */
     private function ambitoDe(string $codigo): string
     {
-        $partes = explode('.', $codigo);
-        $area = [];
-        foreach ($partes as $parte) {
-            if (is_numeric($parte)) {
-                return implode('.', $area)." · subnivel {$parte}";
-            }
-            $area[] = $parte;
-        }
-
-        return implode('.', $area).' · sin subnivel';
+        return DestinosDeBloque::ambito($codigo);
     }
 
     /**
