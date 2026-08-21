@@ -86,7 +86,9 @@ class PracticeAuthTest extends TestCase
 
         $this->getJson("/api/v1/objectives/{$this->objective->id}/practice/next")
             ->assertOk();
-        $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', ['answer' => 1])
+        $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [
+            'answer' => 1, 'billete' => $this->billete(self::ITEM_ID),
+        ])
             ->assertOk()
             ->assertJsonPath('se_guarda', false);
         $this->getJson('/api/v1/practice/mastery')->assertOk()->assertExactJson([]);
@@ -110,6 +112,7 @@ class PracticeAuthTest extends TestCase
 
         $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [
             'user_id' => $this->luis->id, 'answer' => 1,
+            'billete' => $this->billete(self::ITEM_ID, $this->ana->id),
         ])->assertStatus(422)->assertJsonValidationErrors('user_id');
 
         $this->getJson("/api/v1/practice/mastery?user_id={$this->luis->id}")
@@ -125,9 +128,48 @@ class PracticeAuthTest extends TestCase
     {
         // Luis autenticado intenta lo que sea: el intento es SUYO, no hay
         // forma de escribirle un intento a Ana.
+        // EL BILLETE DE OTRO NO VALE. Es un vector nuevo: el billete lleva
+        // dentro el numero de intento y la semilla, asi que si no fuera de
+        // quien lo presenta, Luis podria escribir con el billete de Ana — o el
+        // invitado con el de un alumno. Va atado a `Practitioner::seedKey`, la
+        // MISMA identidad con la que se sella la semilla, para que no haya dos
+        // nociones de quien-es-quien que puedan separarse.
         $this->actingAs($this->luis)
-            ->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', ['answer' => 1])
-            ->assertCreated();
+            ->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [
+                'answer' => 1, 'billete' => $this->billete(self::ITEM_ID, $this->ana->id),
+            ])->assertStatus(422)->assertJsonValidationErrors('billete');
+
+        // Ni el del invitado: '0' y 'invitado' no son la misma clave.
+        $this->actingAs($this->luis)
+            ->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [
+                'answer' => 1, 'billete' => $this->billete(self::ITEM_ID),
+            ])->assertStatus(422)->assertJsonValidationErrors('billete');
+
+        // NI EL DE OTRO ÍTEM, aunque sea suyo y esté bien firmado. Sin esta
+        // comprobación —hueco real que encontró una mutación, no una lectura—
+        // el billete de un ejercicio fácil serviría para responder otro: la
+        // semilla que se aplicaría a este ítem sería la que se sorteó para el
+        // otro, y el alumno estaría eligiendo su instancia.
+        $otro = PracticeItem::create([
+            'objective_id' => $this->objective->id, 'seq' => 1,
+            'statement' => ['es' => 'Otro ejercicio'],
+            'params' => ['x' => ['min' => 1, 'max' => 9, 'step' => 1]],
+            'solution_expr' => 'x', 'tolerance' => 0.01, 'tolerance_kind' => 'abs',
+            'reviewed_at' => now(),
+        ]);
+
+        $this->actingAs($this->luis)
+            ->postJson("/api/v1/practice/items/{$otro->id}/attempts", [
+                'answer' => 1, 'billete' => $this->billete(self::ITEM_ID, $this->luis->id),
+            ])->assertStatus(422)->assertJsonValidationErrors('billete');
+
+        $this->assertSame(0, PracticeAttempt::count());
+
+        // Con el suyo, el intento es SUYO: no hay forma de escribirle uno a Ana.
+        $this->actingAs($this->luis)
+            ->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [
+                'answer' => 1, 'billete' => $this->billete(self::ITEM_ID, $this->luis->id),
+            ])->assertCreated();
 
         $this->assertSame(1, PracticeAttempt::where('user_id', $this->luis->id)->count());
         $this->assertSame(0, PracticeAttempt::where('user_id', $this->ana->id)->count());
@@ -139,7 +181,9 @@ class PracticeAuthTest extends TestCase
 
         // Ana practica (streak 1, mastery > 0).
         $this->actingAs($this->ana)
-            ->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', ['answer' => 0])
+            ->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [
+                'answer' => 0, 'billete' => $this->billete(self::ITEM_ID, $this->ana->id),
+            ])
             ->assertCreated();
 
         // Luis NO ve nada de Ana: ni en mastery ni en progress. No existe

@@ -288,18 +288,47 @@ class BancoPracticaTest extends TestCase
         $this->assertNotNull($item->fresh(), 'La poda borró un ítem con intentos colgando.');
     }
 
-    /** Siembra desde un banco a medida, sin tocar el fichero real. */
+    /**
+     * Siembra desde un banco a medida, sin tocar el fichero real.
+     *
+     * Antes esto SÍ tocaba el fichero real: lo sobrescribía y lo restauraba en
+     * un `finally`. Aguantaba mientras el proceso terminase — pero una
+     * interrupción, un CI cortado o dos suites corriendo a la vez dejaban un
+     * fichero versionado destruido, en silencio y con pinta de cambio
+     * legítimo. Pasó de verdad. Ahora el comando recibe la ruta y el banco de
+     * prueba vive en un temporal que se borra solo.
+     */
     private function sembrarDesde(array $banco, array $opciones = []): void
     {
-        $ruta = database_path('data/banco-practica.php');
-        $original = file_get_contents($ruta);
+        $ruta = tempnam(sys_get_temp_dir(), 'banco').'.php';
+        file_put_contents($ruta, '<?php return '.var_export($banco, true).';');
 
         try {
-            file_put_contents($ruta, '<?php return '.var_export($banco, true).';');
-            $this->artisan('practica:sembrar', $opciones)->assertSuccessful();
+            $this->artisan('practica:sembrar', $opciones + ['--banco' => $ruta])
+                ->assertSuccessful();
         } finally {
-            file_put_contents($ruta, $original);
+            @unlink($ruta);
         }
+    }
+
+    /**
+     * Y que quede fijado: sembrar desde otro banco NO toca el fichero real.
+     *
+     * El control es el hash del fichero versionado antes y después. Si alguien
+     * vuelve a escribir encima «solo un momento», este test lo dice.
+     */
+    public function test_sembrar_desde_otro_banco_no_toca_el_fichero_versionado(): void
+    {
+        $this->sembrarGrafo(['M' => [1]], ['g8' => 4]);
+
+        $real = database_path('data/banco-practica.php');
+        $antes = hash_file('sha256', $real);
+
+        $this->sembrarDesde([['M.4.1', 'numeric', ['es' => 'Suma {a}'],
+            ['a' => ['const' => 1]], 'a', 0.01, 'abs', null]]);
+
+        $this->assertSame($antes, hash_file('sha256', $real),
+            'La siembra de prueba escribió sobre el banco de verdad.');
     }
 
     /** Un banco sin dónde aterrizar informa el hueco y termina bien. */

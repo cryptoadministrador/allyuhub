@@ -122,6 +122,9 @@ class SeedLessons extends Command
 
         $recurso->fill([
             'kind' => Resource::LECTURA,
+            // Lo que sale de aquí lo produce una máquina, y por eso necesita
+            // firma para llegar a un alumno. La puerta mira ESTO, no el kind.
+            'origen' => Resource::GENERADO,
             'title' => ['es' => $entrada['titulo']],
             'summary' => ['es' => $entrada['resumen']],
             'duration_min' => $entrada['minutos'] ?? null,

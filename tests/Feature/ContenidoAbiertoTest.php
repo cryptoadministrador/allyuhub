@@ -136,13 +136,17 @@ class ContenidoAbiertoTest extends TestCase
         $this->assertArrayNotHasKey('solution_expr', $siguiente);
 
         // Respuesta CORRECTA (2 + 3): veredicto correcto.
-        $this->postJson("/api/v1/practice/items/{$siguiente['item_id']}/attempts", ['answer' => 5])
+        $this->postJson("/api/v1/practice/items/{$siguiente['item_id']}/attempts", [
+            'answer' => 5, 'billete' => $siguiente['billete'],
+        ])
             ->assertOk()
             ->assertJsonPath('is_correct', true)
             ->assertJsonPath('expected', 5);
 
         // Respuesta MALA: veredicto incorrecto, y llega la explicación (expected).
-        $this->postJson("/api/v1/practice/items/{$siguiente['item_id']}/attempts", ['answer' => 99])
+        $this->postJson("/api/v1/practice/items/{$siguiente['item_id']}/attempts", [
+            'answer' => 99, 'billete' => $siguiente['billete'],
+        ])
             ->assertOk()
             ->assertJsonPath('is_correct', false)
             ->assertJsonPath('expected', 5);
@@ -164,10 +168,12 @@ class ContenidoAbiertoTest extends TestCase
         for ($i = 0; $i < 3; $i++) {
             $item = $this->getJson("/api/v1/objectives/{$this->objective->id}/practice/next")
                 ->assertOk()->json();
-            $this->postJson("/api/v1/practice/items/{$item['item_id']}/attempts", ['answer' => 5])
-                ->assertOk();
-            $this->postJson("/api/v1/practice/items/{$item['item_id']}/attempts", ['answer' => 1])
-                ->assertOk();
+            $this->postJson("/api/v1/practice/items/{$item['item_id']}/attempts", [
+                'answer' => 5, 'billete' => $item['billete'],
+            ])->assertOk();
+            $this->postJson("/api/v1/practice/items/{$item['item_id']}/attempts", [
+                'answer' => 1, 'billete' => $item['billete'],
+            ])->assertOk();
         }
 
         $despues = [
@@ -188,7 +194,9 @@ class ContenidoAbiertoTest extends TestCase
         $this->crearResourceLink($this->ana);   // el link existe, pero es de Ana
 
         $item = $this->getJson("/api/v1/objectives/{$this->objective->id}/practice/next")->json();
-        $this->postJson("/api/v1/practice/items/{$item['item_id']}/attempts", ['answer' => 5])->assertOk();
+        $this->postJson("/api/v1/practice/items/{$item['item_id']}/attempts", [
+            'answer' => 5, 'billete' => $item['billete'],
+        ])->assertOk();
 
         Queue::assertNotPushed(PushLtiScore::class);
     }
@@ -204,7 +212,9 @@ class ContenidoAbiertoTest extends TestCase
         $item = $this->getJson("/api/v1/objectives/{$this->objective->id}/practice/next")
             ->assertOk()->json();
 
-        $this->postJson("/api/v1/practice/items/{$item['item_id']}/attempts", ['answer' => 5])
+        $this->postJson("/api/v1/practice/items/{$item['item_id']}/attempts", [
+            'answer' => 5, 'billete' => $item['billete'],
+        ])
             ->assertCreated()
             ->assertJsonPath('is_correct', true);
 
@@ -217,7 +227,9 @@ class ContenidoAbiertoTest extends TestCase
             'solution_expr' => 'a + b', 'tolerance' => 0.01, 'tolerance_kind' => 'abs',
             'reviewed_at' => now(),
         ]);
-        $this->postJson("/api/v1/practice/items/{$segundo->id}/attempts", ['answer' => 8])
+        $this->postJson("/api/v1/practice/items/{$segundo->id}/attempts", [
+            'answer' => 8, 'billete' => $this->billeteComoNext($segundo->id, $this->ana->id),
+        ])
             ->assertCreated()
             ->assertJsonPath('is_correct', true);
 
@@ -230,7 +242,9 @@ class ContenidoAbiertoTest extends TestCase
             'solution_expr' => 'a + b', 'tolerance' => 0.01, 'tolerance_kind' => 'abs',
             'reviewed_at' => now(),
         ]);
-        $this->postJson("/api/v1/practice/items/{$segundo->id}/attempts", ['answer' => 8])
+        $this->postJson("/api/v1/practice/items/{$segundo->id}/attempts", [
+            'answer' => 8, 'billete' => $this->billeteComoNext($segundo->id, $this->ana->id),
+        ])
             ->assertCreated()
             ->assertJsonPath('is_correct', true);
 
@@ -272,12 +286,14 @@ class ContenidoAbiertoTest extends TestCase
             ->assertStatus(422)->assertJsonValidationErrors('user_id');
         $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [
             'user_id' => $luis->id, 'answer' => 5,
+            'billete' => $this->billete(self::ITEM_ID),
         ])->assertStatus(422)->assertJsonValidationErrors('user_id');
 
         // Con sesión.
         $this->actingAs($this->ana);
         $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [
             'user_id' => $luis->id, 'answer' => 5,
+            'billete' => $this->billete(self::ITEM_ID),
         ])->assertStatus(422)->assertJsonValidationErrors('user_id');
     }
 
@@ -289,32 +305,124 @@ class ContenidoAbiertoTest extends TestCase
      * eternamente la misma instancia con la respuesta ya sabida: dominio a 1.0
      * y un 100 en el gradebook de Moodle sin resolver nada.
      *
-     * Su número de intento sale de la BASE, y punto. El campo existe para el
-     * invitado, que no tiene base donde mirar.
+     * La propiedad no ha cambiado; el mecanismo sí. Antes el número salía de
+     * contar filas al recibir la respuesta —lo que causaba el fallo del
+     * billete— y ahora sale del billete FIRMADO que emitió `next`. Elegirlo
+     * uno mismo ya no es mentir en un campo: es falsificar una firma.
      */
     public function test_al_alumno_no_se_le_cree_el_numero_de_intento(): void
     {
         $this->actingAs($this->ana);
 
         // Aunque pida el ítem 300, se le sirve su intento real: el 1.
-        $this->getJson("/api/v1/objectives/{$this->objective->id}/practice/next?intento=300")
+        $servido = $this->getJson("/api/v1/objectives/{$this->objective->id}/practice/next?intento=300")
             ->assertOk()
             ->assertJsonPath('attempt_no', 1);
 
-        // Y aunque diga responder al 99, se registra el que le toca.
+        // El campo ya no existe en la respuesta: había dos fuentes para el
+        // mismo dato y esa era justamente la avería.
         $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [
-            'answer' => 5, 'intento' => 99,
+            'answer' => 5, 'intento' => 99, 'billete' => $servido->json('billete'),
+        ])->assertStatus(422)->assertJsonValidationErrors('intento');
+
+        // Y un billete cocinado en casa para el intento 99 no cuela: la firma
+        // sale de la APP_KEY, que el alumno no tiene.
+        $falso = rtrim(strtr(base64_encode(json_encode([
+            'itemId' => self::ITEM_ID, 'quien' => $this->ana->id,
+            'attemptNo' => 99, 'seed' => str_repeat('0', 64),
+        ])), '+/', '-_'), '=').'.'.str_repeat('f', 64);
+
+        $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [
+            'answer' => 5, 'billete' => $falso,
+        ])->assertStatus(422)->assertJsonValidationErrors('billete');
+
+        $this->assertDatabaseMissing('practice_attempts', ['attempt_no' => 99]);
+
+        // Con el billete de verdad se registra el intento que le tocaba.
+        $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [
+            'answer' => 5, 'billete' => $servido->json('billete'),
         ])->assertCreated()->assertJsonPath('attempt_no', 1);
 
         $this->assertDatabaseHas('practice_attempts', [
             'item_id' => self::ITEM_ID, 'user_id' => $this->ana->id, 'attempt_no' => 1,
         ]);
-        $this->assertDatabaseMissing('practice_attempts', ['attempt_no' => 99]);
 
-        // El segundo intento es el 2, no el 100: la cuenta la lleva el servidor.
+        // El segundo intento es el 2, no el 100: la cuenta la sigue llevando el
+        // servidor, solo que ahora la lleva UNA vez, al servir el ejercicio.
+        $segundo = $this->getJson("/api/v1/objectives/{$this->objective->id}/practice/next")
+            ->assertOk()->assertJsonPath('attempt_no', 2);
+
         $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [
-            'answer' => 5, 'intento' => 99,
+            'answer' => 5, 'billete' => $segundo->json('billete'),
         ])->assertCreated()->assertJsonPath('attempt_no', 2);
+    }
+
+    /**
+     * EL FALLO QUE EL BILLETE VINO A CERRAR, escrito como escenario.
+     *
+     * `next` sirve el ejercicio con unos números. Antes de que el alumno
+     * responda entra OTRO intento suyo —otra pestaña, un reintento tras el
+     * 409, una petición repetida—. Al llegar la respuesta, el servidor volvía a
+     * contar filas, sacaba un número de intento distinto, derivaba OTRA semilla
+     * y corregía contra unos números que el alumno no vio nunca: una respuesta
+     * buena marcada como mala.
+     *
+     * El intento intermedio lleva el número 3 a propósito: deja libre el 1, que
+     * es el del billete, para que lo que se mida sea la CORRECCIÓN y no el 409.
+     */
+    public function test_un_intento_intermedio_no_cambia_los_numeros_que_se_corrigen(): void
+    {
+        // Un ítem con números DE VERDAD: el de setUp tiene los parámetros
+        // constantes, así que con él la semilla no cambia nada y el escenario
+        // pasaría en verde sin demostrar nada.
+        $objetivo = LearningObjective::create([
+            'node_id' => $this->objective->node_id,
+            'version_id' => $this->objective->version_id,
+            'native_code' => 'M.4.1.2', 'statement' => ['es' => 'Doblar un número.'],
+            'is_verified' => true,
+        ]);
+        $item = PracticeItem::create([
+            'objective_id' => $objetivo->id,
+            'statement' => ['es' => 'El doble de {x}'],
+            'params' => ['x' => ['min' => 1, 'max' => 400, 'step' => 1]],
+            'solution_expr' => 'x * 2',
+            'tolerance' => 0.01, 'tolerance_kind' => 'abs',
+            'reviewed_at' => now(),
+        ]);
+
+        $this->actingAs($this->ana);
+
+        $servido = $this->getJson("/api/v1/objectives/{$objetivo->id}/practice/next")
+            ->assertOk()->assertJsonPath('attempt_no', 1);
+
+        // Lo que el alumno TIENE DELANTE, y la respuesta buena de eso.
+        $buena = $servido->json('params')['x'] * 2;
+
+        // Entra un intento por otra vía entre las dos peticiones: otra pestaña,
+        // un reintento tras el 409, una petición repetida. Lleva el número 3 a
+        // propósito, para dejar libre el 1 —el del billete— y que lo que se
+        // mida sea la CORRECCIÓN y no un 409.
+        PracticeAttempt::create([
+            'item_id' => $item->id, 'user_id' => $this->ana->id,
+            'attempt_no' => 3, 'seed' => str_repeat('a', 64), 'params' => [],
+            'answer' => 0, 'expected' => 0, 'is_correct' => false,
+        ]);
+
+        // Y el alumno responde lo que se le pidió: tiene que ser CORRECTO.
+        // Antes del billete, aquí el servidor contaba filas, sacaba el intento
+        // 2, derivaba otra semilla y le ponía mal una respuesta buena.
+        $this->postJson("/api/v1/practice/items/{$item->id}/attempts", [
+            'answer' => $buena, 'billete' => $servido->json('billete'),
+        ])->assertCreated()
+            ->assertJsonPath('is_correct', true)
+            ->assertJsonPath('attempt_no', 1);
+
+        // Y se guarda con la semilla del billete, no con otra.
+        $this->assertDatabaseHas('practice_attempts', [
+            'item_id' => $item->id, 'user_id' => $this->ana->id,
+            'attempt_no' => 1, 'is_correct' => true,
+            'seed' => hash('sha256', "{$item->id}:{$this->ana->id}:1"),
+        ]);
     }
 
     // ======== Dominio/progreso del invitado: 200 vacío, jamás el de otro ========

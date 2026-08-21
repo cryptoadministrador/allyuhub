@@ -43,6 +43,7 @@ class PracticeLoadTest extends TestCase
 
         $this->actingAs($user)->postJson("/api/v1/practice/items/{$item->id}/attempts", [
             'answer' => $expected,
+            'billete' => $this->billete($item->id, $user->id, $attemptNo),
         ])->assertCreated();
     }
 

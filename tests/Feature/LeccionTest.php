@@ -66,7 +66,10 @@ class LeccionTest extends TestCase
     private function leccion(array $bloques, ?string $firmada = 'ahora'): Resource
     {
         $recurso = Resource::create([
-            'slug' => 'leccion-'.Str::random(8), 'kind' => 'reading',
+            'slug' => 'leccion-'.Str::random(8), 'kind' => Resource::LECTURA,
+            // Como lo que sale del sembrador: generado, y por tanto sujeto a
+            // firma. La puerta mira la PROCEDENCIA, no el kind.
+            'origen' => Resource::GENERADO,
             'title' => ['es' => 'Ecuaciones de primer grado'],
             'summary' => ['es' => 'Qué es una ecuación y cómo se despeja.'],
             'status' => 'published',
@@ -225,6 +228,11 @@ class LeccionTest extends TestCase
             '/api/v1/resources',
             "/destreza/{$this->objective->id}",
             "/api/v1/objectives/{$this->objective->id}",
+            // La portada. Hoy solo lleva cifras agregadas, así que el centinela
+            // no podría aparecer ni queriendo — pero está en la lista para que
+            // el día que alguien ponga un «último contenido publicado» ahí
+            // arriba, la puerta ya esté puesta y no haya que acordarse.
+            '/',
         ];
 
         foreach ($rutas as $ruta) {
@@ -240,6 +248,82 @@ class LeccionTest extends TestCase
 
         $this->assertStringContainsString($delator,
             $this->get("/recurso/{$recurso->id}")->getContent());
+    }
+
+    /**
+     * LA PUERTA MIRA LA PROCEDENCIA, NO EL TIPO.
+     *
+     * Esta condición decía `kind != 'reading'`, y era cierta por una
+     * circunstancia y no por naturaleza: hoy lo único que se produce a escala
+     * son lecciones. La Fase 2 son simuladores DECLARATIVOS generados por un
+     * pipeline de IA — el esquema lo dice literalmente («config declarativa
+     * validada»). Con la regla atada al tipo, ese lote habría entrado por
+     * `kind = 'simulation'` y salido al alumno sin que nadie tocara la línea de
+     * la puerta: el agujero se abría solo.
+     *
+     * Los dos casos van juntos a propósito. El primero solo demuestra que algo
+     * se filtra; el segundo, que la puerta no se ha vuelto un muro.
+     */
+    public function test_la_firma_se_le_exige_a_lo_generado_no_a_un_kind(): void
+    {
+        // Un simulador GENERADO y sin firmar: no sale, aunque no sea lectura.
+        // Es el caso de la Fase 2, escrito antes de que exista.
+        $generado = Resource::create([
+            'slug' => 'sim-declarativo', 'kind' => Resource::SIMULACION,
+            'origen' => Resource::GENERADO, 'status' => 'published',
+            'title' => ['es' => 'Simulador declarativo'],
+        ]);
+        $version = ResourceVersion::create([
+            'resource_id' => $generado->id, 'semver' => '1.0.0',
+            'bundle_url' => 'https://cdn.test/sims/x/1.0.0/', 'published_at' => now(),
+        ]);
+        $generado->update(['current_version_id' => $version->id]);
+        $generado->objectives()->attach($this->objective->id, ['role' => 'primary']);
+
+        $this->get("/recurso/{$generado->id}")->assertNotFound();
+
+        // Una lectura CURADA —escrita a mano por un docente— sale sin firma:
+        // ya pasó por unos ojos al darla de alta. Si este caso fallara, la
+        // puerta habría dejado de ser una puerta para ser un muro.
+        $curada = Resource::create([
+            'slug' => 'ficha-del-profe', 'kind' => Resource::LECTURA,
+            'origen' => Resource::CURADO, 'status' => 'published',
+            'title' => ['es' => 'Ficha del profesor'],
+        ]);
+        $vCurada = ResourceVersion::create([
+            'resource_id' => $curada->id, 'semver' => '1.0.0',
+            'config' => ['bloques' => (new Bloques)->validar([
+                ['tipo' => 'parrafo', 'texto' => ['es' => 'Escrita a mano.']],
+            ])],
+            'published_at' => now(),
+        ]);
+        $curada->update(['current_version_id' => $vCurada->id]);
+
+        $this->get("/recurso/{$curada->id}")->assertOk();
+
+        // Y en cuanto alguien firma el generado, sale.
+        $version->update(['reviewed_at' => now()]);
+        $this->get("/recurso/{$generado->id}")->assertOk();
+    }
+
+    /** Lo que ya existía en producción es curado: la migración no lo esconde. */
+    public function test_la_migracion_no_deja_de_servir_lo_que_ya_estaba(): void
+    {
+        // Un simulador dado de alta antes de que existiera la columna: la
+        // migración lo marcó `curado`, así que se sigue sirviendo sin firma.
+        // Sin ese backfill, esta migración habría vaciado el catálogo.
+        $viejo = Resource::create([
+            'slug' => 'plano-inclinado', 'kind' => Resource::SIMULACION,
+            'status' => 'published', 'title' => ['es' => 'Plano inclinado'],
+        ]);
+        $v = ResourceVersion::create([
+            'resource_id' => $viejo->id, 'semver' => '1.0.0',
+            'bundle_url' => 'https://cdn.test/sims/plano/1.0.0/', 'published_at' => now(),
+        ]);
+        $viejo->update(['current_version_id' => $v->id]);
+
+        $this->assertSame(Resource::CURADO, $viejo->fresh()->origen);
+        $this->get("/recurso/{$viejo->id}")->assertOk();
     }
 
     public function test_una_leccion_sin_firmar_no_asoma_en_la_ficha(): void

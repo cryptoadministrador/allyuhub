@@ -33,6 +33,9 @@ const ITEM_PROPIO = {
     objective_code: 'CN.F.5.1.12',
     objective_statement: 'Determinar el coeficiente de rozamiento entre dos superficies.',
     attempt_no: 1,
+    // El billete firmado que emite `next`. El cliente NO lo lee ni lo
+    // construye: lo guarda y lo devuelve tal cual al responder.
+    billete: 'billete-del-intento-1',
     statement: { es: 'Si μs = 0.5, calcula el ángulo crítico en grados.' },
     params: { mu: 0.5 },
     answer_unit: '°',
@@ -392,7 +395,12 @@ describe('Practicar — como VISITANTE (sin sesión)', () => {
         const fetchMock = encolarFetch(
             respuestaJson(200, ITEM_PROPIO),
             respuestaJson(200, { attempt_no: 1, is_correct: true, expected: 26.565, answer: 26.6, se_guarda: false }),
-            respuestaJson(200, { ...ITEM_PROPIO, attempt_no: 2, statement: { es: 'Segundo: μs = 0.7…' } }),
+            respuestaJson(200, {
+                ...ITEM_PROPIO,
+                attempt_no: 2,
+                billete: 'billete-del-intento-2',
+                statement: { es: 'Segundo: μs = 0.7…' },
+            }),
         );
 
         const user = userEvent.setup();
@@ -406,8 +414,14 @@ describe('Practicar — como VISITANTE (sin sesión)', () => {
         await user.click(screen.getByRole('button', { name: /comprobar/i }));
         await screen.findByText('Correcto.');
 
-        // Y al responder, el intento que se corrige es el del ítem servido.
-        expect(JSON.parse(fetchMock.mock.calls[1][1].body).intento).toBe(1);
+        // Y al responder, devuelve EL BILLETE del ítem que tiene delante, tal
+        // cual vino. El número de intento y la semilla van firmados dentro: el
+        // cliente no los elige, y el servidor ya no los deduce contando filas
+        // en otro instante (que es lo que corregía al alumno contra números que
+        // no había visto).
+        const enviado = JSON.parse(fetchMock.mock.calls[1][1].body);
+        expect(enviado.billete).toBe('billete-del-intento-1');
+        expect(enviado.intento).toBeUndefined();
 
         await user.click(screen.getByRole('button', { name: /siguiente ejercicio/i }));
         await screen.findByText(/Segundo:/);

@@ -54,13 +54,28 @@ class SeedPracticeBank extends Command
         {--marco=EC-MINEDEC : Código del marco curricular}
         {--incluir-no-verificadas : Siembra también sobre destrezas sin verificar (grafo de demostración)}
         {--podar : Borra los ítems del banco cuyo bloque ya no está en el fichero}
+        {--banco= : Ruta de otro fichero de banco (por defecto database/data/banco-practica.php)}
         {--dry-run : Cuenta lo que haría sin escribir}';
 
     protected $description = 'Siembra el banco de ítems de práctica (numéricos y de opción múltiple) sobre el currículo';
 
     public function handle(): int
     {
-        $banco = require database_path('data/banco-practica.php');
+        // La ruta es un parámetro para que NADIE tenga que sobrescribir el
+        // fichero real para sembrar otra cosa. Los tests lo hacían —escribían
+        // encima y lo restauraban en un `finally`—, y eso aguanta mientras el
+        // proceso termine: una interrupción, un CI cortado o dos suites a la
+        // vez dejaban un fichero versionado destruido, en silencio y con pinta
+        // de cambio legítimo. Un `finally` no es una transacción.
+        $ruta = $this->option('banco') ?: database_path('data/banco-practica.php');
+
+        if (! is_file($ruta)) {
+            $this->error("No existe el fichero de banco {$ruta}.");
+
+            return self::FAILURE;
+        }
+
+        $banco = require $ruta;
         $marco = (string) $this->option('marco');
 
         // Dónde aterriza un bloque lo decide `DestinosDeBloque`, la MISMA regla
