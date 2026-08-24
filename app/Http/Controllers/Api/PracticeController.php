@@ -98,7 +98,7 @@ class PracticeController extends Controller
         // el payload de un `choice` no arrastra campos numéricos vacíos, y
         // sobre todo se ve de un vistazo que la marca de «correcta» no está en
         // ninguna de las dos ramas.
-        if ($item->esChoice()) {
+        if ($item->respondePorClave()) {
             $opciones = $item->shuffle
                 ? $this->engine->shuffleOptions($item->opciones(), $seed)
                 : $item->opciones();
@@ -113,6 +113,14 @@ class PracticeController extends Controller
                     'text' => $o['text'],
                 ], $opciones),
             ];
+
+            if ($item->esEscucha()) {
+                // El clip SÍ viaja —sin él no hay nada que oír— pero la
+                // transcripción NO: es columna oculta, como la clave correcta,
+                // y se revela en el veredicto. Si viajara aquí, el ejercicio
+                // de escucha no existiría.
+                $propio['audio_src'] = $item->audio_src;
+            }
         } else {
             $params = $this->engine->sampleParams($item->params, $seed);
             $propio = [
@@ -160,7 +168,8 @@ class PracticeController extends Controller
         // Cada tipo exige LO SUYO y prohíbe lo del otro: responder un texto con
         // un número (o al revés) es un cliente equivocado, y vale más que grite
         // un 422 a que se registre un fallo que el alumno no cometió.
-        $esChoice = $item->esChoice();
+        // `escucha` responde por clave igual que `choice`: misma vía entera.
+        $esChoice = $item->respondePorClave();
 
         $data = $request->validate([
             'user_id' => 'prohibited',
@@ -210,6 +219,13 @@ class PracticeController extends Controller
                 'expected_key' => $result['expected_key'],
                 'answer_key' => (string) $data['answer_key'],
             ];
+
+            if ($item->esEscucha()) {
+                // AHORA sí: respondido el intento, la transcripción es
+                // pedagogía y no un secreto. Leer lo que acabas de oír —lo
+                // aciertes o no— es la mitad del ejercicio de escucha en A1.
+                $veredicto['transcripcion'] = $item->transcripcion;
+            }
         } else {
             $params = $this->engine->sampleParams($item->params, $seed);
             $result = $this->engine->verify(

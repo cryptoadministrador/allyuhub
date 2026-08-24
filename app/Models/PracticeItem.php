@@ -19,6 +19,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  *    correcta) y la clave buena en su propia columna `answer_key`, que no se
  *    serializa jamás. La semilla baraja el orden de PINTADO y nada más: se
  *    responde por clave, así que un barajado distinto no puede calificar mal.
+ *  - `escucha`: la mecánica de `choice` con un clip delante (`audio_src`).
+ *    La `transcripcion` es columna propia y oculta, como la clave: se revela
+ *    en el veredicto, nunca en `next` — leerla antes mataría el ejercicio.
  */
 class PracticeItem extends Model
 {
@@ -27,6 +30,8 @@ class PracticeItem extends Model
     public const NUMERIC = 'numeric';
 
     public const CHOICE = 'choice';
+
+    public const ESCUCHA = 'escucha';
 
     protected $guarded = [];
 
@@ -44,11 +49,28 @@ class PracticeItem extends Model
      * defensa es que el payload de `next` se arma por lista blanca— pero cierra
      * el descuido de un `toArray()` en cualquier respuesta futura.
      */
-    protected $hidden = ['answer_key', 'solution_expr'];
+    protected $hidden = ['answer_key', 'solution_expr', 'transcripcion'];
 
     public function esChoice(): bool
     {
         return $this->kind === self::CHOICE;
+    }
+
+    public function esEscucha(): bool
+    {
+        return $this->kind === self::ESCUCHA;
+    }
+
+    /**
+     * ¿Se responde eligiendo una CLAVE inmutable? `choice` y `escucha`
+     * comparten la mecánica entera —opciones sin marca, corrección por clave,
+     * barajado solo de pintado— y por eso el motor pregunta esto y no el kind:
+     * el siguiente tipo que responda por clave entra aquí y hereda todas las
+     * garantías sin tocar una línea del controlador.
+     */
+    public function respondePorClave(): bool
+    {
+        return in_array($this->kind, [self::CHOICE, self::ESCUCHA], true);
     }
 
     /** @return list<array{key: string, text: array<string, string>}> */

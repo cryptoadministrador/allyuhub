@@ -683,3 +683,110 @@ describe('Practicar — ítems de opción múltiple', () => {
         expect(violacionesGraves(await axe(container))).toEqual([]);
     });
 });
+
+// ================= ESCUCHA: el primer tipo de lenguas =================
+
+const ITEM_ESCUCHA = {
+    item_id: 'item-escucha',
+    kind: 'escucha',
+    objective_id: 'obj-frances',
+    objective_code: 'EXT.FR.1.1.1',
+    objective_statement: 'Comprender saludos muy básicos.',
+    attempt_no: 1,
+    billete: 'billete-escucha-1',
+    statement: { es: 'Escucha el saludo. ¿Qué dice?' },
+    options: [
+        { key: 'a', text: { es: 'Buenos días' } },
+        { key: 'b', text: { es: 'Buenas noches' } },
+        { key: 'c', text: { es: 'Hasta luego' } },
+    ],
+    audio_src: '/audio/aabbccddeeff0011.mp3',
+    reason: 'práctica normal',
+    se_guarda: true,
+};
+
+const OBJETIVO_FRANCES = {
+    id: 'obj-frances',
+    native_code: 'EXT.FR.1.1.1',
+    statement: 'Comprender saludos muy básicos.',
+    has_items: true,
+};
+
+describe('Practicar — ítems de escucha', () => {
+    it('pinta el reproductor nativo con el clip y las opciones como radios', async () => {
+        encolarFetch(respuestaJson(200, ITEM_ESCUCHA));
+        const { container } = render(<Practicar objective={OBJETIVO_FRANCES} mastery={null} />);
+        await screen.findByText(/escucha el saludo/i);
+
+        // <audio> del navegador: 0 KB de librería, teclado y lector de
+        // pantalla gratis con `controls`.
+        const audio = container.querySelector('audio');
+        expect(audio).not.toBeNull();
+        expect(audio).toHaveAttribute('src', '/audio/aabbccddeeff0011.mp3');
+        expect(audio).toHaveAttribute('controls');
+
+        expect(screen.getAllByRole('radio')).toHaveLength(3);
+    });
+
+    it('la transcripción NO está en el DOM antes de responder', async () => {
+        encolarFetch(
+            respuestaJson(200, { ...ITEM_ESCUCHA, transcripcion: undefined }),
+        );
+        const { container } = render(<Practicar objective={OBJETIVO_FRANCES} mastery={null} />);
+        await screen.findByText(/escucha el saludo/i);
+
+        // El servidor no la manda (eso lo fija EscuchaTest); aquí se fija que
+        // el componente tampoco la INVENTA ni deja un hueco con su nombre.
+        expect(container.textContent).not.toMatch(/transcripci/i);
+    });
+
+    it('tras responder, la transcripción del veredicto se lee', async () => {
+        const user = userEvent.setup();
+        encolarFetch(
+            respuestaJson(200, ITEM_ESCUCHA),
+            respuestaJson(201, {
+                id: 'a1', attempt_no: 1, is_correct: false, expected_key: 'a',
+                answer_key: 'b', transcripcion: 'Bonjour !', se_guarda: true,
+            }),
+            respuestaJson(200, []),
+        );
+        render(<Practicar objective={OBJETIVO_FRANCES} mastery={null} />);
+        await screen.findByText(/escucha el saludo/i);
+
+        await user.click(screen.getByRole('radio', { name: /buenas noches/i }));
+        await user.click(screen.getByRole('button', { name: /comprobar/i }));
+        await screen.findByText('Incorrecto.');
+
+        // Lo que decía el clip, visible y rotulado: es la mitad del ejercicio.
+        expect(screen.getByText('Bonjour !')).toBeInTheDocument();
+        expect(screen.getByText(/lo que decía el audio/i)).toBeInTheDocument();
+        // Y la opción buena se nombra por su texto, como en choice.
+        expect(screen.getByText(/buenos días/i)).toBeInTheDocument();
+    });
+
+    it('si el clip no carga, lo dice y el ejercicio no se rompe', async () => {
+        const { fireEvent } = await import('@testing-library/react');
+        encolarFetch(respuestaJson(200, ITEM_ESCUCHA));
+        const { container } = render(<Practicar objective={OBJETIVO_FRANCES} mastery={null} />);
+        await screen.findByText(/escucha el saludo/i);
+
+        fireEvent.error(container.querySelector('audio'));
+
+        // Sin red no hay escucha, y se DICE — nada de un reproductor muerto.
+        expect(screen.getByRole('status')).toHaveTextContent(/audio no se pudo cargar/i);
+        // El formulario sigue: puede intentarlo igual o pasar al siguiente.
+        expect(screen.getByRole('button', { name: /comprobar/i })).toBeInTheDocument();
+    });
+
+    it.each([
+        ['con sesión', { user: { id: 1, name: 'Ana' } }],
+        ['sin sesión', { user: null }],
+    ])('accesibilidad %s: cero violaciones serias', async (_n, quien) => {
+        auth = quien;
+        encolarFetch(respuestaJson(200, { ...ITEM_ESCUCHA, se_guarda: !!quien.user }));
+        const { container } = render(<Practicar objective={OBJETIVO_FRANCES} mastery={null} />);
+        await screen.findByText(/escucha el saludo/i);
+
+        expect(violacionesGraves(await axe(container))).toEqual([]);
+    });
+});

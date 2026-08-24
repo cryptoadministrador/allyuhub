@@ -38,6 +38,23 @@ Route::get('/buscar', [PageController::class, 'buscar'])->name('buscar');
 Route::get('/practicar/{objective}', [PageController::class, 'practicar'])->name('practicar');
 Route::get('/recurso/{resource}', [PageController::class, 'recurso'])->name('recurso');
 
+// Los clips de audio de las lecciones e ítems de escucha. Abiertos como el
+// resto del contenido. El nombre deriva del contenido (AlmacenDeAudio), así
+// que la caché puede ser INMUTABLE: si el clip cambia, cambia la URL. La forma
+// del nombre es cerrada — lo que no la cumple es 404 sin mirar el disco, y un
+// path traversal no llega ni a componer una ruta.
+Route::get('/audio/{fichero}', function (string $fichero) {
+    $ruta = \App\Services\Audio\AlmacenDeAudio::resolver($fichero);
+    abort_if($ruta === null, 404);
+
+    $ext = pathinfo($fichero, PATHINFO_EXTENSION);
+
+    return response()->file($ruta, [
+        'Content-Type' => \App\Services\Audio\AlmacenDeAudio::TIPOS[$ext],
+        'Cache-Control' => 'public, max-age=31536000, immutable',
+    ]);
+})->where('fichero', '[a-f0-9]{16}\.(mp3|ogg|m4a)')->name('audio');
+
 // Lo del alumno y lo del docente SIGUE cerrado: su casa, su progreso guardado
 // y el panel del curso son suyos, y la identidad es SIEMPRE la sesión.
 Route::middleware('auth')->group(function () {
