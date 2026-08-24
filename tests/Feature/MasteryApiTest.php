@@ -79,6 +79,7 @@ class MasteryApiTest extends TestCase
 
         $this->actingAs($user)->postJson("/api/v1/practice/items/{$itemId}/attempts", [
             'answer' => $correct ? $expected : $expected + 50,
+            'billete' => $this->billeteComoNext($itemId, $user->id),
         ])->assertCreated();
     }
 

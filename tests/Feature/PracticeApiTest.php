@@ -114,25 +114,33 @@ class PracticeApiTest extends TestCase
     public function test_intento_correcto_incorrecto_y_con_tolerancia(): void
     {
         // Intento 1: respuesta exacta → correcto.
-        $p1 = $this->next($this->ana)->json('params');
+        // Circuito completo: se pide el item y se responde con EL BILLETE que
+        // vino con el. Nada de re-deducir el numero de intento por fuera.
+        $r1 = $this->next($this->ana);
+        $p1 = $r1->json('params');
         $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [
             'answer' => $this->expectedFor($p1), 'time_ms' => 42000,
+            'billete' => $r1->json('billete'),
         ])->assertCreated()
             ->assertJsonPath('attempt_no', 1)
             ->assertJsonPath('is_correct', true);
 
         // Intento 2: números nuevos; muy desviada → incorrecto.
-        $p2 = $this->next($this->ana)->json('params');
+        $r2 = $this->next($this->ana);
+        $p2 = $r2->json('params');
         $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [
             'answer' => $this->expectedFor($p2) + 10,
+            'billete' => $r2->json('billete'),
         ])->assertCreated()
             ->assertJsonPath('attempt_no', 2)
             ->assertJsonPath('is_correct', false);
 
         // Intento 3: dentro de la tolerancia relativa del 2 % → correcto.
-        $p3 = $this->next($this->ana)->json('params');
+        $r3 = $this->next($this->ana);
+        $p3 = $r3->json('params');
         $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [
             'answer' => $this->expectedFor($p3) * 1.01,
+            'billete' => $r3->json('billete'),
         ])->assertCreated()
             ->assertJsonPath('attempt_no', 3)
             ->assertJsonPath('is_correct', true);
@@ -147,9 +155,10 @@ class PracticeApiTest extends TestCase
 
     public function test_tras_un_intento_cambian_los_numeros(): void
     {
-        $p1 = $this->next($this->ana)->json('params');
+        $r1 = $this->next($this->ana);
+        $p1 = $r1->json('params');
         $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [
-            'answer' => 0,
+            'answer' => 0, 'billete' => $r1->json('billete'),
         ])->assertCreated();
 
         $again = $this->next($this->ana)->assertOk();
@@ -159,13 +168,15 @@ class PracticeApiTest extends TestCase
 
     public function test_el_servidor_ignora_el_is_correct_del_cliente(): void
     {
-        $p1 = $this->next($this->ana)->json('params');
+        $r1 = $this->next($this->ana);
+        $p1 = $r1->json('params');
 
         // El cliente miente: respuesta absurda marcada como "correcta".
         $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [
             'answer' => $this->expectedFor($p1) + 1000,
             'is_correct' => true,
             'expected' => 0,
+            'billete' => $r1->json('billete'),
         ])->assertCreated()->assertJsonPath('is_correct', false);
 
         $this->assertDatabaseHas('practice_attempts', [
@@ -192,10 +203,11 @@ class PracticeApiTest extends TestCase
         ]);
 
         // Sin intentos: sale el primero (seq 0).
-        $this->next($this->ana)->assertOk()->assertJsonPath('item_id', self::ITEM_ID);
+        $primero = $this->next($this->ana)->assertOk()
+            ->assertJsonPath('item_id', self::ITEM_ID);
 
         $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [
-            'answer' => 0,
+            'answer' => 0, 'billete' => $primero->json('billete'),
         ])->assertCreated();
 
         // Tras practicar el primero, toca el menos practicado.
@@ -216,8 +228,14 @@ class PracticeApiTest extends TestCase
         $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [])
             ->assertStatus(422);   // falta answer
         $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [
-            'answer' => 'no-numérica',
+            'answer' => 'no-numérica', 'billete' => $this->billete(self::ITEM_ID, $this->ana->id),
         ])->assertStatus(422);
+
+        // Y responder SIN billete es 422 aunque la respuesta sea impecable: el
+        // servidor ya no deduce contra qué corregir.
+        $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [
+            'answer' => 1.0,
+        ])->assertStatus(422)->assertJsonValidationErrors('billete');
 
         // Objetivo sin ítems de práctica → 404.
         $bare = LearningObjective::create([

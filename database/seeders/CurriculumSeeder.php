@@ -189,6 +189,11 @@ class CurriculumSeeder extends Seeder
             foreach ($sims as [$slug, $title, $codes, $dur]) {
                 $res = Resource::create([
                     'slug' => $slug, 'kind' => 'lab',
+                    // Los dos laboratorios reales los da de alta un operador uno
+                    // a uno, no un pipeline: CURADO. El default de la columna es
+                    // `generado` a proposito —la puerta falla cerrada—, asi que
+                    // omitir esto aqui dejaria la semilla sin catalogo visible.
+                    'origen' => Resource::CURADO,
                     'title' => ['es' => $title], 'duration_min' => $dur,
                     'status' => 'published', 'license' => 'CC BY-SA 4.0',
                     'a11y' => ['wcag' => '2.2AA', 'keyboard' => true, 'screenreader' => true],

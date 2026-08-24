@@ -225,7 +225,8 @@ class CatalogoPagesTest extends TestCase
     public function test_la_frontera_entre_lo_abierto_y_lo_del_alumno(): void
     {
         $recurso = Resource::create([
-            'slug' => 'sim', 'kind' => 'lab', 'title' => ['es' => 'Sim'], 'status' => 'published',
+            'slug' => 'sim', 'kind' => 'lab', 'title' => ['es' => 'Sim'],
+            'origen' => Resource::CURADO, 'status' => 'published',
         ]);
 
         foreach ([
@@ -413,6 +414,7 @@ class CatalogoPagesTest extends TestCase
         // Recurso publicado alineado + prerrequisito manual.
         $sim = Resource::create([
             'slug' => 'plano-inclinado', 'kind' => 'lab',
+            'origen' => Resource::CURADO,
             'title' => ['es' => 'Laboratorio: plano inclinado'], 'status' => 'published',
         ]);
         $sim->objectives()->attach($this->verificada->id, ['role' => 'primary']);
@@ -446,6 +448,7 @@ class CatalogoPagesTest extends TestCase
     {
         $draft = Resource::create([
             'slug' => 'sim-borrador', 'kind' => 'lab',
+            'origen' => Resource::CURADO,
             'title' => ['es' => 'Simulador en obras'], 'status' => 'draft',
         ]);
         $v = ResourceVersion::create([

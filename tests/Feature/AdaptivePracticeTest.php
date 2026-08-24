@@ -143,6 +143,7 @@ class AdaptivePracticeTest extends TestCase
 
         $this->actingAs($this->ana)->postJson("/api/v1/practice/items/{$item->id}/attempts", [
             'answer' => $correct ? $expected : $expected + 50,
+            'billete' => $this->billeteComoNext($item->id, $this->ana->id),
         ])->assertCreated();
     }
 

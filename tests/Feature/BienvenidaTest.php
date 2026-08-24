@@ -2,11 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Http\Controllers\App\BienvenidaController;
 use App\Models\CurNode;
 use App\Models\Framework;
 use App\Models\FrameworkVersion;
 use App\Models\LearningObjective;
 use App\Models\Resource;
+use App\Models\ResourceVersion;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
@@ -43,12 +45,19 @@ class BienvenidaTest extends TestCase
                 'is_verified' => $verificada,
             ]);
         }
+        // `Resource::SIMULACION`, no la cadena. El fixture decía 'simulator'
+        // —que no está en el vocabulario de la migración y no lo escribe nadie—
+        // y el controlador también, así que el test pasaba en verde mientras la
+        // portada contaba cero simuladores para siempre. Dos erratas que se
+        // daban la razón la una a la otra.
         Resource::create([
-            'slug' => 'plano-inclinado', 'kind' => 'simulator', 'status' => 'published',
+            'slug' => 'plano-inclinado', 'kind' => Resource::SIMULACION, 'status' => 'published',
+            'origen' => Resource::CURADO,
             'title' => ['es' => 'Plano inclinado'],
         ]);
         Resource::create([
-            'slug' => 'borrador', 'kind' => 'simulator', 'status' => 'draft',
+            'slug' => 'borrador', 'kind' => Resource::SIMULACION, 'status' => 'draft',
+            'origen' => Resource::CURADO,
             'title' => ['es' => 'Borrador'],
         ]);
     }
@@ -168,5 +177,68 @@ class BienvenidaTest extends TestCase
         $this->assertStringNotContainsString('Enunciado.', $json);
         $this->assertStringNotContainsString('plano-inclinado', $json);
         $this->assertNull($props['auth']['user'] ?? null);
+    }
+
+    /**
+     * EL VOCABULARIO DE `kind`, contra la migración que lo declara.
+     *
+     * La portada contaba `kind = 'simulator'`. No existe: la migración de
+     * `resources` declara `simulation|lab|video|reading|practice_set|project` y
+     * el Deep Linking usa `simulation`. Nadie escribe nunca 'simulator'… salvo
+     * el fixture de este mismo fichero, que llevaba la misma errata. Por eso
+     * pasaba en verde, y por eso la portada habría dicho «0 simuladores»
+     * aunque la Fase 2 sembrara doscientos.
+     *
+     * El oráculo no compara con una lista que yo escriba aquí: la lee del
+     * comentario de la migración, que es donde vive la verdad.
+     */
+    public function test_los_kinds_que_cuenta_la_portada_existen_en_el_vocabulario(): void
+    {
+        $migracion = file_get_contents(database_path(
+            'migrations/2026_08_11_000002_create_tracks_and_resources.php',
+        ));
+
+        $this->assertSame(1, preg_match(
+            '/\$table->string\(\'kind\'\);\s*\/\/ ([a-z_|]+)/', $migracion, $m,
+        ), 'La migración dejó de declarar el vocabulario de kind junto a la columna.');
+
+        $vocabulario = explode('|', $m[1]);
+        $this->assertContains(Resource::LECTURA, $vocabulario);
+
+        foreach (Resource::INTERACTIVOS as $kind) {
+            $this->assertContains($kind, $vocabulario,
+                "La portada cuenta '{$kind}', que no está en el vocabulario de la migración.");
+        }
+    }
+
+    /**
+     * La portada es la SEXTA puerta, y la más pública: cuenta recursos, así que
+     * pasa por `published()` como todas las demás. Con la puerta atada a la
+     * procedencia esto deja de ser inofensivo — un lote generado y sin firmar
+     * inflaría la cifra que ve un visitante antes de que nadie lo haya mirado.
+     */
+    public function test_la_portada_no_cuenta_lo_generado_sin_firmar(): void
+    {
+        $this->sembrarCurriculo();
+
+        $generado = Resource::create([
+            'slug' => 'sim-generado', 'kind' => Resource::SIMULACION,
+            'origen' => Resource::GENERADO, 'status' => 'published',
+            'title' => ['es' => 'Simulador declarativo'],
+        ]);
+        $version = ResourceVersion::create([
+            'resource_id' => $generado->id, 'semver' => '1.0.0', 'published_at' => now(),
+        ]);
+        $generado->update(['current_version_id' => $version->id]);
+
+        // Sigue contando 1: el curado de siempre, no el recién generado.
+        $this->get('/')->assertInertia(fn ($p) => $p->where('cifras.simuladores', 1));
+
+        // Y en cuanto un docente lo firma, cuenta. La cifra está cacheada una
+        // hora, así que sin vaciarla este control positivo mediría la caché.
+        $version->update(['reviewed_at' => now()]);
+        Cache::forget(BienvenidaController::CACHE_KEY);
+
+        $this->get('/')->assertInertia(fn ($p) => $p->where('cifras.simuladores', 2));
     }
 }

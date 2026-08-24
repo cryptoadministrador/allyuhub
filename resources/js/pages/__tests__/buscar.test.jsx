@@ -51,9 +51,11 @@ describe('buscar — estados y anuncios', () => {
         await user.type(screen.getByRole('searchbox'), 'rozamiento');
 
         // El anuncio llega por el aria-live (role=status).
-        await waitFor(
-            () => expect(screen.getByRole('status')).toHaveTextContent('1 resultado para «rozamiento».'),
-            { timeout: 2000 },
+        // Sin techo propio: el global vive en `test/setup.js` y ahí está
+        // explicado. Un 2000 escrito aquí era más apretado que el global y
+        // volvía a atar este test a lo ocupada que estuviera la máquina.
+        await waitFor(() =>
+            expect(screen.getByRole('status')).toHaveTextContent('1 resultado para «rozamiento».'),
         );
         expect(screen.getByRole('link', { name: 'CN.F.5.1.12' })).toBeInTheDocument();
         expect(screen.getByText('Verificada con el currículo oficial')).toBeInTheDocument();

@@ -156,6 +156,7 @@ class LtiAgsTest extends TestCase
 
         $this->actingAs($user)->postJson("/api/v1/practice/items/{$item->id}/attempts", [
             'answer' => $correct ? $expected : $expected + 50,
+            'billete' => $this->billeteComoNext($item->id, $user->id),
         ])->assertCreated();
     }
 
@@ -321,11 +322,14 @@ class LtiAgsTest extends TestCase
         $this->postJson("/api/v1/practice/items/{$this->item->id}/attempts", [
             'user_id' => $victima->id,
             'answer' => $correcta,
+            'billete' => $this->billete($this->item->id),
         ])->assertStatus(422)->assertJsonValidationErrors('user_id');
 
         // (b) Y ahora como invitado legítimo, sin trucos: se le corrige…
+        // (con SU billete: el de la víctima no le vale, y eso lo fija
+        // PracticeAuthTest. Aquí lo que se mide es que no queda rastro.)
         $this->postJson("/api/v1/practice/items/{$this->item->id}/attempts", [
-            'answer' => $correcta,
+            'answer' => $correcta, 'billete' => $this->billete($this->item->id),
         ])->assertOk()->assertJsonPath('se_guarda', false);
 
         // …pero no queda ni una fila, ni se llamó a Moodle por ningún lado.

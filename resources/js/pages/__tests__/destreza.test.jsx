@@ -133,6 +133,62 @@ describe('destreza — la ficha', () => {
  * ORÁCULO 9 — la ficha es el sitio desde el que un visitante entra a practicar:
  * el botón tiene que estar ahí y llevar a la página abierta.
  */
+/**
+ * LA FICHA COMO CENTRO DE LA DESTREZA, no como índice de ejercicios.
+ *
+ * Lo que se fija aquí es el ORDEN —primero aprender, después practicar— y que
+ * la ausencia de lección se diga en voz alta. La trampa fácil habría sido
+ * ocultar la sección cuando no hay lección: el alumno no sabría que falta y
+ * nosotros no sabríamos que hay un hueco.
+ */
+const LECCION = {
+    id: 'r-9',
+    title: 'El coeficiente de rozamiento',
+    summary: 'Qué mide y de qué depende.',
+    duration_min: 7,
+    bloques: 6,
+};
+
+describe('destreza — el orden aprende → practica', () => {
+    it('la lección se ofrece con su enlace, su duración y su tamaño', () => {
+        render(<Destreza {...props({ leccion: LECCION })} />);
+
+        const enlace = screen.getByRole('link', { name: /coeficiente de rozamiento/i });
+        expect(enlace).toHaveAttribute('href', '/recurso/r-9');
+        expect(screen.getByText(/lección de 6 apartados/i)).toBeInTheDocument();
+        expect(screen.getByText(/unos 7 min/i)).toBeInTheDocument();
+    });
+
+    it('sin lección lo DICE, no esconde la sección', () => {
+        render(<Destreza {...props()} />);
+
+        expect(screen.getByRole('heading', { name: /aprende/i })).toBeInTheDocument();
+        // Hay varios vacíos honestos en la ficha; este es el de la lección, y
+        // se anuncia (role=status) en vez de aparecer como texto suelto.
+        const vacio = screen.getByText(/todavía no tiene lección escrita/i);
+        expect(vacio).toHaveAttribute('role', 'status');
+        // Y no deja al alumno sin salida: le dice que puede practicar igual.
+        expect(screen.getByRole('link', { name: /practicar esta destreza/i })).toBeInTheDocument();
+    });
+
+    it('aprender va ANTES que practicar en el orden del documento', () => {
+        const { container } = render(<Destreza {...props({ leccion: LECCION })} />);
+
+        const titulares = [...container.querySelectorAll('h2')].map((h) => h.textContent);
+        const aprende = titulares.findIndex((t) => /aprende/i.test(t));
+        const practica = titulares.findIndex((t) => /practica/i.test(t));
+
+        expect(aprende).toBeGreaterThanOrEqual(0);
+        expect(aprende).toBeLessThan(practica);
+    });
+
+    it('con lección tampoco hay violaciones graves de accesibilidad', async () => {
+        const { container } = render(<Destreza {...props({ leccion: LECCION })} />);
+
+        expect(violacionesGraves(await axe(container))).toEqual([]);
+    });
+});
+
 describe('destreza — como VISITANTE', () => {
     afterEach(() => {
         sesion = { user: { id: 1, name: 'Ana' } };

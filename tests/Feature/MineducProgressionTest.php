@@ -83,11 +83,15 @@ class MineducProgressionTest extends TestCase
     /** Falla el ítem que el motor esté proponiendo para ese objetivo. */
     private function falla(LearningObjective $objective): void
     {
-        $itemId = $this->next($objective)->json('item_id');
+        // Circuito completo: se responde con el billete que vino con el ítem.
+        $servido = $this->next($objective);
+        $itemId = $servido->json('item_id');
 
         // Respuesta absurda: ninguna solución del banco se acerca al 2 % de esto.
         $this->actingAs($this->ana)
-            ->postJson("/api/v1/practice/items/{$itemId}/attempts", ['answer' => -987654321])
+            ->postJson("/api/v1/practice/items/{$itemId}/attempts", [
+                'answer' => -987654321, 'billete' => $servido->json('billete'),
+            ])
             ->assertCreated()
             ->assertJsonPath('is_correct', false);
     }

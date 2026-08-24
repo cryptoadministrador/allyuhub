@@ -72,10 +72,12 @@ class LtiDeepLinkingTest extends TestCase
 
         $this->sim = Resource::create([
             'slug' => 'plano-inclinado', 'kind' => 'lab',
+            'origen' => Resource::CURADO,
             'title' => ['es' => 'Laboratorio: plano inclinado'], 'status' => 'published',
         ]);
         Resource::create([
             'slug' => 'lente-borrador', 'kind' => 'lab',
+            'origen' => Resource::CURADO,
             'title' => ['es' => 'Borrador de lente'], 'status' => 'draft',
         ]);
     }

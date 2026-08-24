@@ -115,6 +115,7 @@ class CurriculumApiTest extends TestCase
         ]);
         $res = Resource::create([
             'slug' => 'plano-inclinado', 'kind' => 'lab',
+            'origen' => Resource::CURADO,
             'title' => ['es' => 'Plano inclinado'], 'status' => 'published',
         ]);
         $res->objectives()->attach($obj->id, ['role' => 'primary']);
@@ -139,6 +140,7 @@ class CurriculumApiTest extends TestCase
     {
         $res = Resource::create([
             'slug' => 'lente-delgada', 'kind' => 'lab',
+            'origen' => Resource::CURADO,
             'title' => ['es' => 'Banco óptico'], 'status' => 'published',
         ]);
         $v = ResourceVersion::create([
