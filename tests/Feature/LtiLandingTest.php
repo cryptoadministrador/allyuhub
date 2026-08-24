@@ -68,6 +68,7 @@ class LtiLandingTest extends TestCase
         ]);
         $this->sim = Resource::create([
             'slug' => 'plano-inclinado', 'kind' => 'lab',
+            'origen' => Resource::CURADO,
             'title' => ['es' => 'Laboratorio'], 'status' => 'published',
         ]);
     }

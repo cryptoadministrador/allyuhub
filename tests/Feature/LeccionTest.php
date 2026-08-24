@@ -12,8 +12,10 @@ use App\Models\Resource;
 use App\Models\ResourceVersion;
 use App\Models\User;
 use App\Services\Lesson\Bloques;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Tests\TestCase;
@@ -306,12 +308,29 @@ class LeccionTest extends TestCase
         $this->get("/recurso/{$generado->id}")->assertOk();
     }
 
-    /** Lo que ya existía en producción es curado: la migración no lo esconde. */
+    /**
+     * Lo que ya existía en producción es curado: el BACKFILL no lo esconde.
+     *
+     * Este test no probaba el backfill: creaba el recurso con la columna ya
+     * puesta y comprobaba el DEFAULT, que entonces era `curado` y decía lo
+     * mismo por casualidad. Al invertir el default para que la puerta falle
+     * cerrada, se cayó — y con razón: llevaba afirmando «la migración marcó
+     * curado» sin haber ejecutado nunca la migración.
+     *
+     * Ahora hace lo que dice. Tumba la columna, da de alta el recurso como
+     * estaba antes de que existiera, y vuelve a migrar: lo que se mide es el
+     * `DB::table('resources')->update(...)`, que es lo único que impide que
+     * esta migración vacíe el catálogo el día que se despliegue.
+     */
     public function test_la_migracion_no_deja_de_servir_lo_que_ya_estaba(): void
     {
-        // Un simulador dado de alta antes de que existiera la columna: la
-        // migración lo marcó `curado`, así que se sigue sirviendo sin firma.
-        // Sin ese backfill, esta migración habría vaciado el catálogo.
+        $migracion = require database_path(
+            'migrations/2026_08_24_000001_add_origen_to_resources.php',
+        );
+
+        $migracion->down();
+
+        // Un simulador dado de alta ANTES de que la columna existiera.
         $viejo = Resource::create([
             'slug' => 'plano-inclinado', 'kind' => Resource::SIMULACION,
             'status' => 'published', 'title' => ['es' => 'Plano inclinado'],
@@ -322,8 +341,45 @@ class LeccionTest extends TestCase
         ]);
         $viejo->update(['current_version_id' => $v->id]);
 
+        $migracion->up();
+
+        // El backfill —no el default— lo dejó en `curado`, y por eso se sigue
+        // sirviendo sin que nadie tenga que firmar nada.
         $this->assertSame(Resource::CURADO, $viejo->fresh()->origen);
         $this->get("/recurso/{$viejo->id}")->assertOk();
+    }
+
+    /**
+     * Y el contraste que hace que el test de arriba signifique algo: SIN el
+     * backfill, ese mismo recurso hereda el default —que cierra— y desaparece
+     * del catálogo. Es la comprobación de que la línea del `update` no es
+     * decorativa.
+     */
+    public function test_sin_el_backfill_la_migracion_habria_vaciado_el_catalogo(): void
+    {
+        $migracion = require database_path(
+            'migrations/2026_08_24_000001_add_origen_to_resources.php',
+        );
+
+        $migracion->down();
+
+        $viejo = Resource::create([
+            'slug' => 'lente-delgada', 'kind' => Resource::SIMULACION,
+            'status' => 'published', 'title' => ['es' => 'Banco óptico'],
+        ]);
+        $v = ResourceVersion::create([
+            'resource_id' => $viejo->id, 'semver' => '1.0.0',
+            'bundle_url' => 'https://cdn.test/sims/lente/1.0.0/', 'published_at' => now(),
+        ]);
+        $viejo->update(['current_version_id' => $v->id]);
+
+        // Solo la columna, sin el `update` que hace el backfill.
+        Schema::table('resources', function (Blueprint $table) {
+            $table->string('origen')->default(Resource::GENERADO)->after('kind');
+        });
+
+        $this->assertSame(Resource::GENERADO, $viejo->fresh()->origen);
+        $this->get("/recurso/{$viejo->id}")->assertNotFound();
     }
 
     public function test_una_leccion_sin_firmar_no_asoma_en_la_ficha(): void
@@ -358,7 +414,8 @@ class LeccionTest extends TestCase
         $migracion->down();
 
         $recurso = Resource::create([
-            'slug' => 'sim-de-siempre', 'kind' => 'simulation',
+            'slug' => 'sim-de-siempre', 'kind' => Resource::SIMULACION,
+            'origen' => Resource::CURADO,
             'title' => ['es' => 'Simulador de siempre'], 'status' => 'published',
         ]);
         $versionId = (string) Str::uuid7();
@@ -459,7 +516,8 @@ class LeccionTest extends TestCase
     public function test_un_simulador_no_se_confunde_con_una_leccion(): void
     {
         $sim = Resource::create([
-            'slug' => 'sim-plano', 'kind' => 'simulation',
+            'slug' => 'sim-plano', 'kind' => Resource::SIMULACION,
+            'origen' => Resource::CURADO,
             'title' => ['es' => 'Plano inclinado'], 'status' => 'published',
         ]);
         $v = ResourceVersion::create([

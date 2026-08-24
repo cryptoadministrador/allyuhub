@@ -52,10 +52,12 @@ class BienvenidaTest extends TestCase
         // daban la razón la una a la otra.
         Resource::create([
             'slug' => 'plano-inclinado', 'kind' => Resource::SIMULACION, 'status' => 'published',
+            'origen' => Resource::CURADO,
             'title' => ['es' => 'Plano inclinado'],
         ]);
         Resource::create([
             'slug' => 'borrador', 'kind' => Resource::SIMULACION, 'status' => 'draft',
+            'origen' => Resource::CURADO,
             'title' => ['es' => 'Borrador'],
         ]);
     }

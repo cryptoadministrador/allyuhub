@@ -223,7 +223,12 @@ modalidades y 2025-00031-A regula el Bachillerato Técnico EPJA (100 días/ciclo
    Dos reglas que cuestan caro si se rompen:
    - **La firma se le exige a lo GENERADO, no a un `kind`.** `published()` pide
      `reviewed_at` cuando `resources.origen = 'generado'` (espejo de
-     `practice_items.origen`). Estuvo atada a `kind = 'reading'` y era cierta
+     `practice_items.origen`). **El DEFAULT de esa columna es `generado`**, al
+     revés que en `practice_items`: allí nadie la lee para decidir qué se ve y
+     aquí gobierna la puerta, así que falla CERRADA. Quien dé de alta un
+     recurso sin declarar procedencia se queda sin publicar —molesto— en vez de
+     con contenido sin firmar delante de un alumno. El backfill, en cambio,
+     pone `curado`: las filas que ya existían las registró un operador. Estuvo atada a `kind = 'reading'` y era cierta
      por una circunstancia, no por naturaleza: la Fase 2 son simuladores
      DECLARATIVOS generados por un pipeline de IA, así que habrían entrado por
      `kind = 'simulation'` y salido al alumno sin que nadie tocara esa línea —
@@ -386,6 +391,12 @@ color que no cumple, el test cae.
 - No ordenar códigos curriculares como cadenas: `M.4.1.10` va DESPUÉS de
   `M.4.1.2`. Y ojo con `sortBy([closure, closure])`, que NO ordena por los
   closures — compara null con null y deja el orden de llegada.
+- No dar de alta un `Resource` sin declarar `origen`. Es contenido que no se
+  publica hasta que alguien lo firme, y eso no es un error visible: es un
+  simulador que «no aparece» y nadie sabe por qué. Los dos labs de
+  `CurriculumSeeder` van `CURADO`, y `PuertaPorDefectoTest` comprueba que tras
+  `migrate --seed` se ven — el seeder es el único sitio donde equivocarse no
+  ponía nada rojo.
 - No construir claves a partir de un prefijo de un UUID de `HasUuids`: son
   UUID ordenados por tiempo, así que ese prefijo es una marca de tiempo y dos
   filas creadas en la misma milésima colisionan. Hash del id, no prefijo.

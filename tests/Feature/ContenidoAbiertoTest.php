@@ -116,7 +116,8 @@ class ContenidoAbiertoTest extends TestCase
     public function test_invitado_abre_un_recurso_publicado(): void
     {
         $recurso = Resource::create([
-            'slug' => 'sim', 'kind' => 'lab', 'title' => ['es' => 'Sim'], 'status' => 'published',
+            'slug' => 'sim', 'kind' => 'lab', 'title' => ['es' => 'Sim'],
+            'origen' => Resource::CURADO, 'status' => 'published',
         ]);
 
         $this->get("/recurso/{$recurso->id}")->assertOk();

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Resource;
 use App\Models\ResourceVersion;
+use Database\Seeders\CurriculumSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -60,6 +61,31 @@ class PuertaPorDefectoTest extends TestCase
             Resource::published()->whereKey($recurso->fresh()->id)->exists(),
             'La puerta retiene lo no firmado; no es un muro. Sin este caso seria un muro y nadie se enteraria.',
         );
+    }
+
+    /**
+     * EL SITIO QUE NO ES UN TEST.
+     *
+     * De los dieciséis que se apoyaban en el default permisivo, quince eran
+     * fixtures: si me equivoco en uno, se pone rojo. El decimosexto es
+     * `CurriculumSeeder`, que da de alta los DOS laboratorios reales — y no
+     * tenía oráculo ninguno. Equivocarse ahí no ponía nada rojo: dejaba una
+     * instalación nueva con el catálogo vacío, y el job de PostgreSQL del CI
+     * habría seguido en verde porque su smoke test consulta destrezas, no
+     * recursos.
+     *
+     * Así que lo que se afirma aquí no es «el seeder declara CURADO» —eso sería
+     * leerle el código— sino lo que le importa a quien instala: después de
+     * `migrate --seed`, los laboratorios SE VEN.
+     */
+    public function test_los_laboratorios_de_la_semilla_se_sirven_tras_instalar(): void
+    {
+        $this->seed(CurriculumSeeder::class);
+
+        $labs = Resource::published()->whereIn('kind', Resource::INTERACTIVOS)->pluck('slug');
+
+        $this->assertEqualsCanonicalizing(['plano-inclinado', 'lente-delgada'], $labs->all(),
+            'Tras instalar, el catálogo se quedó sin los laboratorios de la semilla.');
     }
 
     /** Un recurso publicado cuya creación NO menciona `origen`: manda el default. */

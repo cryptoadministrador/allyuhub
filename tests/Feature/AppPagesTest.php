@@ -129,6 +129,7 @@ class AppPagesTest extends TestCase
     {
         $sim = Resource::create([
             'slug' => 'plano-inclinado', 'kind' => 'lab',
+            'origen' => Resource::CURADO,
             'title' => ['es' => 'Laboratorio: plano inclinado'], 'status' => 'published',
         ]);
         $v = ResourceVersion::create([
@@ -152,6 +153,7 @@ class AppPagesTest extends TestCase
 
         $draft = Resource::create([
             'slug' => 'borrador', 'kind' => 'lab',
+            'origen' => Resource::CURADO,
             'title' => ['es' => 'Borrador'], 'status' => 'draft',
         ]);
         $this->actingAs($this->ana)->get("/recurso/{$draft->id}")->assertNotFound();
