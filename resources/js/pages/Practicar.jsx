@@ -85,6 +85,48 @@ function AvisoDeInvitado({ compacto = false }) {
     );
 }
 
+/**
+ * El clip de un ítem de escucha. `<audio controls>` nativo: 0 KB de librería,
+ * teclado y lector de pantalla gratis. Si el clip no carga —la red de un
+ * colegio se cae—, lo DICE en un role=status en vez de dejar un reproductor
+ * muerto; y a diferencia de la lección, aquí NO se cae a la transcripción,
+ * porque la transcripción es la respuesta y el servidor no la ha mandado.
+ */
+function ReproductorDeEscucha({ src }) {
+    const [fallo, setFallo] = useState(false);
+
+    if (fallo) {
+        // DEUDA CONOCIDA Y ASUMIDA (auditoría de #26): con el clip caído el
+        // alumno puede contestar igual, y un acierto por azar cuenta para el
+        // dominio. Con ITEMS_TO_MASTER = 2 hace falta acertar en dos ítems
+        // DISTINTOS, así que el azar necesita mucha suerte — y bloquear el
+        // formulario sería peor que el problema: castigaría el corte de red
+        // del colegio con un ejercicio muerto. Se avisa y se deja pasar.
+        return (
+            <p role="status" className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                El audio no se pudo cargar. Revisa tu conexión, o pasa al
+                siguiente ejercicio e inténtalo más tarde.
+            </p>
+        );
+    }
+
+    return (
+        <div className="mb-4">
+            {/* preload=auto: el clip pesa poco y el alumno lo va a oír seguro;
+                que esté listo cuando pulse. La caché es inmutable, así que
+                repetirlo no vuelve a la red. */}
+            <audio
+                controls
+                preload="auto"
+                src={src}
+                onError={() => setFallo(true)}
+                aria-label="Audio del ejercicio"
+                className="w-full"
+            />
+        </div>
+    );
+}
+
 /** El texto de la opción con esa clave, entre las que sirvió el servidor. */
 function textoDeOpcion(item, clave) {
     return (item?.options ?? []).find((o) => o.key === clave)?.text?.es ?? '';
@@ -105,10 +147,15 @@ export default function Practicar({ objective, mastery: masteryInicial }) {
     const feedbackRef = useRef(null);
 
     const esChoice = item?.kind === 'choice';
-    // Un choice sin opciones es un ítem roto en la base, no una pantalla en
-    // blanco: `options` es una columna nullable y nada garantiza que esté.
-    const opciones = esChoice ? (item.options ?? []) : [];
-    const itemRoto = esChoice && opciones.length === 0;
+    const esEscucha = item?.kind === 'escucha';
+    // `escucha` ES la mecánica de choice con un clip delante: todo lo que aquí
+    // pregunte por «responder por clave» vale para los dos, y el siguiente
+    // tipo que responda por clave hereda el circuito entero.
+    const porClave = esChoice || esEscucha;
+    // Un ítem por clave sin opciones es un ítem roto en la base, no una
+    // pantalla en blanco: `options` es nullable y nada garantiza que esté.
+    const opciones = porClave ? (item.options ?? []) : [];
+    const itemRoto = porClave && opciones.length === 0;
 
     const { props: compartidas } = usePage();
     const invitado = !compartidas.auth?.user;
@@ -191,7 +238,7 @@ export default function Practicar({ objective, mastery: masteryInicial }) {
                     // Un choice manda la POSICIÓN elegida tal cual la sirvió el
                     // servidor; un numérico, el número. Mandar los dos sería un
                     // 422: cada tipo prohíbe el campo del otro.
-                    ...(esChoice
+                    ...(porClave
                         ? { answer_key: respuesta }
                         : { answer: Number(respuesta) }),
                     time_ms: Date.now() - inicioItem.current,
@@ -419,7 +466,9 @@ export default function Practicar({ objective, mastery: masteryInicial }) {
                         {item.statement.es}
                     </p>
 
-                    {esChoice ? (
+                    {esEscucha && <ReproductorDeEscucha src={item.audio_src} />}
+
+                    {porClave ? (
                         /* fieldset + legend es EL patrón de un grupo de radios:
                            el lector de pantalla anuncia la pregunta antes de la
                            primera opción y las flechas mueven la selección
@@ -503,7 +552,7 @@ export default function Practicar({ objective, mastery: masteryInicial }) {
                             role="alert"
                             className="mb-3 text-sm font-medium text-rose-900"
                         >
-                            {esChoice
+                            {porClave
                                 ? 'Elige una de las opciones antes de comprobar.'
                                 : 'Escribe tu respuesta antes de comprobar.'}
                         </p>
@@ -550,7 +599,7 @@ export default function Practicar({ objective, mastery: masteryInicial }) {
                             >
                                 {resultado.is_correct ? 'Correcto.' : 'Incorrecto.'}
                             </p>
-                            {esChoice ? (
+                            {porClave ? (
                                 <p className="mt-1 text-sm leading-relaxed text-slate-700">
                                     {/* Se nombra la opción buena por su TEXTO,
                                         que es lo que el alumno recuerda: «la 2»
@@ -565,6 +614,15 @@ export default function Practicar({ objective, mastery: masteryInicial }) {
                                     Tu respuesta: {resultado.answer}. Valor esperado:{' '}
                                     {Math.round(resultado.expected * 1000) / 1000}
                                     {item?.answer_unit ? ` ${item.answer_unit}` : ''}.
+                                </p>
+                            )}
+                            {esEscucha && resultado.transcripcion && (
+                                /* AHORA sí: respondido el intento, leer lo que
+                                   se oyó es la otra mitad del ejercicio. Antes
+                                   de responder no está ni en el payload. */
+                                <p className="mt-2 rounded border border-slate-200 bg-white p-2 text-sm leading-relaxed text-slate-800">
+                                    <span className="font-semibold">Lo que decía el audio:</span>{' '}
+                                    <span lang={item?.lang}>{resultado.transcripcion}</span>
                                 </p>
                             )}
                             {invitado && <AvisoDeInvitado compacto />}

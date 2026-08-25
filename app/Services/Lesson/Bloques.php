@@ -19,7 +19,7 @@ use InvalidArgumentException;
  */
 class Bloques
 {
-    public const TIPOS = ['parrafo', 'ejemplo', 'formula', 'lista', 'aviso', 'imagen'];
+    public const TIPOS = ['parrafo', 'ejemplo', 'formula', 'lista', 'aviso', 'imagen', 'audio'];
 
     /** Variantes de `aviso`. La de error típico es la que convierte texto en enseñanza. */
     public const VARIANTES = ['error-tipico', 'ojo', 'truco'];
@@ -64,6 +64,7 @@ class Bloques
             'aviso' => $this->aviso($b, $donde),
             'ejemplo' => $this->ejemplo($b, $donde),
             'imagen' => $this->imagen($b, $donde),
+            'audio' => $this->audio($b, $donde),
         };
     }
 
@@ -166,6 +167,55 @@ class Bloques
                     'latex' => $paso['latex'] ?? null,
                 ], fn ($v) => $v !== null);
             }, $pasos, array_keys($pasos))),
+        ], fn ($v) => $v !== null);
+    }
+
+    /**
+     * Un clip de audio con su transcripción. Sin transcripción no hay bloque:
+     * es requisito de accesibilidad y además es pedagogía — un alumno de A1
+     * necesita poder leer lo que oye (en la lección; en un ítem de escucha la
+     * transcripción se revela después de responder, pero ese es otro camino).
+     *
+     * El `src` solo puede ser una ruta del propio almacén (`/audio/<hash>.<ext>`):
+     * ni terceros, ni `javascript:`, ni un fichero suelto de `public/`. La forma
+     * la declara `AlmacenDeAudio::FORMA` y aquí se comprueba la misma — dos
+     * sitios —este bloque y el guardián de `practice_items.audio_src`— llamando
+     * a UNA función, no dos copias de la regla.
+     */
+    private function audio(array $b, string $donde): array
+    {
+        $src = (string) ($b['src'] ?? '');
+
+        if (! \App\Services\Audio\AlmacenDeAudio::esRutaPublicada($src)) {
+            throw new InvalidArgumentException(
+                "{$donde}: «src» tiene que ser una ruta del almacén de audio ".
+                "(/audio/<hash>.<mp3|ogg|m4a>), no «{$src}».",
+            );
+        }
+
+        // La transcripción va en el idioma del clip (fr, it, de, zh…), así que
+        // no se exige `es`: se exige AL MENOS una entrada con texto de verdad.
+        $texto = $b['texto'] ?? null;
+        $conTexto = is_array($texto)
+            ? array_filter($texto, fn ($v) => is_string($v) && trim($v) !== '')
+            : [];
+        if ($conTexto === []) {
+            throw new InvalidArgumentException(
+                "{$donde}: un audio sin transcripción no existe para quien no puede ".
+                'oírlo, y un alumno de A1 necesita leer lo que oye.',
+            );
+        }
+
+        $duracion = $b['duracion_s'] ?? null;
+        if ($duracion !== null && (! is_int($duracion) || $duracion <= 0)) {
+            throw new InvalidArgumentException("{$donde}: «duracion_s» tiene que ser un entero positivo.");
+        }
+
+        return array_filter([
+            'tipo' => 'audio',
+            'src' => $src,
+            'texto' => array_map(fn ($v) => (string) $v, $conTexto),
+            'duracion_s' => $duracion,
         ], fn ($v) => $v !== null);
     }
 

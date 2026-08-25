@@ -301,6 +301,30 @@ subnivel) y escribe las que faltan en `storage/app/practica-sin-cobertura.txt`.
 Ojo: los ítems nacen con `attrs.revision.alineado_a = 'bloque'` — alineados al
 bloque, no cotejados uno a uno con el enunciado oficial de cada destreza.
 
+## Audio (curso de idiomas, fase 1)
+
+La plataforma dicta cuatro idiomas de cero (FR/IT/DE/ZH, 1.º BGU, A1) y para eso
+el motor aprendió a OÍR:
+
+- **Bloque `audio` en las lecciones** (`Bloques`): `{src, texto, duracion_s?}`.
+  La transcripción es OBLIGATORIA (accesibilidad + pedagogía A1) y el `src` solo
+  puede ser del almacén propio. Sin red, el bloque degrada a su transcripción
+  con aviso — la lección de texto sigue entera.
+- **Ítem `escucha`**: la mecánica de `choice` con un clip delante. El motor
+  pregunta `respondePorClave()` y no el kind: el siguiente tipo por clave hereda
+  el circuito entero (billete, barajado de pintado, 422 por clave inventada).
+  La `transcripcion` es columna propia y oculta COMO la clave correcta: se
+  revela en el veredicto, jamás en `next` — si se lee antes, el ejercicio de
+  escucha no existe. En un ítem SIN red no se cae a la transcripción (sería
+  regalar la respuesta): se avisa y se puede pasar al siguiente.
+- **Los ficheros** (`AlmacenDeAudio`): nunca base64 en JSON. Nombre = hash del
+  contenido (16 hex) ⇒ re-sembrar no rompe enlaces, no hay duplicados, y la
+  ruta `/audio/{fichero}` puede servir `Cache-Control: immutable` un año sin
+  riesgo. La FORMA del nombre es cerrada y se comprueba en `resolver()` ADEMÁS
+  del `where` de la ruta: dos puertas, cada una con su test (una mutación
+  enseñó que la segunda estaba sin vigilar). Reproductor `<audio>` nativo:
+  cero librerías, el presupuesto de bundle (450 KB) no se toca por audio.
+
 ## La frontera del contenido abierto (modelo Khan)
 
 Se **navega** y se **practica** sin sesión; se **guarda** y se **califica** solo con

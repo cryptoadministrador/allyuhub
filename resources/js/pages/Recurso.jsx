@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Head, Link } from '@inertiajs/react';
 import AppLayout from '../layouts/AppLayout';
 import Formula from '../components/Formula';
@@ -33,6 +34,56 @@ const AVISOS = {
         clases: 'border-emerald-200 border-l-emerald-600 bg-emerald-50 text-emerald-900',
     },
 };
+
+/**
+ * El bloque de audio de una LECCIÓN. Reproductor nativo (0 KB de librería,
+ * teclado y lector de pantalla gratis con `controls`) y la transcripción
+ * SIEMPRE visible: es requisito de accesibilidad y además es pedagogía — un
+ * alumno de A1 necesita poder leer lo que oye.
+ *
+ * Y si el clip no llega —la red de un colegio se cae—, el bloque DEGRADA a su
+ * transcripción con un aviso: la lección de texto sigue funcionando entera.
+ * El que esconde la transcripción hasta responder es el ítem de escucha, que
+ * es otro camino y ni siquiera la recibe del servidor.
+ */
+function BloqueAudio({ bloque }) {
+    const [fallo, setFallo] = useState(false);
+
+    return (
+        <figure className="my-5 rounded-lg border border-slate-200 bg-white p-4">
+            {fallo ? (
+                <p role="status" className="mb-2 rounded border border-amber-200 bg-amber-50 p-2 text-sm text-amber-900">
+                    El audio no está disponible ahora mismo. Puedes leer lo que
+                    dice:
+                </p>
+            ) : (
+                <audio
+                    controls
+                    preload="none"
+                    src={bloque.src}
+                    onError={() => setFallo(true)}
+                    aria-label="Audio de la lección"
+                    className="w-full"
+                />
+            )}
+            <figcaption className="mt-2">
+                {Object.entries(bloque.texto).map(([lengua, texto]) => (
+                    <p
+                        key={lengua}
+                        lang={lengua === 'es' ? undefined : lengua}
+                        className={
+                            lengua === 'es'
+                                ? 'text-sm leading-relaxed text-slate-600'
+                                : 'text-base font-medium leading-relaxed text-slate-900'
+                        }
+                    >
+                        {texto}
+                    </p>
+                ))}
+            </figcaption>
+        </figure>
+    );
+}
 
 function Bloque({ bloque }) {
     switch (bloque.tipo) {
@@ -107,6 +158,9 @@ function Bloque({ bloque }) {
                     </ol>
                 </section>
             );
+
+        case 'audio':
+            return <BloqueAudio bloque={bloque} />;
 
         case 'imagen':
             return (

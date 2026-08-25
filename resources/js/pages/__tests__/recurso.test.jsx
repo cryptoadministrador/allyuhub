@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { axe } from 'vitest-axe';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import Recurso from '../Recurso';
@@ -179,6 +179,84 @@ describe('Recurso — el lector de la lección', () => {
         // Y el texto del paso puede encoger dentro del flex del ejemplo.
         const paso = screen.getByText(/restamos 3 a los dos lados/i).parentElement;
         expect(paso.className).toContain('min-w-0');
+    });
+
+    // ---------- El audio ----------
+
+    /**
+     * El bloque de una LECCIÓN, no de un ítem: aquí la transcripción es
+     * visible siempre — accesibilidad y pedagogía A1 a la vez. El que la
+     * esconde hasta responder es el ítem de escucha, y vive en practicar.
+     */
+    it('el bloque de audio pinta reproductor nativo y transcripción visible', () => {
+        const { container } = render(
+            <Recurso
+                recurso={{
+                    ...LECCION,
+                    bloques: [{
+                        tipo: 'audio',
+                        src: '/audio/aabbccddeeff0011.mp3',
+                        texto: { fr: 'Bonjour, ça va ?', es: 'Buenos días, ¿qué tal?' },
+                        duracion_s: 3,
+                    }],
+                }}
+                destrezas={[]}
+            />,
+        );
+
+        const audio = container.querySelector('audio');
+        expect(audio).not.toBeNull();
+        expect(audio).toHaveAttribute('src', '/audio/aabbccddeeff0011.mp3');
+        expect(audio).toHaveAttribute('controls');
+
+        // Las dos lenguas de la transcripción, legibles sin tocar nada.
+        expect(screen.getByText('Bonjour, ça va ?')).toBeInTheDocument();
+        expect(screen.getByText('Buenos días, ¿qué tal?')).toBeInTheDocument();
+    });
+
+    /**
+     * SIN RED, LA LECCIÓN SIGUE EN PIE. Esto es un colegio en Ecuador: si el
+     * clip no llega, el bloque cae a su transcripción con un aviso — no a un
+     * reproductor muerto ni a una pantalla rota.
+     */
+    it('si el clip no carga, cae a la transcripción y lo dice', () => {
+        const { container } = render(
+            <Recurso
+                recurso={{
+                    ...LECCION,
+                    bloques: [{
+                        tipo: 'audio',
+                        src: '/audio/aabbccddeeff0011.mp3',
+                        texto: { fr: 'Bonjour !' },
+                    }],
+                }}
+                destrezas={[]}
+            />,
+        );
+
+        fireEvent.error(container.querySelector('audio'));
+
+        expect(container.querySelector('audio')).toBeNull();
+        expect(screen.getByRole('status')).toHaveTextContent(/audio no está disponible/i);
+        // La transcripción sigue ahí: se puede seguir estudiando leyendo.
+        expect(screen.getByText('Bonjour !')).toBeInTheDocument();
+    });
+
+    it('una lección con audio no tiene violaciones serias de accesibilidad', async () => {
+        const { container } = render(
+            <Recurso
+                recurso={{
+                    ...LECCION,
+                    bloques: [
+                        ...LECCION.bloques,
+                        { tipo: 'audio', src: '/audio/aabbccddeeff0011.mp3', texto: { fr: 'Bonjour !' } },
+                    ],
+                }}
+                destrezas={DESTREZAS}
+            />,
+        );
+
+        expect(violacionesGraves(await axe(container))).toEqual([]);
     });
 
     // ---------- El aviso ----------
