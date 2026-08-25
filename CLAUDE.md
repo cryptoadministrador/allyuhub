@@ -325,6 +325,38 @@ el motor aprendió a OÍR:
   enseñó que la segunda estaba sin vigilar). Reproductor `<audio>` nativo:
   cero librerías, el presupuesto de bundle (450 KB) no se toca por audio.
 
+## Los tipos de ítem son PIEZAS, no ramas (desde el PR de lenguas)
+
+Siete kinds: `numeric | choice | escucha | hueco | orden | pares | dictado`.
+Cada uno declara su comportamiento completo en `App\Services\Practice\Tipos\*`
+(payload de next, reglas del POST, corrección, columnas del intento y guardián
+`saving`), elegido por `Tipos\Registro` — vocabulario CERRADO: un kind
+desconocido no se guarda. El controlador no sabe cuántos tipos hay: un tipo
+nuevo es una clase y una entrada en el registro, sin tocar `next` ni
+`submitAttempt`. La exclusión mutua de campos de respuesta (`answer` |
+`answer_key` | `respuesta`) se DERIVA de `camposDeRespuesta()`, no se escribe
+por tipo.
+
+Reglas que no se negocian, heredadas de #22/#25/#26:
+
+- **La solución vive en `practice_items.solucion`** (jsonb, en `$hidden` con
+  `answer_key`/`solution_expr`/`transcripcion`) y JAMÁS se serializa. Payload
+  por lista blanca; oráculo sobre el cuerpo completo con centinelas sin acentos.
+- **Se responde por ID INMUTABLE o por texto, nunca por posición pintada**:
+  en `orden` viajan secuencias de ids, en `pares` tuplas de ids (una clave por
+  columna, columnas en orden alfabético). El barajado no participa en la
+  corrección por construcción.
+- **La normalización de `hueco`/`dictado` es POR LENGUA** (`Tipos\Normalizador`,
+  sin intl a propósito: el CI no la carga): mayúsculas/espacios/apóstrofo
+  tipográfico se perdonan; los acentos NO, pero `detalle` distingue 'acento' de
+  'palabra'; la ß→ss solo en `de`.
+- **`pares`: crédito TODO O NADA** (`is_correct` alimenta dominio y AGS), el
+  veredicto enseña el parcial. Ojo: con n=2 y claves sin repetir un parcial es
+  IMPOSIBLE — el oráculo del parcial usa 3 filas (mutación mediante).
+- **Un id fuera de los servidos es 422**, no un falso «incorrecto».
+- La interacción de orden/pares es PULSAR, no arrastrar: teléfono + teclado +
+  lector de pantalla piden lo mismo que el presupuesto (0 KB de librerías).
+
 ## La frontera del contenido abierto (modelo Khan)
 
 Se **navega** y se **practica** sin sesión; se **guarda** y se **califica** solo con
