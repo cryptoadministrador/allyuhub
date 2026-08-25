@@ -168,7 +168,13 @@ class EscuchaTest extends TestCase
                 PracticeItem::create([
                     'objective_id' => $this->objective->id, 'kind' => 'escucha',
                     'statement' => ['es' => 'Escucha.'], 'params' => [],
-                    'options' => [['key' => 'a', 'text' => ['es' => 'x']]],
+                    // Dos opciones: el guardián de choice (≥2, heredado por
+                    // escucha) salta antes que el del audio, y este test mide
+                    // el del audio.
+                    'options' => [
+                        ['key' => 'a', 'text' => ['es' => 'x']],
+                        ['key' => 'b', 'text' => ['es' => 'y']],
+                    ],
                     'answer_key' => 'a', 'audio_src' => $src,
                     'transcripcion' => 'algo', 'seq' => 90,
                 ]);
@@ -191,7 +197,10 @@ class EscuchaTest extends TestCase
         PracticeItem::create([
             'objective_id' => $this->objective->id, 'kind' => 'escucha',
             'statement' => ['es' => 'Escucha.'], 'params' => [],
-            'options' => [['key' => 'a', 'text' => ['es' => 'x']]],
+            'options' => [
+                ['key' => 'a', 'text' => ['es' => 'x']],
+                ['key' => 'b', 'text' => ['es' => 'y']],
+            ],
             'answer_key' => 'a', 'audio_src' => '/audio/aabbccddeeff0011.mp3',
             'transcripcion' => '   ', 'seq' => 91,
         ]);

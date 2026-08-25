@@ -790,3 +790,320 @@ describe('Practicar — ítems de escucha', () => {
         expect(violacionesGraves(await axe(container))).toEqual([]);
     });
 });
+
+// ================= LOS CUATRO TIPOS DE LENGUA =================
+
+const OBJETIVO_ALEMAN = {
+    id: 'obj-aleman', native_code: 'EXT.DE.1.1.1',
+    statement: 'Producir frases muy básicas.', has_items: true,
+};
+
+const ITEM_HUECO = {
+    item_id: 'item-hueco', kind: 'hueco',
+    objective_id: 'obj-frances', objective_code: 'EXT.FR.1.1.2',
+    objective_statement: 'Producir frases muy básicas.',
+    attempt_no: 1, billete: 'billete-hueco-1',
+    statement: { es: 'Completa: « Tu habites ___ ? »' },
+    reason: 'práctica normal', se_guarda: true,
+};
+
+const ITEM_ORDEN = {
+    item_id: 'item-orden', kind: 'orden',
+    objective_id: 'obj-aleman', objective_code: 'EXT.DE.1.1.1',
+    objective_statement: 'Producir frases muy básicas.',
+    attempt_no: 1, billete: 'billete-orden-1',
+    statement: { es: 'Ordena la frase.' },
+    // Servidas YA barajadas por el servidor: el orden de pintado no es el bueno.
+    options: [
+        { key: 'w4', text: { de: 'zur Schule' } },
+        { key: 'w2', text: { de: 'gehe' } },
+        { key: 'w3', text: { de: 'ich' } },
+        { key: 'w1', text: { de: 'morgen' } },
+    ],
+    reason: 'práctica normal', se_guarda: true,
+};
+
+const ITEM_PARES = {
+    item_id: 'item-pares', kind: 'pares',
+    objective_id: 'obj-chino', objective_code: 'EXT.ZH.1.1.1',
+    objective_statement: 'Reconocer caracteres básicos.',
+    attempt_no: 1, billete: 'billete-pares-1',
+    statement: { es: 'Empareja carácter, pinyin y significado.' },
+    options: [
+        { key: 'c1', col: 'a', text: { zh: '你' } },
+        { key: 'c2', col: 'a', text: { zh: '好' } },
+        { key: 'p2', col: 'b', text: { zh: 'hao3' } },
+        { key: 'p1', col: 'b', text: { zh: 'ni3' } },
+        { key: 's1', col: 'c', text: { es: 'tu / usted' } },
+        { key: 's2', col: 'c', text: { es: 'bien / bueno' } },
+    ],
+    reason: 'práctica normal', se_guarda: true,
+};
+
+const ITEM_DICTADO = {
+    item_id: 'item-dictado', kind: 'dictado',
+    objective_id: 'obj-italiano', objective_code: 'EXT.IT.1.1.1',
+    objective_statement: 'Escribir lo que se oye.',
+    attempt_no: 1, billete: 'billete-dictado-1',
+    statement: { es: 'Escucha y escribe exactamente lo que oyes.' },
+    audio_src: '/audio/aabbccddeeff0011.mp3',
+    reason: 'práctica normal', se_guarda: true,
+};
+
+describe('Practicar — hueco y dictado (escribir la forma)', () => {
+    it('hueco: se escribe la respuesta y viaja como respuesta.texto', async () => {
+        const user = userEvent.setup();
+        const fetchMock = encolarFetch(
+            respuestaJson(200, ITEM_HUECO),
+            respuestaJson(201, {
+                id: 'a1', attempt_no: 1, is_correct: true, detalle: null,
+                esperado: 'où', texto: 'où', se_guarda: true,
+            }),
+            respuestaJson(200, []),
+        );
+        render(<Practicar objective={OBJETIVO_ALEMAN} mastery={null} />);
+        await screen.findByText(/tu habites/i);
+
+        await user.type(screen.getByRole('textbox', { name: /tu respuesta/i }), 'où');
+        await user.click(screen.getByRole('button', { name: /comprobar/i }));
+        await screen.findByText('Correcto.');
+
+        const enviado = JSON.parse(fetchMock.mock.calls[1][1].body);
+        expect(enviado.respuesta).toEqual({ texto: 'où' });
+        expect(enviado.answer).toBeUndefined();
+        expect(enviado.answer_key).toBeUndefined();
+    });
+
+    it('hueco: el error de acento y el de palabra dicen cosas DISTINTAS', async () => {
+        const user = userEvent.setup();
+        encolarFetch(
+            respuestaJson(200, ITEM_HUECO),
+            respuestaJson(201, {
+                id: 'a1', attempt_no: 1, is_correct: false, detalle: 'acento',
+                esperado: 'où', texto: 'ou', se_guarda: true,
+            }),
+            respuestaJson(200, []),
+        );
+        render(<Practicar objective={OBJETIVO_ALEMAN} mastery={null} />);
+        await screen.findByText(/tu habites/i);
+
+        await user.type(screen.getByRole('textbox', { name: /tu respuesta/i }), 'ou');
+        await user.click(screen.getByRole('button', { name: /comprobar/i }));
+        await screen.findByText('Incorrecto.');
+
+        // «Te falta un acento» no es «esa palabra no es»: dos errores, dos
+        // mensajes. El alumno tiene que saber cuál cometió.
+        expect(screen.getByText(/acento/i)).toBeInTheDocument();
+        expect(screen.getByText(/où/)).toBeInTheDocument();
+    });
+
+    it('dictado: reproduce el clip, se escribe, y el veredicto trae lo que decía', async () => {
+        const user = userEvent.setup();
+        encolarFetch(
+            respuestaJson(200, ITEM_DICTADO),
+            respuestaJson(201, {
+                id: 'a1', attempt_no: 1, is_correct: false, detalle: 'palabra',
+                esperado: 'perché no?', texto: 'perke', transcripcion: 'perché no?',
+                se_guarda: true,
+            }),
+            respuestaJson(200, []),
+        );
+        const { container } = render(<Practicar objective={OBJETIVO_ALEMAN} mastery={null} />);
+        await screen.findByText(/escribe exactamente/i);
+
+        expect(container.querySelector('audio')).toHaveAttribute(
+            'src', '/audio/aabbccddeeff0011.mp3',
+        );
+
+        await user.type(screen.getByRole('textbox', { name: /tu respuesta/i }), 'perke');
+        await user.click(screen.getByRole('button', { name: /comprobar/i }));
+        await screen.findByText('Incorrecto.');
+
+        expect(screen.getByText(/lo que decía el audio/i)).toBeInTheDocument();
+    });
+});
+
+describe('Practicar — orden (tocar, no arrastrar)', () => {
+    it('se construye la frase TOCANDO y viaja como secuencia de ids', async () => {
+        const user = userEvent.setup();
+        const fetchMock = encolarFetch(
+            respuestaJson(200, ITEM_ORDEN),
+            respuestaJson(201, {
+                id: 'a1', attempt_no: 1, is_correct: true,
+                ids: ['w3', 'w2', 'w1', 'w4'], secuencia_correcta: ['w3', 'w2', 'w1', 'w4'],
+                se_guarda: true,
+            }),
+            respuestaJson(200, []),
+        );
+        render(<Practicar objective={OBJETIVO_ALEMAN} mastery={null} />);
+        await screen.findByText(/ordena la frase/i);
+
+        const banco = screen.getByRole('group', { name: /palabras disponibles/i });
+        await user.click(within(banco).getByRole('button', { name: 'ich' }));
+        await user.click(within(banco).getByRole('button', { name: 'gehe' }));
+        await user.click(within(banco).getByRole('button', { name: 'morgen' }));
+        await user.click(within(banco).getByRole('button', { name: 'zur Schule' }));
+        await user.click(screen.getByRole('button', { name: /comprobar/i }));
+        await screen.findByText('Correcto.');
+
+        // Los IDS en el orden TOCADO, no la posición pintada: el barajado no
+        // participa en la corrección por construcción.
+        const enviado = JSON.parse(fetchMock.mock.calls[1][1].body);
+        expect(enviado.respuesta).toEqual({ ids: ['w3', 'w2', 'w1', 'w4'] });
+    });
+
+    it('tocar una palabra elegida la devuelve al banco', async () => {
+        const user = userEvent.setup();
+        encolarFetch(respuestaJson(200, ITEM_ORDEN));
+        render(<Practicar objective={OBJETIVO_ALEMAN} mastery={null} />);
+        await screen.findByText(/ordena la frase/i);
+
+        const banco = screen.getByRole('group', { name: /palabras disponibles/i });
+        const frase = screen.getByRole('group', { name: /tu frase/i });
+
+        await user.click(within(banco).getByRole('button', { name: 'ich' }));
+        expect(within(frase).getByRole('button', { name: 'ich' })).toBeInTheDocument();
+
+        await user.click(within(frase).getByRole('button', { name: 'ich' }));
+        expect(within(frase).queryByRole('button', { name: 'ich' })).toBeNull();
+        expect(within(banco).getByRole('button', { name: 'ich' })).toBeInTheDocument();
+    });
+
+    it('con la frase a medias avisa en vez de mandar', async () => {
+        const user = userEvent.setup();
+        const fetchMock = encolarFetch(respuestaJson(200, ITEM_ORDEN));
+        render(<Practicar objective={OBJETIVO_ALEMAN} mastery={null} />);
+        await screen.findByText(/ordena la frase/i);
+
+        const banco = screen.getByRole('group', { name: /palabras disponibles/i });
+        await user.click(within(banco).getByRole('button', { name: 'ich' }));
+        await user.click(screen.getByRole('button', { name: /comprobar/i }));
+
+        expect(screen.getByRole('alert')).toHaveTextContent(/faltan palabras/i);
+        expect(fetchMock.mock.calls).toHaveLength(1);   // no hubo POST
+    });
+
+    it('al fallar enseña un orden correcto CON PALABRAS, no con ids', async () => {
+        const user = userEvent.setup();
+        encolarFetch(
+            respuestaJson(200, ITEM_ORDEN),
+            respuestaJson(201, {
+                id: 'a1', attempt_no: 1, is_correct: false,
+                ids: ['w4', 'w2', 'w3', 'w1'], secuencia_correcta: ['w3', 'w2', 'w1', 'w4'],
+                se_guarda: true,
+            }),
+            respuestaJson(200, []),
+        );
+        render(<Practicar objective={OBJETIVO_ALEMAN} mastery={null} />);
+        await screen.findByText(/ordena la frase/i);
+
+        const banco = screen.getByRole('group', { name: /palabras disponibles/i });
+        for (const palabra of ['zur Schule', 'gehe', 'ich', 'morgen']) {
+            await user.click(within(banco).getByRole('button', { name: palabra }));
+        }
+        await user.click(screen.getByRole('button', { name: /comprobar/i }));
+        await screen.findByText('Incorrecto.');
+
+        expect(screen.getByText(/ich gehe morgen zur Schule/)).toBeInTheDocument();
+    });
+});
+
+describe('Practicar — pares (tres columnas, tocando)', () => {
+    it('una selección por columna forma la pareja y viaja como tuplas de ids', async () => {
+        const user = userEvent.setup();
+        const fetchMock = encolarFetch(
+            respuestaJson(200, ITEM_PARES),
+            respuestaJson(201, {
+                id: 'a1', attempt_no: 1, is_correct: true, parejas_correctas: 2, total: 2,
+                parejas: [['c1', 'p1', 's1'], ['c2', 'p2', 's2']],
+                parejas_esperadas: [['c1', 'p1', 's1'], ['c2', 'p2', 's2']],
+                se_guarda: true,
+            }),
+            respuestaJson(200, []),
+        );
+        render(<Practicar objective={OBJETIVO_ALEMAN} mastery={null} />);
+        await screen.findByText(/empareja/i);
+
+        // Toca uno de cada columna: se forma la pareja sola.
+        await user.click(screen.getByRole('button', { name: '你' }));
+        await user.click(screen.getByRole('button', { name: 'ni3' }));
+        await user.click(screen.getByRole('button', { name: 'tu / usted' }));
+        await user.click(screen.getByRole('button', { name: '好' }));
+        await user.click(screen.getByRole('button', { name: 'hao3' }));
+        await user.click(screen.getByRole('button', { name: 'bien / bueno' }));
+
+        await user.click(screen.getByRole('button', { name: /comprobar/i }));
+        await screen.findByText('Correcto.');
+
+        const enviado = JSON.parse(fetchMock.mock.calls[1][1].body);
+        expect(enviado.respuesta).toEqual({
+            parejas: [['c1', 'p1', 's1'], ['c2', 'p2', 's2']],
+        });
+    });
+
+    it('al fallar dice cuántas clavó de cuántas', async () => {
+        const user = userEvent.setup();
+        encolarFetch(
+            respuestaJson(200, ITEM_PARES),
+            respuestaJson(201, {
+                id: 'a1', attempt_no: 1, is_correct: false, parejas_correctas: 1, total: 2,
+                parejas: [['c1', 'p1', 's2'], ['c2', 'p2', 's1']],
+                parejas_esperadas: [['c1', 'p1', 's1'], ['c2', 'p2', 's2']],
+                se_guarda: true,
+            }),
+            respuestaJson(200, []),
+        );
+        render(<Practicar objective={OBJETIVO_ALEMAN} mastery={null} />);
+        await screen.findByText(/empareja/i);
+
+        await user.click(screen.getByRole('button', { name: '你' }));
+        await user.click(screen.getByRole('button', { name: 'ni3' }));
+        await user.click(screen.getByRole('button', { name: 'bien / bueno' }));
+        await user.click(screen.getByRole('button', { name: '好' }));
+        await user.click(screen.getByRole('button', { name: 'hao3' }));
+        await user.click(screen.getByRole('button', { name: 'tu / usted' }));
+        await user.click(screen.getByRole('button', { name: /comprobar/i }));
+        await screen.findByText('Incorrecto.');
+
+        expect(screen.getByText(/1 de 2/)).toBeInTheDocument();
+    });
+
+    it('deshacer una pareja devuelve sus elementos a las columnas', async () => {
+        const user = userEvent.setup();
+        encolarFetch(respuestaJson(200, ITEM_PARES));
+        render(<Practicar objective={OBJETIVO_ALEMAN} mastery={null} />);
+        await screen.findByText(/empareja/i);
+
+        await user.click(screen.getByRole('button', { name: '你' }));
+        await user.click(screen.getByRole('button', { name: 'ni3' }));
+        await user.click(screen.getByRole('button', { name: 'tu / usted' }));
+
+        const quitar = screen.getByRole('button', { name: /quitar pareja/i });
+        await user.click(quitar);
+
+        // Los tres vuelven a poder tocarse.
+        expect(screen.getByRole('button', { name: '你' })).toBeEnabled();
+        expect(screen.queryByRole('button', { name: /quitar pareja/i })).toBeNull();
+    });
+});
+
+describe('Practicar — accesibilidad de los tipos de lengua', () => {
+    it.each([
+        ['hueco', ITEM_HUECO],
+        ['orden', ITEM_ORDEN],
+        ['pares', ITEM_PARES],
+        ['dictado', ITEM_DICTADO],
+    ])('%s: cero violaciones serias, con y sin sesión', async (_k, fixture) => {
+        for (const quien of [{ user: { id: 1, name: 'Ana' } }, { user: null }]) {
+            auth = quien;
+            encolarFetch(respuestaJson(200, { ...fixture, se_guarda: !!quien.user }));
+            const { container, unmount } = render(
+                <Practicar objective={OBJETIVO_ALEMAN} mastery={null} />,
+            );
+            await screen.findByText(new RegExp(fixture.statement.es.slice(0, 12)));
+
+            expect(violacionesGraves(await axe(container))).toEqual([]);
+            unmount();
+        }
+    });
+});

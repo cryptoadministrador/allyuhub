@@ -19,6 +19,7 @@ class PracticeAttempt extends Model
 
     protected $casts = [
         'params' => 'array',
+        'respuesta' => 'array',
         'answer' => 'float',
         'expected' => 'float',
         'is_correct' => 'boolean',
