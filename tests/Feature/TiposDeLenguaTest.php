@@ -228,34 +228,169 @@ class TiposDeLenguaTest extends TestCase
         $this->assertSame([['c1', 'p1', 's1'], ['c2', 'p2', 's2']], $v['parejas_esperadas']);
     }
 
-    /** Y las listas blancas CERRADAS de los cuatro payloads. */
-    public function test_los_payloads_de_next_son_listas_cerradas(): void
+    /**
+     * EL ORÁCULO SIGUE LA DISCIPLINA DEL CÓDIGO: recorre `Registro::kinds()`,
+     * no una lista escrita a mano (auditoría de #27). Con la copia manual, el
+     * tipo que el PR 3 registre nacería SIN oráculo de fuga — la sexta ruta de
+     * #25 y el 'simulator' del comentario, otra vez. Ahora un kind nuevo cae
+     * aquí el mismo día que entra al registro, y un kind SIN fixture FALLA en
+     * vez de saltarse: nadie puede registrar un tipo sin declarar qué secretos
+     * tiene y qué payload promete.
+     *
+     * Nota asumida (auditoría): el assert de `array_keys` en orden EXACTO se
+     * pone rojo si alguien reordena un campo sin fuga ninguna. Frágil, pero
+     * preferible a laxo — un orden que cambia también es un contrato que
+     * cambió, y quien lo cambie a propósito actualiza el fixture.
+     */
+    /**
+     * Y `kinds()` refleja EL MAPA REAL, no una lista congelada: lo destapó una
+     * mutación que lo dejaba en ['numeric', 'choice'] — el barrido de abajo
+     * cubría solo esos dos y pasaba en verde. Sin esto, el oráculo derivado
+     * descansa sobre un espejo que nadie vigila.
+     */
+    public function test_kinds_refleja_el_registro_entero(): void
+    {
+        $mapa = (new \ReflectionClass(\App\Services\Practice\Tipos\Registro::class))
+            ->getConstant('TIPOS');
+
+        $this->assertSame(array_keys($mapa), \App\Services\Practice\Tipos\Registro::kinds());
+        $this->assertGreaterThanOrEqual(7, count($mapa));
+    }
+
+    public function test_ningun_kind_del_registro_filtra_su_secreto(): void
     {
         $base = ['item_id', 'kind', 'objective_id', 'objective_code',
             'objective_statement', 'attempt_no', 'billete', 'statement'];
         $cola = ['reason', 'se_guarda'];
 
-        foreach ([
-            'hueco' => [$this->hueco(), []],
-            'orden' => [$this->orden(), ['options']],
-            'pares' => [$this->pares(), ['options']],
-            'dictado' => [$this->dictado(), ['audio_src']],
-        ] as $kind => [$item, $propios]) {
-            $json = $this->next();
-            $this->assertSame($kind, $json['kind']);
+        foreach (\App\Services\Practice\Tipos\Registro::kinds() as $kind) {
+            [$item, $propios, $centinelas] = $this->fixtureDeFuga($kind);
+
+            $respuesta = $this->getJson(
+                "/api/v1/objectives/{$this->objective->id}/practice/next",
+            )->assertOk();
+
+            $json = $respuesta->json();
+            $this->assertSame($kind, $json['kind'], "El selector no sirvió el fixture de {$kind}.");
             $this->assertSame([...$base, ...$propios, ...$cola], array_keys($json),
                 "El payload de {$kind} cambió: cada campo nuevo es una vía de fuga.");
+
+            $cuerpo = $respuesta->getContent();
+            foreach ($centinelas as $centinela) {
+                $this->assertStringNotContainsString($centinela, $cuerpo,
+                    "El kind {$kind} filtró «{$centinela}» en next.");
+            }
+
             $item->delete();
         }
     }
 
-    /** El cinturón de $hidden: ni un toArray() suelto filtra la solución. */
-    public function test_ni_un_toarray_del_modelo_filtra_la_solucion(): void
+    /**
+     * Un ítem mínimo por kind, con sus campos propios del payload y los
+     * CENTINELAS (sin acentos, #25) que jamás pueden aparecer en `next`.
+     *
+     * El brazo default es un FAIL, no un skip: registrar un kind sin pasar por
+     * aquí es imposible en verde. Ese fail ES el oráculo del tipo de mañana.
+     *
+     * @return array{0: PracticeItem, 1: list<string>, 2: list<string>}
+     */
+    private function fixtureDeFuga(string $kind): array
     {
-        $volcado = json_encode($this->hueco()->fresh()->toArray());
+        $filaBase = [
+            'objective_id' => $this->objective->id, 'kind' => $kind,
+            'params' => [], 'seq' => 40, 'reviewed_at' => now(),
+        ];
 
-        $this->assertStringNotContainsString('CENTINELA-HUECO-SOLUCION', $volcado);
-        $this->assertStringNotContainsString('solucion', $volcado);
+        return match ($kind) {
+            PracticeItem::NUMERIC => [
+                PracticeItem::create([...$filaBase,
+                    'statement' => ['es' => 'Calcula el doble de {zz}'],
+                    'params' => ['zz' => ['const' => 2]],
+                    'solution_expr' => 'zz * 777333',
+                    'tolerance' => 0.01, 'tolerance_kind' => 'abs',
+                ]),
+                ['params', 'answer_unit', 'tolerance', 'tolerance_kind'],
+                ['777333', 'solution_expr', 'solucion'],
+            ],
+            PracticeItem::CHOICE => [
+                PracticeItem::create([...$filaBase,
+                    'statement' => ['es' => 'Elige.'],
+                    'options' => [
+                        ['key' => 'a', 'text' => ['es' => 'una']],
+                        ['key' => 'b', 'text' => ['es' => 'otra']],
+                    ],
+                    'answer_key' => 'a',
+                    'attrs' => ['nota_interna' => 'CENTINELA-CHOICE-ATTRS'],
+                ]),
+                ['options'],
+                ['CENTINELA-CHOICE-ATTRS', 'answer_key', 'solucion', 'attrs'],
+            ],
+            PracticeItem::ESCUCHA => [
+                PracticeItem::create([...$filaBase,
+                    'statement' => ['es' => 'Escucha.'],
+                    'options' => [
+                        ['key' => 'a', 'text' => ['es' => 'una']],
+                        ['key' => 'b', 'text' => ['es' => 'otra']],
+                    ],
+                    'answer_key' => 'a',
+                    'audio_src' => '/audio/aabbccddeeff0011.mp3',
+                    'transcripcion' => 'CENTINELA-ESCUCHA-TRANS',
+                ]),
+                ['options', 'audio_src'],
+                ['CENTINELA-ESCUCHA-TRANS', 'transcripcion', 'answer_key', 'solucion'],
+            ],
+            PracticeItem::HUECO => [
+                PracticeItem::create([...$filaBase,
+                    'statement' => ['es' => 'Completa el saludo.'],
+                    'solucion' => ['lengua' => 'fr', 'textos' => ['CENTINELA-HUECO-SOL']],
+                ]),
+                [],
+                ['CENTINELA-HUECO-SOL', 'solucion'],
+            ],
+            PracticeItem::ORDEN => [
+                PracticeItem::create([...$filaBase,
+                    'statement' => ['es' => 'Ordena.'],
+                    'options' => [
+                        ['key' => 'o1', 'text' => ['de' => 'eins']],
+                        ['key' => 'o2', 'text' => ['de' => 'zwei']],
+                        ['key' => 'o3', 'text' => ['de' => 'drei']],
+                    ],
+                    'solucion' => ['secuencias' => [['o2', 'o1', 'o3']]],
+                ]),
+                ['options'],
+                // La FORMA serializada de la secuencia buena, no un nombre.
+                ['"o2","o1","o3"', 'secuencias', 'solucion'],
+            ],
+            PracticeItem::PARES => [
+                PracticeItem::create([...$filaBase,
+                    'statement' => ['es' => 'Empareja.'],
+                    'options' => [
+                        ['key' => 'x1', 'col' => 'a', 'text' => ['fr' => 'un']],
+                        ['key' => 'x2', 'col' => 'a', 'text' => ['fr' => 'deux']],
+                        ['key' => 'y1', 'col' => 'b', 'text' => ['es' => 'uno']],
+                        ['key' => 'y2', 'col' => 'b', 'text' => ['es' => 'dos']],
+                    ],
+                    'solucion' => ['parejas' => [['x1', 'y1'], ['x2', 'y2']]],
+                ]),
+                ['options'],
+                ['"x1","y1"', 'parejas', 'solucion'],
+            ],
+            PracticeItem::DICTADO => [
+                PracticeItem::create([...$filaBase,
+                    'statement' => ['es' => 'Escribe lo que oyes.'],
+                    'audio_src' => '/audio/aabbccddeeff0011.mp3',
+                    'transcripcion' => 'CENTINELA-DICTADO-TRANS',
+                    'solucion' => ['lengua' => 'it', 'textos' => ['CENTINELA-DICTADO-SOL']],
+                ]),
+                ['audio_src'],
+                ['CENTINELA-DICTADO-SOL', 'CENTINELA-DICTADO-TRANS', 'transcripcion', 'solucion'],
+            ],
+            default => $this->fail(
+                "El kind «{$kind}» está en el Registro y NO tiene fixture de fuga. ".
+                'Todo tipo nuevo declara aquí sus secretos y su payload ANTES de servirse: '.
+                'sin esto, nacería sin oráculo de no-filtración.',
+            ),
+        };
     }
 
     // ========== ORÁCULO 2 — la posición pintada no corrige ==========

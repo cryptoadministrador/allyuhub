@@ -25,6 +25,16 @@ final class Registro
         PracticeItem::PARES => TipoPares::class,
     ];
 
+    /**
+     * Los kinds registrados, para quien tenga que RECORRERLOS — el oráculo de
+     * no-filtración itera esta lista, no una copia escrita a mano: un tipo que
+     * se registre mañana nace DENTRO del oráculo, no fuera.
+     */
+    public static function kinds(): array
+    {
+        return array_keys(self::TIPOS);
+    }
+
     public static function de(?string $kind): Tipo
     {
         $clase = self::TIPOS[$kind] ?? null;
