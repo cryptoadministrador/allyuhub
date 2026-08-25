@@ -179,14 +179,14 @@ class Bloques
      * El `src` solo puede ser una ruta del propio almacén (`/audio/<hash>.<ext>`):
      * ni terceros, ni `javascript:`, ni un fichero suelto de `public/`. La forma
      * la declara `AlmacenDeAudio::FORMA` y aquí se comprueba la misma — dos
-     * sitios leyendo una sola regla, no dos reglas.
+     * sitios —este bloque y el guardián de `practice_items.audio_src`— llamando
+     * a UNA función, no dos copias de la regla.
      */
     private function audio(array $b, string $donde): array
     {
         $src = (string) ($b['src'] ?? '');
 
-        if (! str_starts_with($src, '/audio/')
-            || ! preg_match(\App\Services\Audio\AlmacenDeAudio::FORMA, substr($src, 7))) {
+        if (! \App\Services\Audio\AlmacenDeAudio::esRutaPublicada($src)) {
             throw new InvalidArgumentException(
                 "{$donde}: «src» tiene que ser una ruta del almacén de audio ".
                 "(/audio/<hash>.<mp3|ogg|m4a>), no «{$src}».",

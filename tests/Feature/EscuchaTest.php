@@ -143,6 +143,60 @@ class EscuchaTest extends TestCase
         $this->assertSame(3, $bloques[0]['duracion_s']);
     }
 
+    /**
+     * LA MISMA REGLA DEL `src`, EN EL ÍTEM. El bloque de lección ya la
+     * cumplía; `practice_items.audio_src` era un string sin vigilar que
+     * `Practicar.jsx` pinta directo en `<audio src>`. Un src externo no es
+     * XSS — es peor de otra forma: filtra la IP de cada alumno a un tercero
+     * en cada reproducción, reintroduce la dependencia externa que el almacén
+     * existe para evitar, y rompe en silencio el degradado sin red y la caché
+     * inmutable, que asumen que el clip es nuestro.
+     *
+     * La regla vive UNA vez (`AlmacenDeAudio::esRutaPublicada`) y la llaman
+     * los dos sitios. Y se valida al SEMBRAR el ítem, no al pintarlo.
+     */
+    public function test_un_item_escucha_con_audio_src_ajeno_revienta_al_sembrar(): void
+    {
+        foreach ([
+            'https://cdn.ajeno.test/clip.mp3',
+            '/img/clip.mp3',
+            '/audio/../../../.env',
+            '/audio/clip.exe',
+            null,                                  // escucha SIN clip no existe
+        ] as $src) {
+            try {
+                PracticeItem::create([
+                    'objective_id' => $this->objective->id, 'kind' => 'escucha',
+                    'statement' => ['es' => 'Escucha.'], 'params' => [],
+                    'options' => [['key' => 'a', 'text' => ['es' => 'x']]],
+                    'answer_key' => 'a', 'audio_src' => $src,
+                    'transcripcion' => 'algo', 'seq' => 90,
+                ]);
+                $this->fail('Pasó un audio_src inválido: '.var_export($src, true));
+            } catch (InvalidArgumentException $e) {
+                // Donde lo ve quien escribe, no en la pantalla del alumno. Y
+                // con aserción dentro del catch: sin ella PHPUnit marca el
+                // test como risky — un test de cero aserciones podría no
+                // estar afirmando nada.
+                $this->assertStringContainsString('audio', strtolower($e->getMessage()));
+            }
+        }
+    }
+
+    /** Y un escucha sin transcripción tampoco se puede sembrar. */
+    public function test_un_item_escucha_sin_transcripcion_revienta_al_sembrar(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        PracticeItem::create([
+            'objective_id' => $this->objective->id, 'kind' => 'escucha',
+            'statement' => ['es' => 'Escucha.'], 'params' => [],
+            'options' => [['key' => 'a', 'text' => ['es' => 'x']]],
+            'answer_key' => 'a', 'audio_src' => '/audio/aabbccddeeff0011.mp3',
+            'transcripcion' => '   ', 'seq' => 91,
+        ]);
+    }
+
     // ========== ORÁCULO 4 — la transcripción no se sirve antes de responder ==========
 
     /**

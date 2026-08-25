@@ -96,6 +96,12 @@ function ReproductorDeEscucha({ src }) {
     const [fallo, setFallo] = useState(false);
 
     if (fallo) {
+        // DEUDA CONOCIDA Y ASUMIDA (auditoría de #26): con el clip caído el
+        // alumno puede contestar igual, y un acierto por azar cuenta para el
+        // dominio. Con ITEMS_TO_MASTER = 2 hace falta acertar en dos ítems
+        // DISTINTOS, así que el azar necesita mucha suerte — y bloquear el
+        // formulario sería peor que el problema: castigaría el corte de red
+        // del colegio con un ejercicio muerto. Se avisa y se deja pasar.
         return (
             <p role="status" className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
                 El audio no se pudo cargar. Revisa tu conexión, o pasa al

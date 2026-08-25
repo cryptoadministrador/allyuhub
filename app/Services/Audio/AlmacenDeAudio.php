@@ -22,6 +22,14 @@ use InvalidArgumentException;
  * El vocabulario de extensiones es cerrado — mp3, ogg, m4a — porque la ruta
  * que sirve estos ficheros deriva el Content-Type de la extensión y no debe
  * adivinar nada: lo que no está en la lista no se publica ni se sirve.
+ *
+ * Y este almacén solo admite AUDIO CURRICULAR PUBLICADO — lo dice el TIPO de
+ * `publicar()`, no este comentario: la ruta `/audio/*` es pública, sin auth y
+ * cacheada inmutable un año, y eso solo es aceptable para contenido que ya es
+ * público por naturaleza. El día que un alumno se grabe (frente D, PR 3+), su
+ * voz NO entra por aquí: necesita su propio camino con autenticación, y el
+ * sistema lo obliga porque `publicar()` no acepta un string — misma lección
+ * que el default de `origen`.
  */
 class AlmacenDeAudio
 {
@@ -35,6 +43,23 @@ class AlmacenDeAudio
     /** La forma exacta de un nombre publicado: hash de 16 + extensión de la lista. */
     public const FORMA = '/^[a-f0-9]{16}\.(mp3|ogg|m4a)$/';
 
+    /**
+     * ¿Es `src` una ruta del propio almacén? LA regla, escrita UNA vez.
+     *
+     * La llaman el bloque `audio` de las lecciones (`Bloques::audio`) y el
+     * guardián de `practice_items.audio_src` (al guardar el ítem): antes
+     * estaba escrita en el bloque y solo documentada en el ítem, y una ruta
+     * externa en un ítem no es XSS pero sí es filtrar la IP de cada alumno a
+     * un tercero en cada reproducción — además de romper en silencio el
+     * degradado sin red y la caché inmutable, que asumen que el clip es
+     * nuestro.
+     */
+    public static function esRutaPublicada(string $src): bool
+    {
+        return str_starts_with($src, '/audio/')
+            && preg_match(self::FORMA, substr($src, 7)) === 1;
+    }
+
     public static function directorio(): string
     {
         return storage_path('app/audio');
@@ -45,8 +70,10 @@ class AlmacenDeAudio
      * Idempotente por contenido: publicar dos veces el mismo clip devuelve la
      * misma ruta y no escribe dos ficheros.
      */
-    public function publicar(string $rutaLocal): string
+    public function publicar(ClipCurricular $clip): string
     {
+        $rutaLocal = $clip->ruta;
+
         if (! is_file($rutaLocal)) {
             throw new InvalidArgumentException("No existe el fichero {$rutaLocal}.");
         }

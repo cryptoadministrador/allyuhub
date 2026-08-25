@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use InvalidArgumentException;
 
 /**
  * Plantilla de ítem de práctica parametrizada, anclada a una destreza.
@@ -50,6 +51,43 @@ class PracticeItem extends Model
      * el descuido de un `toArray()` en cualquier respuesta futura.
      */
     protected $hidden = ['answer_key', 'solution_expr', 'transcripcion'];
+
+    /**
+     * EL GUARDIÁN DEL `audio_src`, al sembrar y no al pintar.
+     *
+     * La regla es la MISMA que la del bloque `audio` de las lecciones y vive
+     * una sola vez en `AlmacenDeAudio::esRutaPublicada` — aquí estaba escrita
+     * en la migración como documentación y no la obligaba nadie, así que quien
+     * sembrara un ítem podía apuntar el `<audio>` de cada alumno a un tercero
+     * (la IP de un menor filtrada en cada reproducción) o a una ruta que rompe
+     * el degradado sin red y la caché inmutable. Un `escucha` sin clip o sin
+     * transcripción tampoco existe: revienta donde lo ve quien lo escribe.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (self $item) {
+            if ($item->audio_src !== null
+                && ! \App\Services\Audio\AlmacenDeAudio::esRutaPublicada($item->audio_src)) {
+                throw new InvalidArgumentException(
+                    "practice_items.audio_src tiene que ser una ruta del almacén ".
+                    "(/audio/<hash>.<mp3|ogg|m4a>), no «{$item->audio_src}».",
+                );
+            }
+
+            if ($item->esEscucha()) {
+                if ($item->audio_src === null) {
+                    throw new InvalidArgumentException(
+                        'Un ítem escucha sin clip no existe: falta audio_src.',
+                    );
+                }
+                if (trim((string) $item->transcripcion) === '') {
+                    throw new InvalidArgumentException(
+                        'Un ítem escucha sin transcripción no existe para quien no puede oírlo.',
+                    );
+                }
+            }
+        });
+    }
 
     public function esChoice(): bool
     {

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Services\Audio\AlmacenDeAudio;
+use App\Services\Audio\ClipCurricular;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use InvalidArgumentException;
 use Tests\TestCase;
@@ -52,12 +53,32 @@ class AudioTest extends TestCase
         parent::tearDown();
     }
 
-    private function clip(string $contenido, string $nombre = 'clip.mp3'): string
+    private function clip(string $contenido, string $nombre = 'clip.mp3'): ClipCurricular
     {
         $ruta = $this->temporal.'/'.$nombre;
         file_put_contents($ruta, $contenido);
 
-        return $ruta;
+        // La declaración es parte del contrato: `publicar()` no acepta un
+        // string. Estos SÍ son clips curriculares — son los del test.
+        return new ClipCurricular($ruta);
+    }
+
+    /**
+     * EL TIPO ES LA REGLA. El almacén sirve público, sin auth y cacheado
+     * inmutable un año — solo vale para audio curricular, y eso lo dice la
+     * FIRMA de `publicar()`, no un docblock que en dos PR nadie recuerda.
+     * El día que un alumno se grabe (frente D), su voz no puede entrar por
+     * aquí sin escribir `new ClipCurricular(...)` sobre una grabación de un
+     * menor — una mentira visible en el diff. Si alguien ensancha la firma de
+     * vuelta a string, este oráculo se pone rojo.
+     */
+    public function test_publicar_exige_declarar_el_clip_como_curricular(): void
+    {
+        $parametro = (new \ReflectionMethod(AlmacenDeAudio::class, 'publicar'))
+            ->getParameters()[0];
+
+        $this->assertSame(ClipCurricular::class, (string) $parametro->getType(),
+            'publicar() volvió a aceptar un string: la restricción curricular ya no la obliga el tipo.');
     }
 
     // ================= el almacén =================
