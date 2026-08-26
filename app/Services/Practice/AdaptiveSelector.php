@@ -64,9 +64,9 @@ class AdaptiveSelector
      * @return array{item: PracticeItem, objective: LearningObjective, attempt_no: int, reason: string}|null
      *                                                                                                       null solo si el objetivo pedido no tiene ítems (contrato v1: 404).
      */
-    public function next(LearningObjective $objective, int $userId): ?array
+    public function next(LearningObjective $objective, int $userId, ?string $lengua = null): ?array
     {
-        $own = $this->pickItem($objective, $userId);
+        $own = $this->pickItem($objective, $userId, $lengua);
         if ($own === null) {
             return null;
         }
@@ -79,12 +79,12 @@ class AdaptiveSelector
         if ($state !== null) {
             if ($state->streak <= -self::RETREAT_FAIL_STREAK
                 && $state->mastery < self::RETREAT_MASTERY_BELOW) {
-                $retreat = $this->bestCandidate($this->edgeIds($objective, retreat: true), $objective, $userId);
+                $retreat = $this->bestCandidate($this->edgeIds($objective, retreat: true), $objective, $userId, $lengua);
                 if ($retreat !== null) {
                     return $retreat + ['reason' => self::REASON_RETREAT];
                 }
             } elseif ($state->mastered_at !== null) {
-                $advance = $this->bestCandidate($this->edgeIds($objective, retreat: false), $objective, $userId);
+                $advance = $this->bestCandidate($this->edgeIds($objective, retreat: false), $objective, $userId, $lengua);
                 if ($advance !== null) {
                     return $advance + ['reason' => self::REASON_ADVANCE];
                 }
@@ -107,9 +107,17 @@ class AdaptiveSelector
      *
      * @return Collection<int, PracticeItem>
      */
-    public function itemsOf(LearningObjective $objective): Collection
+    public function itemsOf(LearningObjective $objective, ?string $lengua = null): Collection
     {
+        // La regla de la lengua es CERRADA en las dos direcciones: pedir
+        // italiano sirve SOLO italiano, y pedir sin lengua sirve SOLO el
+        // contenido sin lengua (todo MINEDEC). Así un alumno de italiano no
+        // puede recibir un ítem alemán ni por descuido del cliente — y el
+        // contenido de idiomas nunca se cuela en una destreza de física.
         return $objective->practiceItems()
+            ->when($lengua !== null,
+                fn ($q) => $q->where('lengua', $lengua),
+                fn ($q) => $q->whereNull('lengua'))
             ->orderBy('seq')->orderBy('created_at')->orderBy('id')
             ->get();
     }
@@ -119,9 +127,9 @@ class AdaptiveSelector
      *
      * @return array{item: PracticeItem, attempt_no: int}|null
      */
-    public function pickItem(LearningObjective $objective, int $userId): ?array
+    public function pickItem(LearningObjective $objective, int $userId, ?string $lengua = null): ?array
     {
-        $items = $this->itemsOf($objective);
+        $items = $this->itemsOf($objective, $lengua);
         if ($items->isEmpty()) {
             return null;
         }
@@ -160,7 +168,7 @@ class AdaptiveSelector
      *
      * @return array{item: PracticeItem, objective: LearningObjective, attempt_no: int}|null
      */
-    private function bestCandidate(Collection $ids, LearningObjective $origin, int $userId): ?array
+    private function bestCandidate(Collection $ids, LearningObjective $origin, int $userId, ?string $lengua = null): ?array
     {
         if ($ids->isEmpty()) {
             return null;
@@ -215,7 +223,10 @@ class AdaptiveSelector
             return $porCodigo !== 0 ? $porCodigo : ($a->id <=> $b->id);
         })->first();
 
-        $pick = $this->pickItem($chosen, $userId);
+        // El refuerzo o el avance también respetan la lengua pedida: desviar
+        // a un alumno de italiano hacia un ítem sin lengua (o alemán) sería
+        // romper la regla justo cuando el motor intenta ayudar.
+        $pick = $this->pickItem($chosen, $userId, $lengua);
         if ($pick === null) {
             return null;
         }

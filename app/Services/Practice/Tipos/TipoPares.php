@@ -137,6 +137,19 @@ class TipoPares extends Tipo
         ];
     }
 
+    public function desdeBanco(array $entrada): array
+    {
+        return [
+            'statement' => $entrada['consigna'],
+            'options' => array_map(fn (array $e) => [
+                'key' => (string) $e['clave'],
+                'col' => (string) $e['col'],
+                'text' => $e['texto'],
+            ], $entrada['elementos']),
+            'solucion' => ['parejas' => $entrada['parejas']],
+        ];
+    }
+
     public function alGuardar(PracticeItem $item): void
     {
         $porCol = $this->clavesPorColumna($item);

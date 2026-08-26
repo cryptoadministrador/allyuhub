@@ -59,7 +59,12 @@ class PracticeController extends Controller
         $data = $request->validate([
             'user_id' => 'prohibited',
             'intento' => 'nullable|integer|min:1|max:500',
+            // La lengua del contenido pedido, de LISTA CERRADA: fuera de ella
+            // es 422, no una lengua nueva creada por un typo. Sin lengua solo
+            // se sirve contenido sin lengua — cerrado en las dos direcciones.
+            'lengua' => ['nullable', 'string', Rule::in(\App\Services\Practice\Lenguas::LISTA)],
         ]);
+        $lengua = $data['lengua'] ?? null;
         $quien = Practitioner::fromRequest($request);
 
         if ($quien->isGuest()) {
@@ -71,7 +76,7 @@ class PracticeController extends Controller
             // por número de intento, que es lo único que el invitado sí lleva,
             // sobre el MISMO orden estable que usa la rotación del alumno.
             // De paso, su ítem deja de depender de las filas de ningún usuario.
-            $items = $this->selector->itemsOf($objective);
+            $items = $this->selector->itemsOf($objective, $lengua);
             abort_if($items->isEmpty(), 404, 'El objetivo no tiene ítems de práctica');
 
             $attemptNo = (int) ($data['intento'] ?? 1);
@@ -79,7 +84,7 @@ class PracticeController extends Controller
             $shown = $objective;
             $reason = AdaptiveSelector::REASON_NORMAL;
         } else {
-            $selection = $this->selector->next($objective, $quien->queryId());
+            $selection = $this->selector->next($objective, $quien->queryId(), $lengua);
             abort_if($selection === null, 404, 'El objetivo no tiene ítems de práctica');
 
             $item = $selection['item'];

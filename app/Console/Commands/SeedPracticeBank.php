@@ -90,6 +90,30 @@ class SeedPracticeBank extends Command
             return self::FAILURE;
         }
 
+        // Con el grafo VACÍO (primer despliegue, importadores sin correr) no
+        // hay contra qué distinguir errata de hueco: se avisa y se sigue — el
+        // informe dirá que nada aterrizó. La validación de erratas solo tiene
+        // sentido cuando existe UN currículo que consultar.
+        $hayGrafo = \App\Models\LearningObjective::whereIn('version_id', $versiones)->exists();
+
+        // PRE-PASE: las erratas de área revientan ANTES de escribir nada.
+        // La disyuntiva «o el área no está importada, o no está verificada»
+        // dejó pasar CS.FL por CS.F en producción — Filosofía entera sin
+        // ejercicios y nada rojo. Un área que no existe es una errata; un
+        // bloque hueco dentro de un área real sigue siendo cobertura y avisa.
+        foreach ($hayGrafo ? array_unique(array_column($banco, 0)) : [] as $prefijo) {
+            if (! \App\Services\Lesson\DestinosDeBloque::areaExiste($prefijo, $versiones)) {
+                $area = \App\Services\Lesson\DestinosDeBloque::area($prefijo);
+                $this->error(
+                    "El bloque {$prefijo} pide el área «{$area}» y NINGUNA destreza del grafo ".
+                    'empieza por ella: eso no es un hueco de cobertura, es una ERRATA en el banco '.
+                    '(¿CS.FL por CS.F?). No se siembra nada hasta corregirla.',
+                );
+
+                return self::FAILURE;
+            }
+        }
+
         $creados = 0;
         $actualizados = 0;
         $huecos = [];

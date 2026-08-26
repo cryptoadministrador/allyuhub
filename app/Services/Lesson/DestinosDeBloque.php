@@ -69,6 +69,50 @@ class DestinosDeBloque
             ->values();
     }
 
+    /** El prefijo de ÁREA de un código: los segmentos hasta el primero numérico. */
+    public static function area(string $codigo): string
+    {
+        $area = [];
+        foreach (explode('.', $codigo) as $parte) {
+            if (is_numeric($parte)) {
+                break;
+            }
+            $area[] = $parte;
+        }
+
+        return implode('.', $area);
+    }
+
+    /**
+     * ¿Existe el ÁREA de este código en el grafo? — la pregunta que separa una
+     * ERRATA de un HUECO de cobertura, y que nadie hacía.
+     *
+     * Producción: el banco pedía `CS.FL.5.1` y el grafo tiene `CS.F.5.1`. Dos
+     * letras, Filosofía entera sin ejercicios, y el informe lo contó como un
+     * hueco más entre «o el área no está importada, o no está verificada». Esa
+     * disyuntiva con «o» dejó pasar la errata — y la diferencia ES computable:
+     * si NINGUNA destreza del grafo empieza por el prefijo de área, el prefijo
+     * no existe y es una errata que tiene que REVENTAR. Si el área existe pero
+     * el bloque concreto no, eso sí es cobertura pendiente y se avisa.
+     *
+     * A propósito se mira SIN filtrar por verificación: un área que existe
+     * solo sin verificar (CS.EC hoy) es un hueco legítimo, no una errata. Y se
+     * mira sobre DESTREZAS, no sobre nodos: un área-nodo sin destrezas tampoco
+     * puede recibir contenido, así que cuenta como inexistente.
+     */
+    public static function areaExiste(string $codigo, Collection $versiones): bool
+    {
+        $area = self::area($codigo);
+        if ($area === '') {
+            return false;
+        }
+
+        return LearningObjective::query()
+            ->whereIn('version_id', $versiones)
+            ->where('native_code', 'like', $area.'.%')
+            ->exists();
+    }
+
     /**
      * `LL.4.3.1` o `LL.4.3` → `LL · subnivel 4`. El área es todo lo anterior al
      * primer segmento numérico, así que `CN.F.5.1.9` da `CN.F · subnivel 5`:

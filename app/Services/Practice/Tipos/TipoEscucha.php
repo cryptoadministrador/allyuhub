@@ -25,6 +25,16 @@ class TipoEscucha extends TipoPorClave
             'transcripcion' => $item->transcripcion];
     }
 
+    public function desdeBanco(array $entrada): array
+    {
+        return [...parent::desdeBanco($entrada),
+            // `audio_src` ya viene resuelto: el banco nombra el clip por su
+            // clave (it/u1/saludo) y el sembrador lo publicó en el almacén.
+            'audio_src' => $entrada['audio_src'],
+            'transcripcion' => $entrada['transcripcion'],
+        ];
+    }
+
     public function alGuardar(PracticeItem $item): void
     {
         parent::alGuardar($item);

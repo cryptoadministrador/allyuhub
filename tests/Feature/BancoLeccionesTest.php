@@ -258,6 +258,7 @@ class BancoLeccionesTest extends TestCase
     public function test_la_leccion_y_el_ejercicio_del_bloque_caen_en_la_misma_destreza(): void
     {
         $this->sembrarBasicaSuperior();
+        $this->anclarAreasDelBancoDePractica($this->version);
         $this->artisan('practica:sembrar')->assertSuccessful();
         $this->artisan('lecciones:sembrar')->assertSuccessful();
 
@@ -392,6 +393,7 @@ class BancoLeccionesTest extends TestCase
     public function test_sembrar_lecciones_no_altera_el_banco_de_practica(): void
     {
         $this->sembrarBasicaSuperior();
+        $this->anclarAreasDelBancoDePractica($this->version);
         $this->artisan('practica:sembrar')->assertSuccessful();
 
         $antes = PracticeItem::orderBy('id')->pluck('id')->all();

@@ -542,22 +542,22 @@ return [
             'd' => 'Se ha cosechado antes de tiempo',
         ], 'a'],
 
-    // Filosofía (rama CS.FL de Estudios Sociales en BGU)
-    ['CS.FL.5.1', 'choice', '¿Qué distingue a una pregunta filosófica de una pregunta científica?',
+    // Filosofía (rama CS.F de Estudios Sociales en BGU — CS.FL era la errata)
+    ['CS.F.5.1', 'choice', '¿Qué distingue a una pregunta filosófica de una pregunta científica?',
         [
             'a' => 'La filosófica interroga los supuestos; la científica se responde con datos',
             'b' => 'La filosófica siempre tiene una única respuesta',
             'c' => 'La científica no usa razonamiento',
             'd' => 'No hay ninguna diferencia',
         ], 'a'],
-    ['CS.FL.5.2', 'choice', 'Un razonamiento es VÁLIDO cuando:',
+    ['CS.F.5.2', 'choice', 'Un razonamiento es VÁLIDO cuando:',
         [
             'a' => 'La conclusión se sigue necesariamente de las premisas',
             'b' => 'La conclusión es verdadera',
             'c' => 'Las premisas son creíbles',
             'd' => 'Lo defiende alguien con autoridad',
         ], 'a'],
-    ['CS.FL.5.3', 'choice', 'Cuando alguien descalifica a quien argumenta en vez de responder a su argumento, comete la falacia:',
+    ['CS.F.5.3', 'choice', 'Cuando alguien descalifica a quien argumenta en vez de responder a su argumento, comete la falacia:',
         [
             'a' => 'Ad hominem',
             'b' => 'De falsa causa',

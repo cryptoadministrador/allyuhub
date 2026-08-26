@@ -54,4 +54,23 @@ abstract class Tipo
 
     /** El guardián `saving`: la forma del ítem, validada al escribirse. */
     public function alGuardar(PracticeItem $item): void {}
+
+    /**
+     * CÓMO SE LEE LA ENTRADA DE BANCO de este tipo — la sexta pregunta.
+     *
+     * El sembrador de MINEDEC leía tuplas posicionales con un `if` por kind:
+     * el motor sabía siete tipos y el sembrador dos, la misma familia de
+     * defecto de toda la semana (la regla en un sitio y no en su hermano).
+     * Ahora la entrada va POR CLAVES y cada tipo declara aquí qué claves lee
+     * y a qué columnas van: añadir el octavo tipo no toca el sembrador.
+     *
+     * Devuelve SOLO columnas de contenido (statement, options, solucion…);
+     * el anclaje (objective_id, lengua, seq, attrs de revisión) es del
+     * sembrador. Si la entrada trae un `clip`, el sembrador ya lo publicó y
+     * lo entrega como `audio_src` — la indirección clave→hash es suya.
+     *
+     * @param  array<string, mixed>  $entrada
+     * @return array<string, mixed>
+     */
+    abstract public function desdeBanco(array $entrada): array;
 }

@@ -63,6 +63,18 @@ class TipoNumerico extends Tipo
         ];
     }
 
+    public function desdeBanco(array $entrada): array
+    {
+        return [
+            'statement' => $entrada['consigna'],
+            'params' => $entrada['params'] ?? [],
+            'solution_expr' => $entrada['expresion'],
+            'tolerance' => $entrada['tolerancia'] ?? 0.01,
+            'tolerance_kind' => $entrada['tolerancia_tipo'] ?? 'abs',
+            'answer_unit' => $entrada['unidad'] ?? null,
+        ];
+    }
+
     public function alGuardar(PracticeItem $item): void
     {
         if (trim((string) $item->solution_expr) === '') {

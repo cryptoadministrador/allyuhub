@@ -53,7 +53,12 @@ class ImportMineduc extends Command
     /** Prefijo de código → native_code de la asignatura en el grafo del seeder. */
     private const AREA_MAP = [
         'CN.F' => 'CN.F', 'CN.Q' => 'CN.Q', 'CN.B' => 'CN.B', 'CN' => 'CN',
-        'CS.H' => 'CS.H', 'CS.F' => 'CS.FL', 'CS.C' => 'CS.EC', 'CS' => 'CS',
+        // CS.F -> CS.F desde que la semilla demo se alineo con el codigo
+        // OFICIAL: el nodo se llamaba CS.FL (de ahi salio la errata del banco)
+        // y el import oficial escribe destrezas CS.F. Una base sembrada ANTES
+        // de esta correccion conserva el nodo viejo CS.FL: un re-import de
+        // Filosofia alli no encontraria el nodo (señalado en el informe).
+        'CS.H' => 'CS.H', 'CS.F' => 'CS.F', 'CS.C' => 'CS.EC', 'CS' => 'CS',
         'M' => 'M', 'LL' => 'LL', 'ECA' => 'ECA', 'EF' => 'EF', 'EG' => 'EG',
     ];
 

@@ -82,6 +82,18 @@ class TipoOrden extends Tipo
         ];
     }
 
+    public function desdeBanco(array $entrada): array
+    {
+        return [
+            'statement' => $entrada['consigna'],
+            'options' => array_map(fn (array $p) => [
+                'key' => (string) $p['clave'],
+                'text' => $p['texto'],
+            ], $entrada['palabras']),
+            'solucion' => ['secuencias' => $entrada['secuencias']],
+        ];
+    }
+
     public function alGuardar(PracticeItem $item): void
     {
         $claves = $item->clavesValidas();

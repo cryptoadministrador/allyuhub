@@ -61,6 +61,47 @@ abstract class TestCase extends BaseTestCase
     }
 
     /**
+     * Un ANCLA sin verificar por cada área que el banco real de práctica
+     * menciona y el grafo del test no trae.
+     *
+     * Existe por el pre-pase de erratas: un área que no existe en el grafo
+     * REVIENTA la siembra (así se cazó CS.FL por CS.F). Los tests construyen
+     * grafos parciales a propósito —solo Básica Superior, solo las ramas— y
+     * sin estas anclas el pre-pase confundiría ese grafo parcial con una
+     * errata del banco. En producción el papel de las anclas lo hace la
+     * semilla demo, que trae todas las áreas sin verificar.
+     */
+    protected function anclarAreasDelBancoDePractica(\App\Models\FrameworkVersion $version): void
+    {
+        $areas = collect(require database_path('data/banco-practica.php'))
+            ->map(fn (array $e) => \App\Services\Lesson\DestinosDeBloque::area($e[0]))
+            ->unique();
+
+        $nodo = null;
+        foreach ($areas as $area) {
+            $existe = \App\Models\LearningObjective::where('version_id', $version->id)
+                ->where('native_code', 'like', $area.'.%')->exists();
+            if ($existe) {
+                continue;
+            }
+
+            $nodo ??= \App\Models\CurNode::create([
+                'version_id' => $version->id, 'node_type' => 'grado',
+                'native_code' => 'anclas', 'title' => ['es' => 'Anclas de área'],
+                'path' => 'anclas',
+            ]);
+            \App\Models\LearningObjective::create([
+                'node_id' => $nodo->id, 'version_id' => $version->id,
+                // El .0.0.0 no colisiona con ningún bloque real: ancla el ÁREA
+                // sin recibir jamás un ítem (ningún prefijo de banco lo cubre).
+                'native_code' => "{$area}.0.0.0",
+                'statement' => ['es' => "Ancla del área {$area}"],
+                'is_verified' => false,
+            ]);
+        }
+    }
+
+    /**
      * El billete que `next` emitiría AHORA MISMO para este alumno y este ítem.
      *
      * Cuenta filas, sí — pero para SIMULAR al emisor, no para corregir. Esa es

@@ -79,6 +79,10 @@ class BancoPracticaTest extends TestCase
                 }
             }
         }
+
+        // Las áreas del banco que este grafo parcial no trae, ancladas sin
+        // verificar: el pre-pase de erratas exige que el ÁREA exista.
+        $this->anclarAreasDelBancoDePractica($this->version);
     }
 
     /** El subnivel de un prefijo: su primer segmento numérico. */
@@ -101,7 +105,7 @@ class BancoPracticaTest extends TestCase
     public function test_todas_las_ramas_del_banco_estan_cubiertas_donde_existe_el_grafo(): void
     {
         $this->sembrarGrafo(
-            ['CN.F' => [1, 2, 3, 4, 5], 'CS.H' => [1, 2, 3], 'CS.FL' => [1, 2, 3]],
+            ['CN.F' => [1, 2, 3, 4, 5], 'CS.H' => [1, 2, 3], 'CS.F' => [1, 2, 3]],
             ['g11' => 5],
         );
         $this->artisan('practica:sembrar')->assertSuccessful();
@@ -109,7 +113,7 @@ class BancoPracticaTest extends TestCase
         $ramas = collect(require database_path('data/banco-practica.php'))
             ->map(fn (array $e) => $e[0])
             ->filter(fn (string $p) => str_starts_with($p, 'CN.F.')
-                || str_starts_with($p, 'CS.H.') || str_starts_with($p, 'CS.FL.'));
+                || str_starts_with($p, 'CS.H.') || str_starts_with($p, 'CS.F.'));
 
         $this->assertCount(11, $ramas, 'Cambió el número de bloques de rama del banco.');
 
@@ -282,7 +286,9 @@ class BancoPracticaTest extends TestCase
             'answer_key' => 'a', 'is_correct' => true,
         ]);
 
-        $this->sembrarDesde([['ZZ.9.9', 'numeric', 'Nada {a}',
+        // El bloque señuelo vive en un área REAL (M) con bloque hueco: con el
+        // pre-pase de erratas, un área inventada (ZZ) ya no llega a la poda.
+        $this->sembrarDesde([['M.9.9', 'numeric', 'Nada {a}',
             ['a' => ['const' => 1]], 'a', 0.01, 'abs', null]], ['--podar' => true]);
 
         $this->assertNotNull($item->fresh(), 'La poda borró un ítem con intentos colgando.');

@@ -24,6 +24,14 @@ class TipoDictado extends TipoHueco
             'transcripcion' => $item->transcripcion];
     }
 
+    public function desdeBanco(array $entrada): array
+    {
+        return [...parent::desdeBanco($entrada),
+            'audio_src' => $entrada['audio_src'],
+            'transcripcion' => $entrada['transcripcion'],
+        ];
+    }
+
     public function alGuardar(PracticeItem $item): void
     {
         parent::alGuardar($item);
