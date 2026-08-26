@@ -1107,3 +1107,23 @@ describe('Practicar — accesibilidad de los tipos de lengua', () => {
         }
     });
 });
+
+describe('Practicar — la lengua del curso', () => {
+    it('acompaña CADA petición de next, tal cual la dio el servidor', async () => {
+        const fetchMock = encolarFetch(respuestaJson(200, ITEM_HUECO));
+        render(<Practicar objective={OBJETIVO_ALEMAN} mastery={null} lengua="it" />);
+        await screen.findByText(/tu habites/i);
+
+        // El cliente no decide la regla: la declara en la URL y el servidor
+        // sirve SOLO esa lengua (cerrado en el motor, no aquí).
+        expect(fetchMock.mock.calls[0][0]).toContain('lengua=it');
+    });
+
+    it('sin lengua, la petición no inventa ninguna', async () => {
+        const fetchMock = encolarFetch(respuestaJson(200, ITEM_HUECO));
+        render(<Practicar objective={OBJETIVO_ALEMAN} mastery={null} />);
+        await screen.findByText(/tu habites/i);
+
+        expect(fetchMock.mock.calls[0][0]).not.toContain('lengua=');
+    });
+});

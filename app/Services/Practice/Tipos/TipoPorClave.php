@@ -65,6 +65,21 @@ class TipoPorClave extends Tipo
         ];
     }
 
+    public function desdeBanco(array $entrada): array
+    {
+        return [
+            'statement' => $entrada['consigna'],
+            // Las opciones del banco van por clave declarada, nunca por
+            // posición: la clave es el id inmutable con el que se corrige.
+            'options' => array_map(fn (array $o) => [
+                'key' => (string) $o['clave'],
+                'text' => $o['texto'],
+            ], $entrada['opciones']),
+            'answer_key' => (string) $entrada['correcta'],
+            'shuffle' => (bool) ($entrada['barajar'] ?? true),
+        ];
+    }
+
     public function alGuardar(PracticeItem $item): void
     {
         $claves = $item->clavesValidas();

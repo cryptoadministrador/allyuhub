@@ -13,6 +13,10 @@ class DatabaseSeeder extends Seeder
         // Los marcos internacionales van después de EC-MINEDEC porque el crosswalk
         // necesita las dos puntas ya sembradas.
         $this->call(InternationalFrameworksSeeder::class);
+        // El MCER: el marco de los cursos de idiomas (FR/IT/DE/ZH). Entra
+        // verificado y citado — sus descriptores son públicos, al revés que
+        // los syllabus de CAIE/IB.
+        $this->call(CefrSeeder::class);
         $this->call(CrosswalkSeeder::class);
         $this->call(PracticeItemSeeder::class);
 

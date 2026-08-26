@@ -26,6 +26,15 @@ class PageController extends Controller
     /** GET /practicar/{objective} — el bucle de práctica de una destreza. */
     public function practicar(Request $request, LearningObjective $objective)
     {
+        // La lengua del curso, si la URL la trae (/practicar/{id}?lengua=it):
+        // lista CERRADA — fuera de ella es 422, no una lengua inventada. La
+        // página se la pasa tal cual a la API de práctica, que aplica la regla
+        // de servicio (pedir italiano sirve SOLO italiano).
+        $datos = $request->validate([
+            'lengua' => ['nullable', 'string',
+                \Illuminate\Validation\Rule::in(\App\Services\Practice\Lenguas::LISTA)],
+        ]);
+
         // El invitado no tiene dominio guardado que mostrar: `null`, y la página
         // arranca su barra efímera en cero. Ni una consulta con `user_id = null`,
         // que en PostgreSQL no casa con nada pero tampoco significa nada.
@@ -42,6 +51,7 @@ class PageController extends Controller
                 'has_items' => $objective->practiceItems()->exists(),
             ],
             'mastery' => $mastery === null ? null : (float) $mastery,
+            'lengua' => $datos['lengua'] ?? null,
         ]);
     }
 

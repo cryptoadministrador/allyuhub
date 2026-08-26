@@ -80,6 +80,16 @@ class TipoHueco extends Tipo
         ];
     }
 
+    public function desdeBanco(array $entrada): array
+    {
+        return [
+            'statement' => $entrada['consigna'],
+            // La lengua de la solución ES la lengua de la entrada: no se
+            // declara dos veces para que no puedan divergir.
+            'solucion' => ['lengua' => $entrada['lengua'], 'textos' => $entrada['aceptadas']],
+        ];
+    }
+
     public function alGuardar(PracticeItem $item): void
     {
         $s = $item->solucion;

@@ -357,6 +357,39 @@ Reglas que no se negocian, heredadas de #22/#25/#26:
 - La interacción de orden/pares es PULSAR, no arrastrar: teléfono + teclado +
   lector de pantalla piden lo mismo que el presupuesto (0 KB de librerías).
 
+## El camino del contenido de lenguas (MCER)
+
+El marco de los cursos de idiomas es el **CEFR** (`CefrSeeder`, en la cadena de
+`migrate --seed`): nivel → área (`A1.CO/CE/IO/PO/EE`) → descriptores «Puedo…».
+Entra **verificado y citado** — los descriptores del MCER son públicos, al
+revés que CAIE/IB — y un descriptor sin `source_url` no entra.
+
+- **La lengua es del CONTENIDO, no del marco**: `A1.IO.3` es el mismo
+  descriptor en italiano y en alemán. La separa la columna `lengua` (ítems y
+  recursos), de lista CERRADA (`Practice\Lenguas::LISTA`). La regla de
+  servicio es cerrada en las dos direcciones: `?lengua=it` sirve SOLO
+  italiano, y sin `lengua` se sirve SOLO contenido sin lengua (todo MINEDEC).
+- **El banco es `database/data/banco-lenguas.php`**, separado del de MINEDEC:
+  entradas POR CLAVE (nunca posicionales) y cada tipo declara cómo se lee la
+  suya en `Tipo::desdeBanco()` — el octavo tipo no toca `lenguas:sembrar`.
+  Anclaje por descriptor EXACTO, no por prefijo de bloque.
+- **El audio se nombra por CLAVE** (`'clip' => 'it/u1/saludo'`, fichero en
+  `database/data/audio-lenguas/`): quien escribe el banco no puede calcular el
+  hash de un clip que no existe. El sembrador publica en el almacén y
+  sustituye; un clip que falta REVIENTA nombrando clave y entrada, y la
+  siembra va en UNA transacción — el banco entra entero o no entra.
+- **La firma es POR LENGUA**: `practica:firmar --bloque=A1.IO.it`,
+  `lecciones:firmar --bloque=A1.CO.it`. Quien sabe italiano firma el italiano.
+
+**La errata que motivó todo** (`practica:sembrar` y `lenguas:sembrar`): un
+área que NO existe en el grafo **revienta** la siembra
+(`DestinosDeBloque::areaExiste`, sin filtrar por verificación); un bloque o
+descriptor hueco dentro de un área real **avisa**. La disyuntiva «o no está
+importada, o no está verificada» dejó pasar `CS.FL` por `CS.F` y Filosofía
+entera se quedó sin ejercicios. Ojo: la semilla demo llamaba `CS.FL` al nodo
+de Filosofía y el import oficial escribe `CS.F` — la semilla ya está alineada,
+pero una base sembrada ANTES conserva el nodo viejo.
+
 ## La frontera del contenido abierto (modelo Khan)
 
 Se **navega** y se **practica** sin sesión; se **guarda** y se **califica** solo con
