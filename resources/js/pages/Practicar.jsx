@@ -148,14 +148,32 @@ export default function Practicar({ objective, mastery: masteryInicial }) {
 
     const esChoice = item?.kind === 'choice';
     const esEscucha = item?.kind === 'escucha';
-    // `escucha` ES la mecánica de choice con un clip delante: todo lo que aquí
-    // pregunte por «responder por clave» vale para los dos, y el siguiente
-    // tipo que responda por clave hereda el circuito entero.
+    const esHueco = item?.kind === 'hueco';
+    const esDictado = item?.kind === 'dictado';
+    const esOrden = item?.kind === 'orden';
+    const esPares = item?.kind === 'pares';
+    // Tres FORMAS de responder, no seis tipos: por clave (choice/escucha),
+    // por texto (hueco/dictado) y por estructura (orden/pares). El servidor
+    // hizo la misma generalización (Tipos\Registro); aquí decide qué interfaz
+    // se pinta y qué campo viaja en el POST.
     const porClave = esChoice || esEscucha;
-    // Un ítem por clave sin opciones es un ítem roto en la base, no una
-    // pantalla en blanco: `options` es nullable y nada garantiza que esté.
-    const opciones = porClave ? (item.options ?? []) : [];
-    const itemRoto = porClave && opciones.length === 0;
+    const porTexto = esHueco || esDictado;
+    const conAudio = esEscucha || esDictado;
+    // Un ítem con opciones pero sin opciones en la base es un ítem roto, no
+    // una pantalla en blanco: `options` es nullable y nada garantiza que esté.
+    const opciones = porClave || esOrden || esPares ? (item.options ?? []) : [];
+    const itemRoto = (porClave || esOrden || esPares) && opciones.length === 0;
+
+    // El estado de orden y pares: ids elegidos, no posiciones. `pendiente` es
+    // la selección a medio formar de pares (una clave por columna).
+    const [secuencia, setSecuencia] = useState([]);
+    const [parejas, setParejas] = useState([]);
+    const [pendiente, setPendiente] = useState({});
+
+    const columnasDePares = esPares
+        ? [...new Set(opciones.map((o) => o.col))].sort()
+        : [];
+    const usadasEnParejas = new Set(parejas.flat());
 
     const { props: compartidas } = usePage();
     const invitado = !compartidas.auth?.user;
@@ -171,6 +189,9 @@ export default function Practicar({ objective, mastery: masteryInicial }) {
         setEstado('cargando');
         setResultado(null);
         setRespuesta('');
+        setSecuencia([]);
+        setParejas([]);
+        setPendiente({});
         setFaltaElegir(false);
 
         try {
@@ -222,9 +243,14 @@ export default function Practicar({ objective, mastery: masteryInicial }) {
         // Sin responder no se envía — pero tampoco se calla. Antes era un
         // `return` mudo: quien navega con teclado o lector de pantalla pulsaba
         // «Comprobar» y no pasaba absolutamente nada, sin saber por qué.
-        if (respuesta.trim() === '') {
+        const incompleto = esOrden
+            ? secuencia.length !== opciones.length
+            : esPares
+              ? parejas.length * columnasDePares.length !== opciones.length
+              : respuesta.trim() === '';
+        if (incompleto) {
             setFaltaElegir(true);
-            inputRef.current?.focus();
+            if (!esOrden && !esPares) inputRef.current?.focus();
 
             return;
         }
@@ -240,7 +266,13 @@ export default function Practicar({ objective, mastery: masteryInicial }) {
                     // 422: cada tipo prohíbe el campo del otro.
                     ...(porClave
                         ? { answer_key: respuesta }
-                        : { answer: Number(respuesta) }),
+                        : porTexto
+                          ? { respuesta: { texto: respuesta } }
+                          : esOrden
+                            ? { respuesta: { ids: secuencia } }
+                            : esPares
+                              ? { respuesta: { parejas } }
+                              : { answer: Number(respuesta) }),
                     time_ms: Date.now() - inicioItem.current,
                     // EL BILLETE que vino con el ítem, tal cual. Dentro lleva
                     // firmados el número de intento y la semilla con la que se
@@ -466,7 +498,7 @@ export default function Practicar({ objective, mastery: masteryInicial }) {
                         {item.statement.es}
                     </p>
 
-                    {esEscucha && <ReproductorDeEscucha src={item.audio_src} />}
+                    {conAudio && <ReproductorDeEscucha src={item.audio_src} />}
 
                     {porClave ? (
                         /* fieldset + legend es EL patrón de un grupo de radios:
@@ -517,6 +549,147 @@ export default function Practicar({ objective, mastery: masteryInicial }) {
                                 ))}
                             </div>
                         </fieldset>
+                    ) : esOrden ? (
+                        /* TOCAR, no arrastrar: en un teléfono arrastrar es
+                           incómodo, y tocar es lo que funciona con teclado y
+                           lector de pantalla. El presupuesto (0 KB de
+                           librerías) y la accesibilidad piden lo mismo. */
+                        <div className="mb-4">
+                            <div
+                                role="group"
+                                aria-label="Tu frase"
+                                className="mb-3 flex min-h-14 flex-wrap items-center gap-2 rounded-lg border border-slate-300 bg-white p-3"
+                            >
+                                {secuencia.length === 0 && (
+                                    <span className="text-sm text-slate-600">
+                                        Toca las palabras en orden.
+                                    </span>
+                                )}
+                                {secuencia.map((clave) => (
+                                    <button
+                                        key={clave}
+                                        type="button"
+                                        onClick={() => {
+                                            setSecuencia(secuencia.filter((k) => k !== clave));
+                                            setFaltaElegir(false);
+                                        }}
+                                        className="rounded border border-marca-600 bg-marca-50 px-3 py-1.5 text-base text-marca-900 hover:bg-marca-100 focus:outline-2 focus:outline-offset-2 focus:outline-marca-600"
+                                    >
+                                        {Object.values(opciones.find((o) => o.key === clave)?.text ?? {})[0]}
+                                    </button>
+                                ))}
+                            </div>
+                            <div
+                                role="group"
+                                aria-label="Palabras disponibles"
+                                className="flex flex-wrap gap-2"
+                            >
+                                {opciones
+                                    .filter((o) => !secuencia.includes(o.key))
+                                    .map((o) => (
+                                        <button
+                                            key={o.key}
+                                            type="button"
+                                            onClick={() => {
+                                                setSecuencia([...secuencia, o.key]);
+                                                setFaltaElegir(false);
+                                            }}
+                                            className="rounded border border-slate-300 bg-white px-3 py-1.5 text-base text-slate-900 hover:bg-slate-50 focus:outline-2 focus:outline-offset-2 focus:outline-marca-600"
+                                        >
+                                            {Object.values(o.text ?? {})[0]}
+                                        </button>
+                                    ))}
+                            </div>
+                        </div>
+                    ) : esPares ? (
+                        <div className="mb-4">
+                            <div className="mb-3 grid gap-3" style={{ gridTemplateColumns: `repeat(${columnasDePares.length}, minmax(0, 1fr))` }}>
+                                {columnasDePares.map((col, i) => (
+                                    <div key={col} role="group" aria-label={`Columna ${i + 1}`} className="space-y-2">
+                                        {opciones
+                                            .filter((o) => o.col === col)
+                                            .map((o) => (
+                                                <button
+                                                    key={o.key}
+                                                    type="button"
+                                                    disabled={usadasEnParejas.has(o.key)}
+                                                    aria-pressed={pendiente[col] === o.key}
+                                                    onClick={() => {
+                                                        const sel = {
+                                                            ...pendiente,
+                                                            [col]: pendiente[col] === o.key ? undefined : o.key,
+                                                        };
+                                                        // Una clave por columna: al completarse,
+                                                        // la pareja se forma sola (en el orden de
+                                                        // las columnas, que es el de la tupla).
+                                                        if (columnasDePares.every((c) => sel[c])) {
+                                                            setParejas([...parejas, columnasDePares.map((c) => sel[c])]);
+                                                            setPendiente({});
+                                                        } else {
+                                                            setPendiente(sel);
+                                                        }
+                                                        setFaltaElegir(false);
+                                                    }}
+                                                    className={`block w-full rounded border px-3 py-2 text-left text-base focus:outline-2 focus:outline-offset-2 focus:outline-marca-600 disabled:opacity-40 ${
+                                                        pendiente[col] === o.key
+                                                            ? 'border-marca-600 bg-marca-50 text-marca-900'
+                                                            : 'border-slate-300 bg-white text-slate-900 hover:bg-slate-50'
+                                                    }`}
+                                                >
+                                                    {Object.values(o.text ?? {})[0]}
+                                                </button>
+                                            ))}
+                                    </div>
+                                ))}
+                            </div>
+                            {parejas.length > 0 && (
+                                <ul aria-label="Tus parejas" className="space-y-1">
+                                    {parejas.map((tupla, i) => {
+                                        const textos = tupla
+                                            .map((k) => Object.values(opciones.find((o) => o.key === k)?.text ?? {})[0])
+                                            .join(' — ');
+
+                                        return (
+                                            <li key={i} className="flex items-center gap-2 text-sm text-slate-800">
+                                                <span>{textos}</span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setParejas(parejas.filter((_, j) => j !== i))}
+                                                    className="rounded border border-slate-300 px-2 py-0.5 text-xs text-slate-700 hover:bg-slate-50 focus:outline-2 focus:outline-offset-2 focus:outline-marca-600"
+                                                >
+                                                    Quitar pareja {textos}
+                                                </button>
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
+                            )}
+                        </div>
+                    ) : porTexto ? (
+                        <div className="mb-4">
+                            <label className="block">
+                                <span className="mb-1 block text-sm font-medium">Tu respuesta</span>
+                                {/* type=text con autocorrección fuera: el alumno
+                                    escribe en la lengua que aprende y el móvil
+                                    «corrigiéndole» al español es el enemigo. */}
+                                <input
+                                    ref={inputRef}
+                                    type="text"
+                                    autoComplete="off"
+                                    autoCapitalize="off"
+                                    autoCorrect="off"
+                                    spellCheck="false"
+                                    required
+                                    value={respuesta}
+                                    aria-describedby={faltaElegir ? 'falta-elegir' : undefined}
+                                    onChange={(e) => {
+                                        setRespuesta(e.target.value);
+                                        setFaltaElegir(false);
+                                    }}
+                                    className="w-full max-w-md rounded border border-slate-300 px-3 py-2 focus:outline-2 focus:outline-marca-600"
+                                />
+                            </label>
+                        </div>
                     ) : (
                         <div className="mb-4 flex items-end gap-2">
                             <label className="block">
@@ -554,7 +727,11 @@ export default function Practicar({ objective, mastery: masteryInicial }) {
                         >
                             {porClave
                                 ? 'Elige una de las opciones antes de comprobar.'
-                                : 'Escribe tu respuesta antes de comprobar.'}
+                                : esOrden
+                                  ? 'Te faltan palabras por colocar antes de comprobar.'
+                                  : esPares
+                                    ? 'Te faltan parejas por formar antes de comprobar.'
+                                    : 'Escribe tu respuesta antes de comprobar.'}
                         </p>
                     )}
 
@@ -599,7 +776,27 @@ export default function Practicar({ objective, mastery: masteryInicial }) {
                             >
                                 {resultado.is_correct ? 'Correcto.' : 'Incorrecto.'}
                             </p>
-                            {porClave ? (
+                            {porTexto ? (
+                                <p className="mt-1 text-sm leading-relaxed text-slate-700">
+                                    {resultado.is_correct
+                                        ? 'Bien escrito.'
+                                        : resultado.detalle === 'acento'
+                                          ? `Casi: revisa el acento. Escribiste «${resultado.texto}» y era «${resultado.esperado}».`
+                                          : `La respuesta era: «${resultado.esperado}».`}
+                                </p>
+                            ) : esOrden ? (
+                                <p className="mt-1 text-sm leading-relaxed text-slate-700">
+                                    {resultado.is_correct
+                                        ? 'La frase está bien construida.'
+                                        : `Un orden correcto era: ${(resultado.secuencia_correcta ?? [])
+                                              .map((k) => Object.values(opciones.find((o) => o.key === k)?.text ?? {})[0])
+                                              .join(' ')}.`}
+                                </p>
+                            ) : esPares ? (
+                                <p className="mt-1 text-sm leading-relaxed text-slate-700">
+                                    {`Acertaste ${resultado.parejas_correctas} de ${resultado.total} parejas.`}
+                                </p>
+                            ) : porClave ? (
                                 <p className="mt-1 text-sm leading-relaxed text-slate-700">
                                     {/* Se nombra la opción buena por su TEXTO,
                                         que es lo que el alumno recuerda: «la 2»
@@ -616,7 +813,7 @@ export default function Practicar({ objective, mastery: masteryInicial }) {
                                     {item?.answer_unit ? ` ${item.answer_unit}` : ''}.
                                 </p>
                             )}
-                            {esEscucha && resultado.transcripcion && (
+                            {conAudio && resultado.transcripcion && (
                                 /* AHORA sí: respondido el intento, leer lo que
                                    se oyó es la otra mitad del ejercicio. Antes
                                    de responder no está ni en el payload. */

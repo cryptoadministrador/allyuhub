@@ -15,6 +15,7 @@ use App\Services\Practice\AttemptTicket;
 use App\Services\Practice\MasteryTracker;
 use App\Services\Practice\PracticeEngine;
 use App\Services\Practice\Practitioner;
+use App\Services\Practice\Tipos\Registro;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -94,43 +95,12 @@ class PracticeController extends Controller
 
         $seed = $this->engine->seedFor($item->id, $quien->seedKey(), $attemptNo);
 
-        // Lo específico de cada tipo se arma aparte y se FUSIONA al final: así
-        // el payload de un `choice` no arrastra campos numéricos vacíos, y
-        // sobre todo se ve de un vistazo que la marca de «correcta» no está en
-        // ninguna de las dos ramas.
-        if ($item->respondePorClave()) {
-            $opciones = $item->shuffle
-                ? $this->engine->shuffleOptions($item->opciones(), $seed)
-                : $item->opciones();
-
-            $propio = [
-                'statement' => $item->statement,
-                // LISTA BLANCA campo a campo: solo clave y texto. Nada de
-                // volcar la opción entera —hoy no hay más campos, pero el día
-                // que alguien añada uno no se publicará por descuido.
-                'options' => array_map(fn (array $o) => [
-                    'key' => (string) $o['key'],
-                    'text' => $o['text'],
-                ], $opciones),
-            ];
-
-            if ($item->esEscucha()) {
-                // El clip SÍ viaja —sin él no hay nada que oír— pero la
-                // transcripción NO: es columna oculta, como la clave correcta,
-                // y se revela en el veredicto. Si viajara aquí, el ejercicio
-                // de escucha no existiría.
-                $propio['audio_src'] = $item->audio_src;
-            }
-        } else {
-            $params = $this->engine->sampleParams($item->params, $seed);
-            $propio = [
-                'statement' => $this->engine->renderStatement($item->statement, $params),
-                'params' => $params,
-                'answer_unit' => $item->answer_unit,
-                'tolerance' => $item->tolerance,
-                'tolerance_kind' => $item->tolerance_kind,
-            ];
-        }
+        // Lo específico de cada tipo lo declara SU clase (Tipos\*::payload),
+        // elegida por el Registro: el controlador no sabe cuántos tipos hay ni
+        // qué forma tienen. Cada payload es lista blanca campo a campo, y la
+        // solución no está porque ningún tipo la pone — no porque alguien la
+        // quite aquí.
+        $propio = Registro::de($item->kind)->payload($item, $this->engine, $seed);
 
         return response()->json([
             'item_id' => $item->id,
@@ -165,24 +135,25 @@ class PracticeController extends Controller
      */
     public function submitAttempt(PracticeItem $item, Request $request)
     {
-        // Cada tipo exige LO SUYO y prohíbe lo del otro: responder un texto con
-        // un número (o al revés) es un cliente equivocado, y vale más que grite
-        // un 422 a que se registre un fallo que el alumno no cometió.
-        // `escucha` responde por clave igual que `choice`: misma vía entera.
-        $esChoice = $item->respondePorClave();
+        // Cada tipo exige LO SUYO y prohíbe lo de los demás — y la exclusión
+        // mutua NO se escribe por tipo: se deriva. El tipo declara qué campos
+        // usa y el motor prohíbe todos los demás, así que el tipo que llegue
+        // mañana no puede olvidarse de prohibir nada.
+        $tipo = Registro::de($item->kind);
+        $reglas = $tipo->reglas($item);
+        foreach (['answer', 'answer_key', 'respuesta'] as $campo) {
+            if (! in_array($campo, $tipo->camposDeRespuesta(), true)) {
+                $reglas[$campo] = 'prohibited';
+            }
+        }
 
         $data = $request->validate([
             'user_id' => 'prohibited',
-            'answer' => $esChoice ? 'prohibited' : 'required|numeric',
-            // La clave tiene que ser UNA DE LAS DEL ÍTEM. Una inventada es un
-            // 422, no un falso «incorrecto»: el alumno no ha fallado nada.
-            'answer_key' => $esChoice
-                ? ['required', 'string', Rule::in($item->clavesValidas())]
-                : 'prohibited',
+            ...$reglas,
             'time_ms' => 'nullable|integer|min:0',
-            // El número de intento YA NO LO MANDA EL CLIENTE ni lo deduce el
-            // servidor: viene firmado dentro del billete. Dos fuentes para el
-            // mismo dato es la forma exacta en que empezó este fallo.
+            // El número de intento viene firmado dentro del billete. Dos
+            // fuentes para el mismo dato es la forma exacta en que empezó el
+            // fallo que el billete cerró.
             'intento' => 'prohibited',
             'billete' => 'required|string',
         ]);
@@ -200,44 +171,12 @@ class PracticeController extends Controller
         $attemptNo = $ticket['attempt_no'];
         $seed = $ticket['seed'];
 
-        // LA CORRECCIÓN ES LA MISMA para el invitado y para el alumno: se
-        // resuelve aquí, por encima de la bifurcación. Lo único que cambia más
-        // abajo es si el resultado se guarda y si califica.
-        if ($esChoice) {
-            // Ni semilla ni orden: se compara la clave elegida con la clave
-            // correcta del ítem. Por eso el camino `choice` es inmune a que
-            // `next` y `submitAttempt` calculen distinto el número de intento
-            // —y por tanto la semilla—, que es un problema real del camino
-            // numérico (ver la nota del PR sobre el 409 y el reintento).
-            $result = $this->engine->verifyChoice(
-                (string) $item->answer_key, (string) $data['answer_key'],
-            );
-            // Nada que instanciar: en un choice no se sortea ningún número.
-            $params = [];
-            $veredicto = [
-                'is_correct' => $result['is_correct'],
-                'expected_key' => $result['expected_key'],
-                'answer_key' => (string) $data['answer_key'],
-            ];
-
-            if ($item->esEscucha()) {
-                // AHORA sí: respondido el intento, la transcripción es
-                // pedagogía y no un secreto. Leer lo que acabas de oír —lo
-                // aciertes o no— es la mitad del ejercicio de escucha en A1.
-                $veredicto['transcripcion'] = $item->transcripcion;
-            }
-        } else {
-            $params = $this->engine->sampleParams($item->params, $seed);
-            $result = $this->engine->verify(
-                $item->solution_expr, $params, (float) $data['answer'],
-                $item->tolerance, $item->tolerance_kind,
-            );
-            $veredicto = [
-                'is_correct' => $result['is_correct'],
-                'expected' => $result['expected'],
-                'answer' => (float) $data['answer'],
-            ];
-        }
+        // LA CORRECCIÓN ES LA MISMA para el invitado y para el alumno: la
+        // resuelve el TIPO, por encima de la bifurcación. Lo único que cambia
+        // más abajo es si el resultado se guarda y si califica. Lo que el
+        // veredicto revela (expected, expected_key, transcripción, esperado…)
+        // lo decide cada tipo, y siempre DESPUÉS de responder.
+        $veredicto = $tipo->corregir($item, $data, $this->engine, $seed);
 
         if ($quien->isGuest()) {
             // 200 y no 201: no se creó nada. Ni intento, ni dominio, ni AGS —
@@ -258,7 +197,9 @@ class PracticeController extends Controller
         // cliente reintenta — nunca un 500.
         try {
             [$attempt, $itemsAcertados] = $this->persistAttempt(
-                $item, $userId, $attemptNo, $seed, $params, $data, $veredicto,
+                $item, $userId, $attemptNo, $seed,
+                $tipo->columnas($item, $veredicto, $data, $this->engine, $seed),
+                $data, $veredicto,
             );
         } catch (UniqueConstraintViolationException) {
             return response()->json([
@@ -320,20 +261,19 @@ class PracticeController extends Controller
      * @return array{0: PracticeAttempt, 1: int} El intento y cuántos
      *                                           ítems DISTINTOS de esa destreza lleva acertados el alumno.
      */
-    private function persistAttempt($item, int $userId, int $attemptNo, string $seed, array $params, array $data, array $veredicto)
+    private function persistAttempt($item, int $userId, int $attemptNo, string $seed, array $columnas, array $data, array $veredicto)
     {
-        return DB::transaction(function () use ($item, $userId, $attemptNo, $seed, $params, $data, $veredicto) {
+        return DB::transaction(function () use ($item, $userId, $attemptNo, $seed, $columnas, $data, $veredicto) {
             $attempt = $item->attempts()->create([
                 'user_id' => $userId,
                 'attempt_no' => $attemptNo,
                 'seed' => $seed,
-                'params' => $params,
-                // Un choice deja `answer`/`expected` en null y llena
-                // `answer_key`; un numérico, al revés. Nada de rellenar la
-                // columna del otro tipo con un valor inventado.
-                'answer' => $veredicto['answer'] ?? null,
-                'expected' => $veredicto['expected'] ?? null,
-                'answer_key' => $veredicto['answer_key'] ?? null,
+                // Qué columnas puebla el intento lo declara el TIPO, con la
+                // invariante de una vía por kind: numeric usa answer/expected,
+                // choice/escucha usan answer_key y los tipos de lengua usan
+                // `respuesta`. Nada de rellenar las otras con '' o 0.0 — eso
+                // escondería un bug de bifurcación.
+                ...$columnas,
                 'is_correct' => $veredicto['is_correct'],
                 'time_ms' => $data['time_ms'] ?? null,
             ]);

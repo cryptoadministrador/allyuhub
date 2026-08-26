@@ -34,12 +34,21 @@ class PracticeItem extends Model
 
     public const ESCUCHA = 'escucha';
 
+    public const HUECO = 'hueco';
+
+    public const ORDEN = 'orden';
+
+    public const PARES = 'pares';
+
+    public const DICTADO = 'dictado';
+
     protected $guarded = [];
 
     protected $casts = [
         'statement' => 'array',
         'params' => 'array',
         'options' => 'array',
+        'solucion' => 'array',
         'attrs' => 'array',
         'tolerance' => 'float',
         'shuffle' => 'boolean',
@@ -50,18 +59,21 @@ class PracticeItem extends Model
      * defensa es que el payload de `next` se arma por lista blanca— pero cierra
      * el descuido de un `toArray()` en cualquier respuesta futura.
      */
-    protected $hidden = ['answer_key', 'solution_expr', 'transcripcion'];
+    protected $hidden = ['answer_key', 'solution_expr', 'transcripcion', 'solucion'];
 
     /**
-     * EL GUARDIÁN DEL `audio_src`, al sembrar y no al pintar.
+     * EL GUARDIÁN, al sembrar y no al pintar (#26), ahora DELEGADO EN EL TIPO.
      *
-     * La regla es la MISMA que la del bloque `audio` de las lecciones y vive
-     * una sola vez en `AlmacenDeAudio::esRutaPublicada` — aquí estaba escrita
-     * en la migración como documentación y no la obligaba nadie, así que quien
-     * sembrara un ítem podía apuntar el `<audio>` de cada alumno a un tercero
-     * (la IP de un menor filtrada en cada reproducción) o a una ruta que rompe
-     * el degradado sin red y la caché inmutable. Un `escucha` sin clip o sin
-     * transcripción tampoco existe: revienta donde lo ve quien lo escribe.
+     * Cada kind declara su forma en su clase (`Tipos\*::alGuardar`): un hueco
+     * sin lengua, un orden cuya secuencia no es permutación de sus palabras o
+     * un escucha sin transcripción revientan donde los ve quien los escribe.
+     * Y el vocabulario de kinds queda CERRADO de paso: `Registro::de` lanza
+     * con un kind desconocido, así que un typo no se guarda — la lección del
+     * 'simulator' de la portada (#25), esta vez en código que falla.
+     *
+     * La forma de `audio_src` se comprueba aquí para CUALQUIER kind que lo
+     * lleve: es un invariante transversal (la ruta es del almacén o no es),
+     * no una regla de un tipo.
      */
     protected static function booted(): void
     {
@@ -69,23 +81,13 @@ class PracticeItem extends Model
             if ($item->audio_src !== null
                 && ! \App\Services\Audio\AlmacenDeAudio::esRutaPublicada($item->audio_src)) {
                 throw new InvalidArgumentException(
-                    "practice_items.audio_src tiene que ser una ruta del almacén ".
+                    'practice_items.audio_src tiene que ser una ruta del almacén '.
                     "(/audio/<hash>.<mp3|ogg|m4a>), no «{$item->audio_src}».",
                 );
             }
 
-            if ($item->esEscucha()) {
-                if ($item->audio_src === null) {
-                    throw new InvalidArgumentException(
-                        'Un ítem escucha sin clip no existe: falta audio_src.',
-                    );
-                }
-                if (trim((string) $item->transcripcion) === '') {
-                    throw new InvalidArgumentException(
-                        'Un ítem escucha sin transcripción no existe para quien no puede oírlo.',
-                    );
-                }
-            }
+            \App\Services\Practice\Tipos\Registro::de($item->kind ?? self::NUMERIC)
+                ->alGuardar($item);
         });
     }
 
