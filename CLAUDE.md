@@ -113,6 +113,17 @@ modalidades y 2025-00031-A regula el Bachillerato Técnico EPJA (100 días/ciclo
 
 ## Roadmap inmediato (en orden)
 
+0. ~~Higiene de producción~~ **HECHO (PR 0 de la misión curso)**:
+   `PracticeItemSeeder` ancla por (VERSIÓN VIGENTE, código) y el replicado por
+   grado es cobertura — el «código ambiguo» que abortaba `migrate --seed` en
+   producción ya no aborta. `DatabaseSeeder` corre lo ESTRUCTURAL antes que el
+   contenido (`curriculo:fases-ord` va antes del seeder de ítems: su silencio
+   en producción lo tapaba el aborto). `install.sh` recachea SIEMPRE vía trap
+   y la siembra salió del camino crítico (paso 8/8, no fatal). Las 3 preguntas
+   CS.EC esperan su import en `database/data/banco-pendiente.php` (decisión
+   2026-08-26: no se importa el área por ahora). Y `app.jsx` carga las páginas
+   LAZY (`resolvePageComponent`): el entry queda en ~316 KB de marco y cada
+   página es su chunk — el guardián del CI sigue midiendo `app-*.js`.
 1. ~~Importador MINEDEC~~ **HECHO**: `php artisan mineduc:import <pdf> --official`
    (parser de códigos + replicación por subnivel + trazabilidad sha256 + tests).
    **Falta**: descargar los PDF oficiales (lista en `storage/curriculo/README.md`)
