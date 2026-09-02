@@ -361,7 +361,7 @@ return [
             'd' => 'Las plantas dejan de hacer fotosíntesis',
         ], 'a'],
 
-    // ===== ESTUDIOS SOCIALES EN BGU (ramas CS.H, CS.EC) =====
+    // ===== ESTUDIOS SOCIALES EN BGU (rama CS.H; CS.EC espera su import en banco-pendiente.php) =====
 
     ['CS.H.5.1', 'choice', '¿Qué caracterizó a la sociedad feudal europea?',
         [
@@ -379,30 +379,6 @@ return [
         ], 'a'],
     ['CS.H.5.3', 'choice', 'El Ecuador se separó de la Gran Colombia en:',
         ['a' => '1830', 'b' => '1809', 'c' => '1822', 'd' => '1895'], 'a'],
-
-    ['CS.EC.5.1', 'choice', '¿Qué distingue a un DERECHO de un privilegio?',
-        [
-            'a' => 'El derecho corresponde a todas las personas; el privilegio, solo a algunas',
-            'b' => 'El derecho se compra y el privilegio se hereda',
-            'c' => 'No hay ninguna diferencia',
-            'd' => 'El privilegio está en la Constitución y el derecho no',
-        ], 'a'],
-    ['CS.EC.5.2', 'choice', 'En la democracia moderna, ¿para qué sirve la división de poderes?',
-        [
-            // Sin doble negación: «ningún poder … sin contrapeso» costaba de leer
-            // más que de entender, que es lo contrario de lo que debe pedir un ítem.
-            'a' => 'Para que cada poder limite y controle a los otros',
-            'b' => 'Para que las decisiones se tomen más rápido',
-            'c' => 'Para que el presidente pueda gobernar sin oposición',
-            'd' => 'Para reducir el número de funcionarios',
-        ], 'a'],
-    ['CS.EC.5.3', 'choice', '¿Qué es el Estado laico?',
-        [
-            'a' => 'Aquel que no adopta una religión oficial y garantiza la libertad de culto',
-            'b' => 'Aquel que prohíbe todas las religiones',
-            'c' => 'Aquel que obliga a profesar una religión',
-            'd' => 'Aquel que no tiene Constitución',
-        ], 'a'],
 
     // ===== Bloques que completan cada asignatura × subnivel cubierto =====
     // (el suelo es que NINGÚN bloque de un ámbito cubierto se quede sin ítem)

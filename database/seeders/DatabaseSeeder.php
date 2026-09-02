@@ -18,15 +18,19 @@ class DatabaseSeeder extends Seeder
         // los syllabus de CAIE/IB.
         $this->call(CefrSeeder::class);
         $this->call(CrosswalkSeeder::class);
-        $this->call(PracticeItemSeeder::class);
 
-        // ORD deja de estar vacío: fases por subnivel con SUS destrezas. Va al
-        // final porque necesita el grafo entero, y es idempotente — se puede
-        // repetir después del importador oficial para recoger lo nuevo.
+        // Lo ESTRUCTURAL antes que el contenido. `curriculo:fases-ord` iba al
+        // final, detrás del seeder de ítems — y cuando ese seeder abortó en
+        // producción (el código replicado que se creía ambiguo), las fases del
+        // track ORD se quedaron vacías desde el primer día sin que nadie lo
+        // viera: el error de arriba tapaba el silencio de abajo. Las fases
+        // solo necesitan el grafo, que ya está; los ítems van después, y si
+        // fallan, fallan ELLOS solos y con las fases ya en pie.
         //
-        // La salida se reenvía a la consola del seeder: este comando RETIRA las
-        // fases-grado vacías del seeder, y en un despliegue eso tiene que verse
-        // en el log en vez de ocurrir en silencio (auditoría).
+        // La salida se reenvía a la consola del seeder: retirar fases vacías
+        // tiene que verse en el log de un despliegue, no ocurrir en silencio.
         Artisan::call('curriculo:fases-ord', [], $this->command?->getOutput());
+
+        $this->call(PracticeItemSeeder::class);
     }
 }

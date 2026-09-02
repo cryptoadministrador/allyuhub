@@ -30,7 +30,15 @@ class DestinosDeBloque
     {
         $version = FrameworkVersion::query()
             ->whereIn('framework_id', Framework::where('code', $marco)->select('id'))
-            ->latest('valid_from')
+            // Una versión SIN fecha (la semilla demo no la pone) es la MÁS
+            // VIEJA, no la más nueva — y eso hay que decirlo explícito:
+            // `latest('valid_from')` divergía entre motores, porque PostgreSQL
+            // ordena los NULL primero en DESC y SQLite los ordena últimos. La
+            // suite en SQLite elegía la versión vigente y el job de pgsql del
+            // CI elegía la demo — el job hizo exactamente su trabajo.
+            ->orderByRaw('(valid_from is null) asc')
+            ->orderByDesc('valid_from')
+            ->orderByDesc('created_at')
             ->first();
 
         return $version === null ? null : collect([$version->id]);

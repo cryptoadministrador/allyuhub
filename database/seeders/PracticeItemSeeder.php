@@ -45,8 +45,11 @@ class PracticeItemSeeder extends Seeder
         foreach ($items as [$code, $statement, $params, $expr, $tol, $kind, $unit]) {
             $seq = $seqByCode[$code] = ($seqByCode[$code] ?? -1) + 1;
 
+            // El código replicado por grado recibe sus ítems EN CADA grado:
+            // replicado es COBERTURA, no ambigüedad (la decisión de #22).
+            foreach ($objectives[$code] as $objective) {
             PracticeItem::updateOrCreate(
-                ['objective_id' => $objectives[$code]->id, 'seq' => $seq],
+                ['objective_id' => $objective->id, 'seq' => $seq],
                 [
                     'statement' => ['es' => $statement],
                     'params' => $params,
@@ -60,22 +63,40 @@ class PracticeItemSeeder extends Seeder
                     'reviewed_at' => now(),
                 ],
             );
+            }
         }
     }
 
     /**
-     * Las destrezas verificadas de EC-MINEDEC indexadas por código.
-     * Falla ruidoso si falta alguna, si no está verificada o si el código es
-     * ambiguo (replicado por el importador en varios grados).
+     * Las destrezas verificadas de la VERSIÓN VIGENTE de EC-MINEDEC, indexadas
+     * por código — todas las réplicas de cada código, no una elegida.
+     *
+     * Aquí vivía el aborto de producción: se buscaba en TODAS las versiones y
+     * se lanzaba con más de una coincidencia. Con la demo y el import oficial
+     * conviviendo, `CN.F.5.1.9` aparecía 4 veces, `migrate --seed` moría aquí,
+     * y como `DatabaseSeeder` termina llamando a `curriculo:fases-ord`, ese
+     * comando NUNCA llegó a correr: las fases del track ORD llevaban vacías
+     * desde el primer día. El error de arriba tapaba el silencio de abajo.
+     *
+     * El ancla es (VERSIÓN VIGENTE, código) — la misma regla que
+     * `DestinosDeBloque::versionesDe` da a los dos bancos — y dentro de la
+     * versión el código replicado por grado es cobertura, no ambigüedad.
+     * Lo que SÍ sigue siendo ruidoso: un código que no existe en la versión
+     * vigente, o cuyas réplicas están todas sin verificar.
      *
      * @param  list<string>  $codes
-     * @return array<string, LearningObjective>
+     * @return array<string, \Illuminate\Support\Collection<int, LearningObjective>>
      */
     private function verifiedObjectives(array $codes): array
     {
-        $versionIds = FrameworkVersion::query()
-            ->whereIn('framework_id', Framework::where('code', 'EC-MINEDEC')->pluck('id'))
-            ->pluck('id');
+        $versionIds = \App\Services\Lesson\DestinosDeBloque::versionesDe('EC-MINEDEC');
+
+        if ($versionIds === null) {
+            throw new RuntimeException(
+                'PracticeItemSeeder: no existe EC-MINEDEC. '.
+                'Siembra primero el grafo (CurriculumSeeder o importador MINEDEC).',
+            );
+        }
 
         $found = LearningObjective::query()
             ->whereIn('version_id', $versionIds)
@@ -89,24 +110,20 @@ class PracticeItemSeeder extends Seeder
 
             if ($candidates->isEmpty()) {
                 throw new RuntimeException(
-                    "PracticeItemSeeder: no existe la destreza {$code} en EC-MINEDEC. ".
-                    'Siembra primero el grafo (CurriculumSeeder o importador MINEDEC).',
+                    "PracticeItemSeeder: no existe la destreza {$code} en la versión vigente ".
+                    'de EC-MINEDEC. Siembra primero el grafo (CurriculumSeeder o importador MINEDEC).',
                 );
             }
-            if ($candidates->count() > 1) {
-                throw new RuntimeException(
-                    "PracticeItemSeeder: el código {$code} es ambiguo (aparece en ".
-                    $candidates->count().' objetivos). Desambigua por nodo antes de sembrar ítems.',
-                );
-            }
-            $objective = $candidates->first();
-            if (! $objective->is_verified) {
+
+            $verificadas = $candidates->where('is_verified', true)->values();
+            if ($verificadas->isEmpty()) {
                 throw new RuntimeException(
                     "PracticeItemSeeder: la destreza {$code} no está verificada (is_verified=false). ".
                     'Los ítems solo se siembran sobre destrezas cotejadas con el currículo oficial.',
                 );
             }
-            $objectives[$code] = $objective;
+
+            $objectives[$code] = $verificadas;
         }
 
         return $objectives;
