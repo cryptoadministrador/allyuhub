@@ -506,15 +506,52 @@ no puede enviarla: crear/borrar exigen sesión, contenido de un menor). Sin
 `MediaRecorder` (jsdom, navegador viejo) la tarea de voz LO DICE en vez de
 romperse; la de texto sigue entera.
 
+## El interlocutor guionizado (PR 4)
+
+Un `dialogo` por unidad: un grafo de NODOS escrito a mano (`database/data/
+dialogos-lenguas.php`, `App\Models\Dialogo`, tabla `dialogos`). **No es un LLM y
+a propósito**: sin API key en producción, sin datos de un menor en un tercero,
+y sin respuestas fuera de nivel — el guion no puede decir una palabra que no
+esté escrita. La interfaz no impide que un motor LLM lo alimente mañana, pero
+tampoco lo obliga.
+
+- **Nace SIN firmar** (`reviewed_at` nulo) y no se sirve hasta que un docente lo
+  firma. La puerta es `Dialogo::published()` (scope) y su gemelo por-instancia
+  `estaFirmado()` (para `completado`), escritos UNA vez para que servir y
+  completar no diverjan. `/corso/{lengua}/u{n}/hablar` sirve solo el firmado; si
+  no hay, lo DICE («próximamente»), y la unidad enlaza a «hablar» solo si existe.
+- **Un nodo**: `{id, dice, audio?, respuestas:[{texto, va, pista?}], fin?}`. Un
+  `va: null` + `pista` es un CALLEJÓN que vuelve al mismo nodo con una ayuda, no
+  un error. `Nodos::validar` revienta la siembra si un `va` apunta a un nodo que
+  no existe, si un callejón no trae pista o si no hay ningún final — como
+  `Bloques` con las lecciones. No hay «solución» oculta: todas las ramas son
+  contenido, así que el grafo entero se serializa al cliente sin filtrar nada.
+- **No evalúa**: `POST /api/v1/dialogos/{id}/completado` registra que se
+  completó (`dialogo_completions`, único por diálogo+alumno) y sube el dominio
+  del descriptor (A1.IO.1) UNA vez —`MasteryTracker::apply(..., itemsAcertados:
+  0)`, que mueve la EMA pero NUNCA sella `mastered_at` por sí solo (el hito
+  exige ≥2 ítems)—. Completar dos veces no infla nada (idempotente por el único).
+- **Abierto** (regla de oro): el invitado hace el diálogo entero y al completarlo
+  no escribe ni una fila ni sube dominio de nadie. **Lengua cerrada**: `hablar`
+  filtra por lengua Y unidad; `klingon` es 404.
+- **El audio del interlocutor SÍ va al almacén público** (`AlmacenDeAudio`, por
+  clave): es la voz del GUION, contenido curricular, no la de un menor — al
+  revés que la producción del alumno (PR 3). El demo va sin clips (texto).
+
+Operación (post-merge): `php artisan dialogos:sembrar` (nace sin firmar) y
+`php artisan dialogos:firmar --lengua=it`. El demo `Il primo giorno` (it, U1,
+A1.IO.1) es de la IA: **pendiente de que un profesor lo firme**.
+
 ## La frontera del contenido abierto (modelo Khan)
 
 Se **navega** y se **practica** sin sesión; se **guarda** y se **califica** solo con
 sesión LTI. Abiertas: `/catalogo`, `/catalogo/{node}`, `/destreza/{objective}`,
 `/buscar`, `/practicar/{objective}`, `/recurso/{resource}`, el cascarón del curso
 (`/corso/{lengua}`, `/corso/{lengua}/u{n}`, `/corso/{lengua}/u{n}/producir` — se
-VE la tarea, no se envía) y los cinco endpoints de `/api/v1/practice/*`. Cerradas:
-`/inicio`, `/progreso`, `/docente/*` y **toda producción** (crear, borrar y servir
-la voz: `/api/v1/producciones*` — contenido de un menor, ver PR 3 arriba).
+VE la tarea, no se envía —, `/corso/{lengua}/u{n}/hablar`), los cinco endpoints de
+`/api/v1/practice/*` y `POST /api/v1/dialogos/{id}/completado` (el invitado juega
+y no escribe). Cerradas: `/inicio`, `/progreso`, `/docente/*` y **toda producción**
+(crear, borrar y servir la voz: `/api/v1/producciones*` — contenido de un menor).
 
 **Regla de oro**: un invitado no escribe NI UNA FILA atribuida a un usuario
 —`practice_attempts`, `objective_masteries`, `users`— ni encola `PushLtiScore`.

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\DialogoController;
 use App\Http\Controllers\Api\PracticeController;
 use App\Http\Controllers\Api\ProduccionController;
 use App\Http\Controllers\App\BienvenidaController;
@@ -45,6 +46,9 @@ Route::get('/corso/{lengua}/u{n}', [\App\Http\Controllers\App\CursoController::c
 // La tarea de producción de la unidad: se VE sin sesión (enviarla, no).
 Route::get('/corso/{lengua}/u{n}/producir', [\App\Http\Controllers\App\CursoController::class, 'producir'])
     ->where('n', '[0-9]+')->name('corso.producir');
+// El interlocutor guionizado de la unidad: abierto, se juega sin sesión.
+Route::get('/corso/{lengua}/u{n}/hablar', [\App\Http\Controllers\App\CursoController::class, 'hablar'])
+    ->where('n', '[0-9]+')->name('corso.hablar');
 Route::get('/buscar', [PageController::class, 'buscar'])->name('buscar');
 Route::get('/practicar/{objective}', [PageController::class, 'practicar'])->name('practicar');
 Route::get('/recurso/{resource}', [PageController::class, 'recurso'])->name('recurso');
@@ -129,6 +133,9 @@ Route::prefix('api/v1')->middleware('throttle:practica')->group(function () {
     Route::get('practice/mastery', [PracticeController::class, 'mastery']);
     Route::get('practice/progress', [PracticeController::class, 'progress']);
     Route::get('practice/repasos', [PracticeController::class, 'repasos']);
+    // Completar el interlocutor: abierto (el invitado lo hace y no escribe nada).
+    Route::post('dialogos/{dialogo}/completado', [DialogoController::class, 'completado'])
+        ->whereUuid('dialogo');
 });
 
 // Una URL que no casa con NINGUNA ruta la rechaza el router antes del grupo
