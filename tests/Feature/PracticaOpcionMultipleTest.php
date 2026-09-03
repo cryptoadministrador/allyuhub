@@ -148,7 +148,7 @@ class PracticaOpcionMultipleTest extends TestCase
         // lo caza: se descodifica y se busca la respuesta buena.
         $dentro = base64_decode(strtr(explode('.', $json['billete'])[0], '-_', '+/'));
         $this->assertSame(
-            ['itemId', 'quien', 'attemptNo', 'seed'],
+            ['itemId', 'quien', 'attemptNo', 'seed', 'repaso'],
             array_keys(json_decode($dentro, true)),
         );
         $this->assertStringNotContainsString('Distractor dos', $dentro);

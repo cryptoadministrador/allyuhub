@@ -421,12 +421,137 @@ entera se quedó sin ejercicios. Ojo: la semilla demo llamaba `CS.FL` al nodo
 de Filosofía y el import oficial escribe `CS.F` — la semilla ya está alineada,
 pero una base sembrada ANTES conserva el nodo viejo.
 
+## El repaso espaciado (memoria, PR 2)
+
+Lo que convierte «30 palabras vistas» en «30 palabras sabidas»: sin él, un
+alumno aprende la U1 y la ha perdido en la U4. Vive en `App\Services\Practice\
+RepasoService` sobre DOS columnas nullable de `objective_masteries`
+(`repaso_intervalo`, `repaso_en`) — el repaso es un atributo del dominio, no
+otra entidad, así que no hay tabla nueva.
+
+- **Se repasa el DESCRIPTOR, no el ítem.** La cola (`cola()`) solo trae
+  descriptores con **≥2 ítems FIRMADOS de la lengua**: repasar es practicar
+  OTRO ítem del mismo descriptor. Con uno solo se repetiría el mismo y se
+  aprendería el ítem, no la destreza. Las dos puertas —lengua cerrada y firma—
+  van en la consulta de repasables, no en el enlace: un descriptor solo-alemán
+  o con ítems sin firmar NO entra en la cola italiana (mutación mediante).
+- **El repaso NO cuenta para la nota (AGS), SÍ para el dominio.** Una nota que
+  sube repasando lo sabido está inflada. El flag `repaso` viaja **FIRMADO en el
+  billete** (`AttemptTicket`, 5.º campo) — forjarlo para inflar la nota es justo
+  lo que se impide. Lo lee `submitAttempt`: `if (! $esRepaso && califica(...))`
+  encola AGS, pero `programar()` se llama SIEMPRE (repaso o no: tocar una
+  destreza reprograma su próxima cita).
+- **Algoritmo, el mínimo que funciona**: intervalo ×2 con el acierto
+  (1,2,4,8,16,32 días), vuelve a **1** con el fallo. El fallo reinicia el
+  INTERVALO GUARDADO, no solo el `repaso_en` de esta vez —el `repaso_en` de un
+  fallo es +1 día lo reinicie o no, así que «vuelve a 1» se prueba con el
+  acierto SIGUIENTE—. Se mide, luego se sofistica: nada de SM-2 antes de datos.
+- **Techo por sesión: 12.** Una cola de 200 el lunes se abandona.
+- **El invitado recibe cola VACÍA** (`cola(null, ...)`) y no escribe nada. El
+  early-return es cinturón: aunque se quite, `where('user_id', null)` no casa
+  con ninguna fila (la columna es NOT NULL) — defensa doble, no accidente.
+- **Endpoint** `GET /api/v1/practice/repasos?lengua=it` (lengua REQUIRED de
+  lista cerrada, 422 fuera de ella) y prop `repasos` en la portada `/corso`.
+- Firma por lengua como el resto: la práctica de repaso reusa el circuito
+  entero del billete (barajado, 422 por clave inventada) — no hay ruta nueva de
+  corrección, solo un flag más en el billete.
+
+Una trampa que costó: la medición de consultas del load test parpadeaba 7/8
+porque `programar()` solo escribe si la fila quedó SUCIA, y una vez que el
+intervalo topa en 32 lo único que la ensucia es `repaso_en` (`now()+32 días`),
+que con el reloj real cambia o no según el segundo de pared. No es un N+1: es
+ruido del reloj. El test **congela el reloj** (`travelTo`) y calienta más allá
+del tope antes de medir — el estado estable es determinista.
+
+## La producción del alumno — voz y texto de un menor (PR 3)
+
+El alumno ESCRIBE (tres o cuatro frases) o GRABA (voz, `MediaRecorder` nativo,
+20-30 s) y su docente lo corrige. **El motor NO corrige producción**: solo la
+guarda y la encola (`App\Services\Produccion\*`, tabla `producciones`,
+`App\Models\Produccion`). Es contenido de un MENOR, así que todo aquí falla
+cerrado:
+
+- **Retención = un año lectivo.** `anio_lectivo` es NOT NULL y se fija al crear
+  (`AnioLectivo`, régimen Sierra, frontera en agosto): una fila sin año se
+  escaparía de la purga y viviría para siempre — eso sería fallar ABIERTA.
+  `php artisan producciones:purgar [--anio=YYYY-YYYY] [--dry-run]` borra la
+  GRABACIÓN (texto/archivo) de los años cerrados y **conserva la nota del
+  docente** (`rubrica`, `comentario`); `--dry-run` LISTA antes de tocar nada.
+- **La ve el alumno y los docentes de SU curso, nadie más.** La visibilidad NO
+  es una columna: es la relación instructor↔learner sobre `lti_context_memberships`
+  (`Produccion::alumnosDeDocente` — FUENTE ÚNICA que usan la policy `ver`/`corregir`
+  Y la cola `pendientesDeDocente`, desde puntas opuestas, para que no diverjan).
+  Un docente de otro curso es 403 (`ProduccionPolicy`, sin `before` que dé barra
+  libre a nadie).
+- **La voz NUNCA entra en el almacén público** (`AlmacenDeAudio`, direccionable
+  por contenido, `/audio/*` sin auth): vive en `storage/app/producciones/<año>/`
+  con nombre uuid (no hash: sin dedupe ni nombre adivinable) y se sirve SOLO por
+  `GET /api/v1/producciones/{id}/audio` con `auth` + policy — invitado 401, ajeno
+  403. Está bajo `api/v1` a propósito: así el invitado recibe 401 limpio y no el
+  302→/entrar de las páginas web.
+- **El alumno borra la suya mientras no esté corregida** (`ProduccionPolicy::borrar`).
+- **Exclusión de vías** como en `practice_attempts`: escritura lleva SOLO texto,
+  voz SOLO archivo (guardián `saving` en el modelo); tras la purga, las dos van
+  nulas y la nota vive.
+- La **rúbrica viene del CONTENIDO** (`database/data/rubricas-lenguas.php`,
+  4 criterios × 3 niveles, nivel guardado como índice inmutable), no hardcodeada
+  en el JSX. `escritura` se corrige contra una destreza EE, `voz` contra una PO.
+- **Lengua cerrada en las dos direcciones**: la cola del docente filtra por
+  `?lengua=` (422 fuera de lista, validada a mano con `abort(422)` porque en una
+  ruta `web` un `$request->validate` fallido REDIRIGE — misma trampa que
+  `PageController::destreza`).
+
+La página `/corso/{lengua}/u{n}/producir` es ABIERTA (el invitado ve la tarea,
+no puede enviarla: crear/borrar exigen sesión, contenido de un menor). Sin
+`MediaRecorder` (jsdom, navegador viejo) la tarea de voz LO DICE en vez de
+romperse; la de texto sigue entera.
+
+## El interlocutor guionizado (PR 4)
+
+Un `dialogo` por unidad: un grafo de NODOS escrito a mano (`database/data/
+dialogos-lenguas.php`, `App\Models\Dialogo`, tabla `dialogos`). **No es un LLM y
+a propósito**: sin API key en producción, sin datos de un menor en un tercero,
+y sin respuestas fuera de nivel — el guion no puede decir una palabra que no
+esté escrita. La interfaz no impide que un motor LLM lo alimente mañana, pero
+tampoco lo obliga.
+
+- **Nace SIN firmar** (`reviewed_at` nulo) y no se sirve hasta que un docente lo
+  firma. La puerta es `Dialogo::published()` (scope) y su gemelo por-instancia
+  `estaFirmado()` (para `completado`), escritos UNA vez para que servir y
+  completar no diverjan. `/corso/{lengua}/u{n}/hablar` sirve solo el firmado; si
+  no hay, lo DICE («próximamente»), y la unidad enlaza a «hablar» solo si existe.
+- **Un nodo**: `{id, dice, audio?, respuestas:[{texto, va, pista?}], fin?}`. Un
+  `va: null` + `pista` es un CALLEJÓN que vuelve al mismo nodo con una ayuda, no
+  un error. `Nodos::validar` revienta la siembra si un `va` apunta a un nodo que
+  no existe, si un callejón no trae pista o si no hay ningún final — como
+  `Bloques` con las lecciones. No hay «solución» oculta: todas las ramas son
+  contenido, así que el grafo entero se serializa al cliente sin filtrar nada.
+- **No evalúa**: `POST /api/v1/dialogos/{id}/completado` registra que se
+  completó (`dialogo_completions`, único por diálogo+alumno) y sube el dominio
+  del descriptor (A1.IO.1) UNA vez —`MasteryTracker::apply(..., itemsAcertados:
+  0)`, que mueve la EMA pero NUNCA sella `mastered_at` por sí solo (el hito
+  exige ≥2 ítems)—. Completar dos veces no infla nada (idempotente por el único).
+- **Abierto** (regla de oro): el invitado hace el diálogo entero y al completarlo
+  no escribe ni una fila ni sube dominio de nadie. **Lengua cerrada**: `hablar`
+  filtra por lengua Y unidad; `klingon` es 404.
+- **El audio del interlocutor SÍ va al almacén público** (`AlmacenDeAudio`, por
+  clave): es la voz del GUION, contenido curricular, no la de un menor — al
+  revés que la producción del alumno (PR 3). El demo va sin clips (texto).
+
+Operación (post-merge): `php artisan dialogos:sembrar` (nace sin firmar) y
+`php artisan dialogos:firmar --lengua=it`. El demo `Il primo giorno` (it, U1,
+A1.IO.1) es de la IA: **pendiente de que un profesor lo firme**.
+
 ## La frontera del contenido abierto (modelo Khan)
 
 Se **navega** y se **practica** sin sesión; se **guarda** y se **califica** solo con
 sesión LTI. Abiertas: `/catalogo`, `/catalogo/{node}`, `/destreza/{objective}`,
-`/buscar`, `/practicar/{objective}`, `/recurso/{resource}` y los cuatro endpoints de
-`/api/v1/practice/*`. Cerradas: `/inicio`, `/progreso`, `/docente/*`.
+`/buscar`, `/practicar/{objective}`, `/recurso/{resource}`, el cascarón del curso
+(`/corso/{lengua}`, `/corso/{lengua}/u{n}`, `/corso/{lengua}/u{n}/producir` — se
+VE la tarea, no se envía —, `/corso/{lengua}/u{n}/hablar`), los cinco endpoints de
+`/api/v1/practice/*` y `POST /api/v1/dialogos/{id}/completado` (el invitado juega
+y no escribe). Cerradas: `/inicio`, `/progreso`, `/docente/*` y **toda producción**
+(crear, borrar y servir la voz: `/api/v1/producciones*` — contenido de un menor).
 
 **Regla de oro**: un invitado no escribe NI UNA FILA atribuida a un usuario
 —`practice_attempts`, `objective_masteries`, `users`— ni encola `PushLtiScore`.

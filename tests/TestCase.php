@@ -51,12 +51,12 @@ abstract class TestCase extends BaseTestCase
      * Un test que quiera comprobar el CIRCUITO COMPLETO no usa este atajo:
      * pide `next` y devuelve el billete que venga en la respuesta.
      */
-    protected function billete(string $itemId, int|string $quien = Practitioner::CLAVE_INVITADO, int $intento = 1): string
+    protected function billete(string $itemId, int|string $quien = Practitioner::CLAVE_INVITADO, int $intento = 1, bool $repaso = false): string
     {
         $engine = new PracticeEngine;
 
         return AttemptTicket::emitir(
-            $itemId, $quien, $intento, $engine->seedFor($itemId, $quien, $intento),
+            $itemId, $quien, $intento, $engine->seedFor($itemId, $quien, $intento), $repaso,
         );
     }
 

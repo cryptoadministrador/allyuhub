@@ -17,7 +17,7 @@ const ESTADOS = {
     proximamente: { texto: 'Próximamente', clases: 'border-slate-200 bg-slate-50 text-slate-500' },
 };
 
-export default function Corso({ lengua, nombre, unidades, siguiente, racha, se_guarda: seGuarda }) {
+export default function Corso({ lengua, nombre, unidades, siguiente, racha, repasos, se_guarda: seGuarda }) {
     const { props: compartidas } = usePage();
     const invitado = !compartidas.auth?.user;
 
@@ -49,6 +49,19 @@ export default function Corso({ lengua, nombre, unidades, siguiente, racha, se_g
                         <p className="text-sm font-medium text-marca-700">Sigue por aquí</p>
                         <p className="mt-1 text-lg font-semibold text-slate-900">
                             Unidad {siguiente.unidad} · {siguiente.titulo}
+                        </p>
+                    </Link>
+                )}
+
+                {repasos && repasos.pendientes > 0 && repasos.siguiente && (
+                    <Link
+                        href={repasos.siguiente.url}
+                        className="mb-6 block rounded-lg border border-amber-300 bg-amber-50 p-4 transition-shadow hover:shadow-md focus:outline-2 focus:outline-offset-2 focus:outline-marca-600"
+                    >
+                        <p className="text-sm font-medium text-amber-800">Repaso</p>
+                        <p className="mt-1 text-base font-semibold text-slate-900">
+                            Te tocan {repasos.pendientes}{' '}
+                            {repasos.pendientes === 1 ? 'repaso' : 'repasos'} para no olvidar lo aprendido.
                         </p>
                     </Link>
                 )}

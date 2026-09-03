@@ -1,10 +1,13 @@
 <?php
 
+use App\Http\Controllers\Api\DialogoController;
 use App\Http\Controllers\Api\PracticeController;
+use App\Http\Controllers\Api\ProduccionController;
 use App\Http\Controllers\App\BienvenidaController;
 use App\Http\Controllers\App\DocenteController;
 use App\Http\Controllers\App\InicioController;
 use App\Http\Controllers\App\PageController;
+use App\Http\Controllers\App\ProduccionDocenteController;
 use Illuminate\Support\Facades\Route;
 
 // La raíz lleva a la casa del alumno cuando hay sesión; el visitante sin
@@ -40,6 +43,12 @@ Route::get('/destreza/{objective}', [PageController::class, 'destreza'])->name('
 Route::get('/corso/{lengua}', [\App\Http\Controllers\App\CursoController::class, 'portada'])->name('corso');
 Route::get('/corso/{lengua}/u{n}', [\App\Http\Controllers\App\CursoController::class, 'unidad'])
     ->where('n', '[0-9]+')->name('corso.unidad');
+// La tarea de producción de la unidad: se VE sin sesión (enviarla, no).
+Route::get('/corso/{lengua}/u{n}/producir', [\App\Http\Controllers\App\CursoController::class, 'producir'])
+    ->where('n', '[0-9]+')->name('corso.producir');
+// El interlocutor guionizado de la unidad: abierto, se juega sin sesión.
+Route::get('/corso/{lengua}/u{n}/hablar', [\App\Http\Controllers\App\CursoController::class, 'hablar'])
+    ->where('n', '[0-9]+')->name('corso.hablar');
 Route::get('/buscar', [PageController::class, 'buscar'])->name('buscar');
 Route::get('/practicar/{objective}', [PageController::class, 'practicar'])->name('practicar');
 Route::get('/recurso/{resource}', [PageController::class, 'recurso'])->name('recurso');
@@ -80,6 +89,27 @@ Route::middleware('auth')->group(function () {
         ->whereUuid('context')->name('docente.track');
     Route::get('/docente/{context}/alumno/{user}', [DocenteController::class, 'alumno'])
         ->whereUuid('context')->whereNumber('user')->name('docente.alumno');
+
+    // La cola de producción del docente y la corrección. La ruta LITERAL va
+    // antes que /docente/{context} (que solo casa uuids): 'producciones' no es
+    // un uuid, pero se deja explícito para no depender del orden de matcheo.
+    Route::get('/docente/producciones', [ProduccionDocenteController::class, 'cola'])
+        ->name('docente.producciones');
+    Route::post('/docente/producciones/{produccion}', [ProduccionDocenteController::class, 'corregir'])
+        ->whereUuid('produccion')->name('docente.producciones.corregir');
+});
+
+// Producción de un menor: crear, borrar y SERVIR LA VOZ. En su propio grupo
+// api/v1 CERRADO (el de práctica de abajo es abierto) — así un invitado recibe
+// un 401 limpio (api/* en shouldRenderJsonWhen), no el 302 a /entrar de las
+// páginas, y jamás el fichero. La voz sale SOLO por aquí (auth + policy), nunca
+// por /audio/*.
+Route::prefix('api/v1')->middleware('auth')->group(function () {
+    Route::post('producciones', [ProduccionController::class, 'store'])->name('producciones.store');
+    Route::delete('producciones/{produccion}', [ProduccionController::class, 'destroy'])
+        ->whereUuid('produccion')->name('producciones.destroy');
+    Route::get('producciones/{produccion}/audio', [ProduccionController::class, 'audio'])
+        ->whereUuid('produccion')->name('produccion.audio');
 });
 
 /*
@@ -102,6 +132,10 @@ Route::prefix('api/v1')->middleware('throttle:practica')->group(function () {
     Route::post('practice/items/{item}/attempts', [PracticeController::class, 'submitAttempt']);
     Route::get('practice/mastery', [PracticeController::class, 'mastery']);
     Route::get('practice/progress', [PracticeController::class, 'progress']);
+    Route::get('practice/repasos', [PracticeController::class, 'repasos']);
+    // Completar el interlocutor: abierto (el invitado lo hace y no escribe nada).
+    Route::post('dialogos/{dialogo}/completado', [DialogoController::class, 'completado'])
+        ->whereUuid('dialogo');
 });
 
 // Una URL que no casa con NINGUNA ruta la rechaza el router antes del grupo

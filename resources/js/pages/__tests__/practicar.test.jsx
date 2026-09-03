@@ -1127,3 +1127,19 @@ describe('Practicar — la lengua del curso', () => {
         expect(fetchMock.mock.calls[0][0]).not.toContain('lengua=');
     });
 });
+
+describe('Practicar — el repaso espaciado', () => {
+    it('en modo repaso, la petición de next lleva &repaso=1', async () => {
+        const fetchMock = encolarFetch(respuestaJson(200, ITEM_HUECO));
+        render(<Practicar objective={OBJETIVO_ALEMAN} mastery={null} lengua="it" repaso={true} />);
+        await screen.findByText(/tu habites/i);
+        expect(fetchMock.mock.calls[0][0]).toContain('repaso=1');
+    });
+
+    it('sin repaso, la petición no lo lleva', async () => {
+        const fetchMock = encolarFetch(respuestaJson(200, ITEM_HUECO));
+        render(<Practicar objective={OBJETIVO_ALEMAN} mastery={null} lengua="it" />);
+        await screen.findByText(/tu habites/i);
+        expect(fetchMock.mock.calls[0][0]).not.toContain('repaso=1');
+    });
+});
