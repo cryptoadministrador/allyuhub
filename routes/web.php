@@ -34,6 +34,12 @@ Route::view('/entrar', 'entrar')->name('entrar');
 Route::get('/catalogo', [PageController::class, 'catalogo'])->name('catalogo');
 Route::get('/catalogo/{node}', [PageController::class, 'catalogoNodo'])->name('catalogo.nodo');
 Route::get('/destreza/{objective}', [PageController::class, 'destreza'])->name('destreza');
+
+// El cascarón del curso de idiomas: portada y unidad. La {n} sale por where a
+// dígitos — un /corso/it/uX que no sea un número no llega ni al controlador.
+Route::get('/corso/{lengua}', [\App\Http\Controllers\App\CursoController::class, 'portada'])->name('corso');
+Route::get('/corso/{lengua}/u{n}', [\App\Http\Controllers\App\CursoController::class, 'unidad'])
+    ->where('n', '[0-9]+')->name('corso.unidad');
 Route::get('/buscar', [PageController::class, 'buscar'])->name('buscar');
 Route::get('/practicar/{objective}', [PageController::class, 'practicar'])->name('practicar');
 Route::get('/recurso/{resource}', [PageController::class, 'recurso'])->name('recurso');

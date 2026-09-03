@@ -88,7 +88,7 @@ class CurriculumController extends Controller
             'resources' => fn ($q) => $q->published()
                 ->with('currentVersion:id,config')
                 ->select('resources.id', 'slug', 'kind', 'title', 'summary',
-                    'duration_min', 'status', 'current_version_id'),
+                    'duration_min', 'status', 'current_version_id', 'lengua'),
         ])->setAttribute('alignments', Alignment::query()
             ->where(fn ($q) => $q->where('source_id', $objective->id)
                 ->orWhere('target_id', $objective->id))
