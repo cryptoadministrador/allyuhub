@@ -463,12 +463,58 @@ que con el reloj real cambia o no según el segundo de pared. No es un N+1: es
 ruido del reloj. El test **congela el reloj** (`travelTo`) y calienta más allá
 del tope antes de medir — el estado estable es determinista.
 
+## La producción del alumno — voz y texto de un menor (PR 3)
+
+El alumno ESCRIBE (tres o cuatro frases) o GRABA (voz, `MediaRecorder` nativo,
+20-30 s) y su docente lo corrige. **El motor NO corrige producción**: solo la
+guarda y la encola (`App\Services\Produccion\*`, tabla `producciones`,
+`App\Models\Produccion`). Es contenido de un MENOR, así que todo aquí falla
+cerrado:
+
+- **Retención = un año lectivo.** `anio_lectivo` es NOT NULL y se fija al crear
+  (`AnioLectivo`, régimen Sierra, frontera en agosto): una fila sin año se
+  escaparía de la purga y viviría para siempre — eso sería fallar ABIERTA.
+  `php artisan producciones:purgar [--anio=YYYY-YYYY] [--dry-run]` borra la
+  GRABACIÓN (texto/archivo) de los años cerrados y **conserva la nota del
+  docente** (`rubrica`, `comentario`); `--dry-run` LISTA antes de tocar nada.
+- **La ve el alumno y los docentes de SU curso, nadie más.** La visibilidad NO
+  es una columna: es la relación instructor↔learner sobre `lti_context_memberships`
+  (`Produccion::alumnosDeDocente` — FUENTE ÚNICA que usan la policy `ver`/`corregir`
+  Y la cola `pendientesDeDocente`, desde puntas opuestas, para que no diverjan).
+  Un docente de otro curso es 403 (`ProduccionPolicy`, sin `before` que dé barra
+  libre a nadie).
+- **La voz NUNCA entra en el almacén público** (`AlmacenDeAudio`, direccionable
+  por contenido, `/audio/*` sin auth): vive en `storage/app/producciones/<año>/`
+  con nombre uuid (no hash: sin dedupe ni nombre adivinable) y se sirve SOLO por
+  `GET /api/v1/producciones/{id}/audio` con `auth` + policy — invitado 401, ajeno
+  403. Está bajo `api/v1` a propósito: así el invitado recibe 401 limpio y no el
+  302→/entrar de las páginas web.
+- **El alumno borra la suya mientras no esté corregida** (`ProduccionPolicy::borrar`).
+- **Exclusión de vías** como en `practice_attempts`: escritura lleva SOLO texto,
+  voz SOLO archivo (guardián `saving` en el modelo); tras la purga, las dos van
+  nulas y la nota vive.
+- La **rúbrica viene del CONTENIDO** (`database/data/rubricas-lenguas.php`,
+  4 criterios × 3 niveles, nivel guardado como índice inmutable), no hardcodeada
+  en el JSX. `escritura` se corrige contra una destreza EE, `voz` contra una PO.
+- **Lengua cerrada en las dos direcciones**: la cola del docente filtra por
+  `?lengua=` (422 fuera de lista, validada a mano con `abort(422)` porque en una
+  ruta `web` un `$request->validate` fallido REDIRIGE — misma trampa que
+  `PageController::destreza`).
+
+La página `/corso/{lengua}/u{n}/producir` es ABIERTA (el invitado ve la tarea,
+no puede enviarla: crear/borrar exigen sesión, contenido de un menor). Sin
+`MediaRecorder` (jsdom, navegador viejo) la tarea de voz LO DICE en vez de
+romperse; la de texto sigue entera.
+
 ## La frontera del contenido abierto (modelo Khan)
 
 Se **navega** y se **practica** sin sesión; se **guarda** y se **califica** solo con
 sesión LTI. Abiertas: `/catalogo`, `/catalogo/{node}`, `/destreza/{objective}`,
-`/buscar`, `/practicar/{objective}`, `/recurso/{resource}` y los cuatro endpoints de
-`/api/v1/practice/*`. Cerradas: `/inicio`, `/progreso`, `/docente/*`.
+`/buscar`, `/practicar/{objective}`, `/recurso/{resource}`, el cascarón del curso
+(`/corso/{lengua}`, `/corso/{lengua}/u{n}`, `/corso/{lengua}/u{n}/producir` — se
+VE la tarea, no se envía) y los cinco endpoints de `/api/v1/practice/*`. Cerradas:
+`/inicio`, `/progreso`, `/docente/*` y **toda producción** (crear, borrar y servir
+la voz: `/api/v1/producciones*` — contenido de un menor, ver PR 3 arriba).
 
 **Regla de oro**: un invitado no escribe NI UNA FILA atribuida a un usuario
 —`practice_attempts`, `objective_masteries`, `users`— ni encola `PushLtiScore`.
