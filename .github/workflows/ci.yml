@@ -46,9 +46,12 @@ jobs:
           if grep -rlq "testing-library\|axe-core\|vitest" public/build/assets/*.js; then
             echo "El bundle contiene código de pruebas: revisa el glob de app.jsx"; exit 1
           fi
-          bytes=$(stat -c%s public/build/assets/app-*.js)
-          echo "bundle: $bytes bytes"
-          test "$bytes" -lt 450000
+      # El presupuesto lo mide un script que lee el MANIFEST (todo el JS que
+      # baja un navegador), no `stat` de un solo `app-*.js` — que desde el
+      # troceo de #29 es solo el marco y dejaba la cuenta ciega. Dos techos:
+      # total ≤ 450 KB y ninguna página > 40 KB.
+      - name: Presupuesto de bundle (total ≤ 450 KB, página ≤ 40 KB)
+        run: node scripts/presupuesto-bundle.mjs
 
   postgres:
     name: Migraciones + seed (PostgreSQL 16 + ltree)

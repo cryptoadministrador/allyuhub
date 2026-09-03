@@ -213,9 +213,25 @@ class PageController extends Controller
      * Reusa la consulta de la API objectives/{id} (recursos published +
      * alignments production): la trampa del crosswalk se respeta por diseño.
      */
-    public function destreza(LearningObjective $objective)
+    public function destreza(Request $request, LearningObjective $objective)
     {
+        // La lengua pedida, de LISTA CERRADA (fuera de ella 422): el cabo
+        // suelto de #28. Los recursos se filtran igual que los ítems —cerrado
+        // en las DOS direcciones—: pedir italiano sirve solo lecciones
+        // italianas, y sin lengua solo el contenido SIN lengua (MINEDEC). Antes
+        // era seguro solo porque no había francés; ahora es por construcción.
+        // `abort(422)` explícito, no `$request->validate()`: en una petición web
+        // (Inertia) una ValidationException REDIRIGE (302) en vez de dar 422, y
+        // el manejador tropezaba. Una lengua fuera de la lista es un cliente
+        // roto, no una redirección.
+        $lengua = $request->query('lengua');
+        abort_unless($lengua === null || in_array($lengua, \App\Services\Practice\Lenguas::LISTA, true),
+            422, 'Lengua fuera de la lista cerrada.');
+
         $detalle = (new CurriculumController)->objective($objective);
+        $detalle->setRelation('resources', $detalle->resources->filter(
+            fn ($r) => $lengua === null ? $r->lengua === null : $r->lengua === $lengua,
+        ));
 
         // El otro extremo de cada alineación revisada, con su marco (en bulk).
         // Las aristas `prerequisite` NO son equivalencias entre marcos: aunque

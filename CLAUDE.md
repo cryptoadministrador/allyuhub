@@ -368,6 +368,26 @@ Reglas que no se negocian, heredadas de #22/#25/#26:
 - La interacción de orden/pares es PULSAR, no arrastrar: teléfono + teclado +
   lector de pantalla piden lo mismo que el presupuesto (0 KB de librerías).
 
+## El cascarón del curso (`/corso/{lengua}`)
+
+Un alumno de idiomas entra por `/corso/it` (portada: 9 unidades, dominio por
+unidad, racha, y LA única cosa que hacer ahora) y `/corso/it/u{n}` (la unidad:
+sus «Puedo…» del MCER pintados como objetivos del alumno). Todo el estado se
+calcula en el SERVIDOR (`App\Services\Curso\CursoDeLenguas`) y llega como
+props — React solo pinta, y así el cascarón cuesta ~6 KB de JS, no ~40.
+
+- **El molde de 9 unidades** vive en `database/data/cursos-lenguas.php`: mismo
+  para las cuatro lenguas (el MCER así lo escribe), con los descriptores de
+  cada unidad. Una unidad sin ítems/lecciones FIRMADOS de esa lengua se pinta
+  «próximamente», nunca vacía.
+- **La racha** (`RachaDeAlumno`) se rompe con TRES días naturales sin
+  actividad, no con uno: un fin de semana no castiga. Ojo con `diffInDays` de
+  Carbon nuevo — devuelve con signo y float, hay que `abs`+`int`.
+- **La lengua es cerrada**: `/corso/klingon` es 404. Y el cabo suelto de #28
+  quedó cerrado — `/destreza?lengua=` filtra RECURSOS por lengua en las dos
+  direcciones (pedir italiano sirve solo lecciones italianas; sin lengua, solo
+  contenido sin lengua), igual que ya hacían los ítems.
+
 ## El camino del contenido de lenguas (MCER)
 
 El marco de los cursos de idiomas es el **CEFR** (`CefrSeeder`, en la cadena de
