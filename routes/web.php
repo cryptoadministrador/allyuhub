@@ -3,11 +3,13 @@
 use App\Http\Controllers\Api\DialogoController;
 use App\Http\Controllers\Api\PracticeController;
 use App\Http\Controllers\Api\ProduccionController;
+use App\Http\Controllers\Api\RevisionPracticaController;
 use App\Http\Controllers\App\BienvenidaController;
 use App\Http\Controllers\App\DocenteController;
 use App\Http\Controllers\App\InicioController;
 use App\Http\Controllers\App\PageController;
 use App\Http\Controllers\App\ProduccionDocenteController;
+use App\Http\Controllers\App\RevisionController;
 use Illuminate\Support\Facades\Route;
 
 // La raíz lleva a la casa del alumno cuando hay sesión; el visitante sin
@@ -97,6 +99,41 @@ Route::middleware('auth')->group(function () {
         ->name('docente.producciones');
     Route::post('/docente/producciones/{produccion}', [ProduccionDocenteController::class, 'corregir'])
         ->whereUuid('produccion')->name('docente.producciones.corregir');
+});
+
+/*
+|--------------------------------------------------------------------------
+| LA REVISIÓN DOCENTE. FUERA del grupo `auth` a propósito.
+|
+| El grupo `auth` manda al invitado a /entrar (302). Aquí la regla es otra: un
+| alumno y un invitado reciben **403**, no una redirección — esto no es una
+| puerta a la que les falte la llave, es una sala que no es suya. La
+| autorización (docente = instructor en un contexto LTI activo) la hace el
+| controlador, que es también quien conoce el 403.
+|
+| Las rutas literales van ANTES de /docente/{context} (que solo casa uuids).
+|--------------------------------------------------------------------------
+*/
+Route::get('/docente/revisar', [RevisionController::class, 'index'])->name('docente.revisar');
+Route::get('/docente/revisar/{tipo}/{id}', [RevisionController::class, 'pieza'])
+    ->whereIn('tipo', ['item', 'leccion'])->whereUuid('id')->name('docente.revisar.pieza');
+Route::post('/docente/revisar/unidad', [RevisionController::class, 'firmarUnidad'])
+    ->name('docente.revisar.unidad');
+Route::post('/docente/revisar/{tipo}/{id}/firmar', [RevisionController::class, 'firmar'])
+    ->whereIn('tipo', ['item', 'leccion'])->whereUuid('id')->name('docente.revisar.firmar');
+Route::post('/docente/revisar/{tipo}/{id}/devolver', [RevisionController::class, 'devolver'])
+    ->whereIn('tipo', ['item', 'leccion'])->whereUuid('id')->name('docente.revisar.devolver');
+Route::post('/docente/revisar/{tipo}/{id}/desfirmar', [RevisionController::class, 'desfirmar'])
+    ->whereIn('tipo', ['item', 'leccion'])->whereUuid('id')->name('docente.revisar.desfirmar');
+
+// Ver un ítem SIN FIRMAR tal como lo verá el alumno: `Practicar.jsx` pide su
+// ejercicio a la API, y la de práctica solo sirve lo firmado. Mismo payload,
+// mismas piezas, sin persistir nada. 403 para quien no sea docente.
+Route::prefix('api/v1')->group(function () {
+    Route::get('revision/items/{item}/next', [RevisionPracticaController::class, 'next'])
+        ->whereUuid('item')->name('revision.next');
+    Route::post('revision/items/{item}/attempts', [RevisionPracticaController::class, 'attempt'])
+        ->whereUuid('item')->name('revision.attempt');
 });
 
 // Producción de un menor: crear, borrar y SERVIR LA VOZ. En su propio grupo

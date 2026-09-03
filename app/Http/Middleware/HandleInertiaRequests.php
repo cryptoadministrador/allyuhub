@@ -3,8 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\LtiContext;
-use App\Models\LtiContextMembership;
-use App\Models\LtiPlatform;
+use App\Services\Docente\Docencia;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -66,16 +65,10 @@ class HandleInertiaRequests extends Middleware
             return $this->contextosDocente = [];
         }
 
-        return $this->contextosDocente = LtiContext::query()
-            // Un Moodle desactivado (lti:platform desconectada) no debe seguir
-            // encendiendo el panel en el nav: coherente con el launch y la CSP,
-            // que también exigen la Platform activa (auditoría PR #18).
-            ->whereIn('platform_id', LtiPlatform::query()->active()->select('id'))
-            ->whereIn('id', LtiContextMembership::query()
-                ->where('user_id', $user->id)
-                ->where('role', 'instructor')
-                ->select('lti_context_id'))
-            ->get(['id', 'title'])
+        // QUIÉN ES DOCENTE lo decide `Docencia`, no esta consulta: el nav y la
+        // pantalla de revisión docente tenían que responder lo mismo, y con la
+        // consulta copiada en los dos podían dejar de hacerlo.
+        return $this->contextosDocente = Docencia::contextos($user)
             // El orden se decide en PHP: `title` es nullable y SQLite pone los
             // NULL primero mientras PostgreSQL los pone últimos — los enlaces
             // del nav saldrían en orden distinto en test y en producción.

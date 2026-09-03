@@ -48,6 +48,39 @@ class CursoDeLenguas
         return isset($this->unidades[$n]);
     }
 
+    public function tituloUnidad(int $n): ?string
+    {
+        return $this->unidades[$n]['titulo'] ?? null;
+    }
+
+    /** @return array<int, array{titulo: string, descriptores: list<string>}> */
+    public function unidades(): array
+    {
+        return $this->unidades;
+    }
+
+    /**
+     * Mapa descriptor → PRIMERA unidad que lo cubre.
+     *
+     * Un descriptor aparece en varias unidades (A1.PO.2 está en seis), así que
+     * «la unidad de una pieza» necesita un criterio: la primera. Es arbitrario
+     * pero DETERMINISTA, que es lo que hace falta para agrupar la revisión sin
+     * que la misma pieza salga en seis sitios.
+     *
+     * @return array<string, int>
+     */
+    public function unidadesPorDescriptor(): array
+    {
+        $mapa = [];
+        foreach ($this->unidades as $n => $u) {
+            foreach ($u['descriptores'] as $code) {
+                $mapa[$code] ??= (int) $n;
+            }
+        }
+
+        return $mapa;
+    }
+
     /**
      * El estado completo del curso para la PORTADA.
      *
