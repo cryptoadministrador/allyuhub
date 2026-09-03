@@ -8,6 +8,11 @@ import Anillo from '../components/Anillo';
  * cabeza de un chico de 15 años. Cada objetivo lleva a leer y a practicar.
  */
 export default function CorsoUnidad({ lengua, nombre, unidad, estado, dominio, puedo, siguiente }) {
+    // La tarea de producción existe si la unidad tiene una destreza productiva
+    // (Expresión Escrita o Producción Oral). El servidor manda: son los mismos
+    // códigos que ofrece /corso/{lengua}/u{n}/producir.
+    const tieneTarea = puedo.some((p) => p.code.includes('.EE.') || p.code.includes('.PO.'));
+
     return (
         <AppLayout>
             <Head title={`Unidad ${unidad.n} · ${nombre}`} />
@@ -79,6 +84,21 @@ export default function CorsoUnidad({ lengua, nombre, unidad, estado, dominio, p
                         </ul>
                     )}
                 </section>
+
+                {tieneTarea && (
+                    <section aria-labelledby="tarea" className="mb-8">
+                        <h2 id="tarea" className="mb-3 text-lg font-semibold tracking-tight text-slate-900">
+                            Tu tarea
+                        </h2>
+                        <Link
+                            href={`/corso/${lengua}/u${unidad.n}/producir`}
+                            className="block rounded-lg border border-marca-200 bg-marca-50 p-4 transition-shadow hover:shadow-md focus:outline-2 focus:outline-offset-2 focus:outline-marca-600"
+                        >
+                            <p className="font-medium text-slate-900">Escribe o graba lo que ya sabes decir</p>
+                            <p className="mt-1 text-sm text-slate-700">Tu profe lo corregirá y te dará una devolución.</p>
+                        </Link>
+                    </section>
+                )}
             </div>
         </AppLayout>
     );

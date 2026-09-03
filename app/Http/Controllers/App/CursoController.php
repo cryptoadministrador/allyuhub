@@ -51,4 +51,49 @@ class CursoController extends Controller
             'se_guarda' => $userId !== null,
         ]);
     }
+
+    /**
+     * GET /corso/{lengua}/u{n}/producir — la tarea de producción de la unidad.
+     *
+     * ABIERTA como el resto del curso: el invitado ve la tarea (y el aviso de
+     * que hace falta entrar para enviarla); enviar es lo único cerrado. Se
+     * ofrecen solo las destrezas PRODUCTIVAS de la unidad (EE→escritura,
+     * PO→voz); una unidad sin ellas no tiene esta página (404).
+     */
+    public function producir(Request $request, string $lengua, int $n)
+    {
+        abort_unless(in_array($lengua, Lenguas::LISTA, true), 404);
+        abort_unless($this->curso->existeUnidad($n), 404);
+
+        $userId = $request->user()?->id;
+        $detalle = $this->curso->unidad($lengua, $n, $userId);
+
+        $productivos = collect($detalle['puedo'])
+            ->map(function (array $p) {
+                $tipo = match (true) {
+                    str_contains($p['code'], '.EE.') => 'escritura',
+                    str_contains($p['code'], '.PO.') => 'voz',
+                    default => null,
+                };
+
+                return $tipo === null ? null : [
+                    'descriptor_id' => $p['descriptor_id'],
+                    'code' => $p['code'],
+                    'statement' => $p['statement'],
+                    'tipo' => $tipo,
+                ];
+            })
+            ->filter()
+            ->values();
+
+        abort_if($productivos->isEmpty(), 404, 'Esta unidad no tiene tarea de producción.');
+
+        return Inertia::render('producir', [
+            'lengua' => $lengua,
+            'nombre' => $this->curso->nombre($lengua),
+            'unidad' => ['n' => $n, 'titulo' => $detalle['unidad']['titulo']],
+            'productivos' => $productivos->all(),
+            'se_guarda' => $userId !== null,
+        ]);
+    }
 }
