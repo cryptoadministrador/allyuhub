@@ -102,6 +102,7 @@ Route::prefix('api/v1')->middleware('throttle:practica')->group(function () {
     Route::post('practice/items/{item}/attempts', [PracticeController::class, 'submitAttempt']);
     Route::get('practice/mastery', [PracticeController::class, 'mastery']);
     Route::get('practice/progress', [PracticeController::class, 'progress']);
+    Route::get('practice/repasos', [PracticeController::class, 'repasos']);
 });
 
 // Una URL que no casa con NINGUNA ruta la rechaza el router antes del grupo

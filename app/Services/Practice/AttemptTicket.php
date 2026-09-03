@@ -46,9 +46,12 @@ use InvalidArgumentException;
 final class AttemptTicket
 {
     /** Todo lo que `submitAttempt` necesita saber y no debe volver a deducir. */
-    public static function emitir(string $itemId, int|string $quien, int $attemptNo, string $seed): string
+    public static function emitir(string $itemId, int|string $quien, int $attemptNo, string $seed, bool $repaso = false): string
     {
-        $cuerpo = self::codificar(compact('itemId', 'quien', 'attemptNo', 'seed'));
+        // `repaso` viaja FIRMADO: es lo que decide si el intento cuenta para la
+        // nota AGS, y forjarlo para inflar la nota es justo lo que hay que
+        // impedir. Un billete sin el campo (los de antes) decodifica repaso=false.
+        $cuerpo = self::codificar(compact('itemId', 'quien', 'attemptNo', 'seed', 'repaso'));
 
         return $cuerpo.'.'.self::firma($cuerpo);
     }
@@ -60,7 +63,7 @@ final class AttemptTicket
      * por eso las dos comprobaciones viven aquí y no en el controlador: quien
      * llame no puede olvidarse de una.
      *
-     * @return array{attempt_no: int, seed: string}
+     * @return array{attempt_no: int, seed: string, repaso: bool}
      *
      * @throws InvalidArgumentException
      */
@@ -98,7 +101,11 @@ final class AttemptTicket
             throw new InvalidArgumentException('El billete del intento es de otra sesión.');
         }
 
-        return ['attempt_no' => (int) $datos['attemptNo'], 'seed' => (string) $datos['seed']];
+        return [
+            'attempt_no' => (int) $datos['attemptNo'],
+            'seed' => (string) $datos['seed'],
+            'repaso' => (bool) ($datos['repaso'] ?? false),
+        ];
     }
 
     private static function firma(string $cuerpo): string

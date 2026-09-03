@@ -15,6 +15,7 @@ use App\Services\Practice\AttemptTicket;
 use App\Services\Practice\MasteryTracker;
 use App\Services\Practice\PracticeEngine;
 use App\Services\Practice\Practitioner;
+use App\Services\Practice\RepasoService;
 use App\Services\Practice\Tipos\Registro;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Request;
@@ -43,6 +44,7 @@ class PracticeController extends Controller
         private readonly PracticeEngine $engine,
         private readonly MasteryTracker $tracker,
         private readonly AdaptiveSelector $selector,
+        private readonly RepasoService $repaso,
     ) {}
 
     /**
@@ -59,6 +61,10 @@ class PracticeController extends Controller
         $data = $request->validate([
             'user_id' => 'prohibited',
             'intento' => 'nullable|integer|min:1|max:500',
+            // Marca de REPASO: la pone la cola de repaso (`repaso=1`). Viaja al
+            // billete firmado para que `submitAttempt` sepa que NO cuenta para
+            // la nota AGS sin que el cliente pueda forjarlo para inflarla.
+            'repaso' => 'nullable|boolean',
             // La lengua del contenido pedido, de LISTA CERRADA: fuera de ella
             // es 422, no una lengua nueva creada por un typo. Sin lengua solo
             // se sirve contenido sin lengua — cerrado en las dos direcciones.
@@ -121,6 +127,7 @@ class PracticeController extends Controller
             // corrigiera contra números que no vio nunca.
             'billete' => AttemptTicket::emitir(
                 $item->id, $quien->seedKey(), $attemptNo, $seed,
+                repaso: (bool) ($data['repaso'] ?? false),
             ),
             ...$propio,
             'reason' => $reason,
@@ -175,6 +182,7 @@ class PracticeController extends Controller
 
         $attemptNo = $ticket['attempt_no'];
         $seed = $ticket['seed'];
+        $esRepaso = $ticket['repaso'];
 
         // LA CORRECCIÓN ES LA MISMA para el invitado y para el alumno: la
         // resuelve el TIPO, por encima de la bifurcación. Lo único que cambia
@@ -220,9 +228,16 @@ class PracticeController extends Controller
         // Con un solo ítem acertado la nota no sale: mismo listón que el
         // dominio, porque una nota que se saca repitiendo la misma pregunta
         // ocupa una casilla del cuaderno del profesor sin decir nada.
-        if ($this->tracker->califica($itemsAcertados)) {
+        // El REPASO cuenta para el dominio (ya aplicado) pero NO para la
+        // nota: una nota que sube repasando lo sabido está inflada. El flag
+        // viene FIRMADO en el billete, así que no se puede forjar para inflar.
+        if (! $esRepaso && $this->tracker->califica($itemsAcertados)) {
             $this->queueLtiScore($userId, $item->objective_id);
         }
+
+        // Se reprograma el repaso del descriptor SIEMPRE que practica un
+        // alumno (repaso o no): tocar una destreza reprograma su próxima cita.
+        $this->repaso->programar($userId, $item->objective_id, $veredicto['is_correct']);
 
         // La explicación —`expected` o `expected_key`— se revela solo DESPUÉS
         // de responder; el siguiente intento trae números nuevos (o una
@@ -246,6 +261,26 @@ class PracticeController extends Controller
      * aristas intra-MINEDEC el docente lo va a ver: un alumno trabajando sin
      * que se mueva la nota. Está documentado en docs/lti-moodle.md.
      */
+    /**
+     * GET /api/v1/practice/repasos?lengua=it — la cola de repaso del alumno.
+     *
+     * Abierto como el resto: el invitado recibe una cola VACÍA (nunca la de
+     * otro) y no escribe nada. La lengua es de lista cerrada.
+     */
+    public function repasos(Request $request)
+    {
+        $data = $request->validate([
+            'user_id' => 'prohibited',
+            'lengua' => ['required', 'string', Rule::in(\App\Services\Practice\Lenguas::LISTA)],
+        ]);
+        $quien = Practitioner::fromRequest($request);
+
+        return response()->json([
+            ...$this->repaso->cola($quien->userId(), $data['lengua']),
+            'se_guarda' => ! $quien->isGuest(),
+        ]);
+    }
+
     private function queueLtiScore(int $userId, string $objectiveId): void
     {
         $linkId = LtiResourceLink::query()

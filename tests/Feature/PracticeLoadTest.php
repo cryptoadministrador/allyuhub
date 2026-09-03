@@ -54,15 +54,33 @@ class PracticeLoadTest extends TestCase
 
         $this->calentarCacheDeLaCsp();
 
+        // El reloj se CONGELA. Sin esto la medición parpadea 7/8: el
+        // reprogramado del repaso (RepasoService::programar) solo escribe si la
+        // fila quedó sucia, y una vez que el intervalo topa en 32 lo único que
+        // podría ensuciarla es `repaso_en` —que es `now()+32 días`—. Con el
+        // reloj real, dos intentos consecutivos caen en el mismo segundo o en
+        // dos, así que a veces `repaso_en` cambia y a veces no: ±1 consulta de
+        // ruido del reloj de pared, no crecimiento con los datos. Congelado, el
+        // estado estable es determinista.
+        $this->travelTo(now());
+
+        // Se calienta más allá del TOPE del intervalo (1,2,4,8,16,32): al 6.º
+        // acierto el intervalo ya no crece y, con el reloj quieto, `repaso_en`
+        // tampoco — la fila deja de ensuciarse y el estado estable se fija.
+        foreach (range(1, 6) as $i) {
+            $this->postCorrectAttempt($item, $user);
+        }
+
         $first = null;
         foreach (range(1, 200) as $i) {
             $queries = $this->countQueries(fn () => $this->postCorrectAttempt($item, $user));
             $first ??= $queries;
         }
 
-        // El intento 200 cuesta las mismas consultas que el 1.º: nada acumula.
+        // El intento 200 cuesta las mismas consultas que el 1.º del bucle: nada
+        // acumula con los intentos ya rendidos.
         $this->assertSame($first, $queries);
-        $this->assertSame(200, $item->attempts()->count());
+        $this->assertSame(206, $item->attempts()->count());
     }
 
     public function test_next_no_hace_una_consulta_por_item(): void

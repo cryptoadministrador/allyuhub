@@ -52,6 +52,11 @@ class PageController extends Controller
             ],
             'mastery' => $mastery === null ? null : (float) $mastery,
             'lengua' => $datos['lengua'] ?? null,
+            // Marca de repaso: la trae la cola (/practicar/{id}?repaso=1). El
+            // cliente la reenvía a `next`, que la firma en el billete; el
+            // servidor decide con eso si cuenta para AGS. No es autoritativa
+            // aquí — solo dice qué pedir.
+            'repaso' => $request->boolean('repaso'),
         ]);
     }
 

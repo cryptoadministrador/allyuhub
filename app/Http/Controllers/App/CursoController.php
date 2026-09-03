@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\Curso\CursoDeLenguas;
 use App\Services\Practice\Lenguas;
 use App\Services\Practice\RachaDeAlumno;
+use App\Services\Practice\RepasoService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -21,6 +22,7 @@ class CursoController extends Controller
     public function __construct(
         private readonly CursoDeLenguas $curso,
         private readonly RachaDeAlumno $racha,
+        private readonly RepasoService $repaso,
     ) {}
 
     public function portada(Request $request, string $lengua)
@@ -32,6 +34,7 @@ class CursoController extends Controller
         return Inertia::render('corso', [
             ...$this->curso->portada($lengua, $userId),
             'racha' => $this->racha->calcular($userId),
+            'repasos' => $this->repaso->cola($userId, $lengua),
             'se_guarda' => $userId !== null,
         ]);
     }

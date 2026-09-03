@@ -132,7 +132,7 @@ function textoDeOpcion(item, clave) {
     return (item?.options ?? []).find((o) => o.key === clave)?.text?.es ?? '';
 }
 
-export default function Practicar({ objective, mastery: masteryInicial, lengua = null }) {
+export default function Practicar({ objective, mastery: masteryInicial, lengua = null, repaso = false }) {
     // estado: cargando | listo | enviando | respondido | sin-items | sesion |
     //         demasiadas | error
     const [estado, setEstado] = useState('cargando');
@@ -199,7 +199,8 @@ export default function Practicar({ objective, mastery: masteryInicial, lengua =
                 // La lengua del curso acompaña CADA petición: el servidor solo
                 // sirve italiano si se le pide italiano (regla cerrada).
                 `/api/v1/objectives/${objective.id}/practice/next?intento=${intento.current}` +
-                    (lengua ? `&lengua=${lengua}` : ''),
+                    (lengua ? `&lengua=${lengua}` : '') +
+                    (repaso ? '&repaso=1' : ''),
             );
 
             if (r.status === 401) return setEstado('sesion');
@@ -223,7 +224,7 @@ export default function Practicar({ objective, mastery: masteryInicial, lengua =
         } catch {
             setEstado('error');
         }
-    }, [objective.id, lengua]);
+    }, [objective.id, lengua, repaso]);
 
     useEffect(() => {
         if (objective.has_items) {
