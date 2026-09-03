@@ -421,6 +421,48 @@ entera se quedó sin ejercicios. Ojo: la semilla demo llamaba `CS.FL` al nodo
 de Filosofía y el import oficial escribe `CS.F` — la semilla ya está alineada,
 pero una base sembrada ANTES conserva el nodo viejo.
 
+## El repaso espaciado (memoria, PR 2)
+
+Lo que convierte «30 palabras vistas» en «30 palabras sabidas»: sin él, un
+alumno aprende la U1 y la ha perdido en la U4. Vive en `App\Services\Practice\
+RepasoService` sobre DOS columnas nullable de `objective_masteries`
+(`repaso_intervalo`, `repaso_en`) — el repaso es un atributo del dominio, no
+otra entidad, así que no hay tabla nueva.
+
+- **Se repasa el DESCRIPTOR, no el ítem.** La cola (`cola()`) solo trae
+  descriptores con **≥2 ítems FIRMADOS de la lengua**: repasar es practicar
+  OTRO ítem del mismo descriptor. Con uno solo se repetiría el mismo y se
+  aprendería el ítem, no la destreza. Las dos puertas —lengua cerrada y firma—
+  van en la consulta de repasables, no en el enlace: un descriptor solo-alemán
+  o con ítems sin firmar NO entra en la cola italiana (mutación mediante).
+- **El repaso NO cuenta para la nota (AGS), SÍ para el dominio.** Una nota que
+  sube repasando lo sabido está inflada. El flag `repaso` viaja **FIRMADO en el
+  billete** (`AttemptTicket`, 5.º campo) — forjarlo para inflar la nota es justo
+  lo que se impide. Lo lee `submitAttempt`: `if (! $esRepaso && califica(...))`
+  encola AGS, pero `programar()` se llama SIEMPRE (repaso o no: tocar una
+  destreza reprograma su próxima cita).
+- **Algoritmo, el mínimo que funciona**: intervalo ×2 con el acierto
+  (1,2,4,8,16,32 días), vuelve a **1** con el fallo. El fallo reinicia el
+  INTERVALO GUARDADO, no solo el `repaso_en` de esta vez —el `repaso_en` de un
+  fallo es +1 día lo reinicie o no, así que «vuelve a 1» se prueba con el
+  acierto SIGUIENTE—. Se mide, luego se sofistica: nada de SM-2 antes de datos.
+- **Techo por sesión: 12.** Una cola de 200 el lunes se abandona.
+- **El invitado recibe cola VACÍA** (`cola(null, ...)`) y no escribe nada. El
+  early-return es cinturón: aunque se quite, `where('user_id', null)` no casa
+  con ninguna fila (la columna es NOT NULL) — defensa doble, no accidente.
+- **Endpoint** `GET /api/v1/practice/repasos?lengua=it` (lengua REQUIRED de
+  lista cerrada, 422 fuera de ella) y prop `repasos` en la portada `/corso`.
+- Firma por lengua como el resto: la práctica de repaso reusa el circuito
+  entero del billete (barajado, 422 por clave inventada) — no hay ruta nueva de
+  corrección, solo un flag más en el billete.
+
+Una trampa que costó: la medición de consultas del load test parpadeaba 7/8
+porque `programar()` solo escribe si la fila quedó SUCIA, y una vez que el
+intervalo topa en 32 lo único que la ensucia es `repaso_en` (`now()+32 días`),
+que con el reloj real cambia o no según el segundo de pared. No es un N+1: es
+ruido del reloj. El test **congela el reloj** (`travelTo`) y calienta más allá
+del tope antes de medir — el estado estable es determinista.
+
 ## La frontera del contenido abierto (modelo Khan)
 
 Se **navega** y se **practica** sin sesión; se **guarda** y se **califica** solo con

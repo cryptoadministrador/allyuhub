@@ -24,6 +24,8 @@ class ObjectiveMastery extends Model
         'streak' => 'integer',
         'mastered_at' => 'datetime',
         'last_attempt_at' => 'datetime',
+        'repaso_en' => 'datetime',
+        'repaso_intervalo' => 'integer',
     ];
 
     public function user(): BelongsTo

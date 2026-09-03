@@ -29,6 +29,7 @@ const PORTADA = {
     unidades: UNIDADES,
     siguiente: { lengua: 'it', unidad: 1, titulo: 'Primer contacto', url: '/corso/it/u1' },
     racha: { dias: 3, viva: true },
+    repasos: { pendientes: 0, siguiente: null },
     se_guarda: true,
 };
 
@@ -79,6 +80,17 @@ describe('corso — la portada del curso', () => {
         render(<Corso {...PORTADA} racha={{ dias: 0, viva: false }} se_guarda={false} />);
         expect(screen.queryByText(/días seguidos/i)).not.toBeInTheDocument();
         expect(screen.getByText(/tu avance no se guarda/i)).toBeInTheDocument();
+    });
+
+    it('la tarjeta de repaso aparece solo con repasos pendientes y lleva a practicarlos', () => {
+        render(<Corso {...PORTADA} repasos={{ pendientes: 3, siguiente: { url: '/practicar/d1?lengua=it&repaso=1' } }} />);
+        const tarjeta = screen.getByRole('link', { name: /te tocan 3 repasos/i });
+        expect(tarjeta).toHaveAttribute('href', '/practicar/d1?lengua=it&repaso=1');
+    });
+
+    it('sin repasos pendientes, ninguna tarjeta de repaso', () => {
+        render(<Corso {...PORTADA} />);
+        expect(screen.queryByText(/te tocan/i)).not.toBeInTheDocument();
     });
 
     it.each([
