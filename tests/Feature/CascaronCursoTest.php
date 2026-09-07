@@ -283,22 +283,48 @@ class CascaronCursoTest extends TestCase
     }
 
     /**
-     * EL BANCO REAL DE CARLOS siembra limpio. No es «el comando corre»: es que
-     * el contenido del curso entero de italiano —lecciones e ítems de los
-     * cuatro tipos escritos, sin audio todavía— pasa el validador de bloques y
-     * el guardián `saving` de cada tipo. Un banco que reviente en producción
-     * tras el merge es justo lo que este oráculo caza antes.
+     * EL BANCO REAL DE CARLOS siembra limpio, EN TODAS SUS LENGUAS. No es «el
+     * comando corre»: es que el contenido de los cursos —lecciones e ítems de
+     * los cuatro tipos— pasa el validador de bloques y el guardián `saving` de
+     * cada tipo. Un banco que reviente en producción tras el merge es justo lo
+     * que este oráculo caza antes.
+     *
+     * Las lenguas se LEEN DEL FICHERO, no se escriben aquí: el día que Carlos
+     * añada el chino, este oráculo lo cubre sin que nadie lo edite. Cuando solo
+     * había italiano, «sembró ítems» era cierto por circunstancia.
      */
-    public function test_el_banco_de_italiano_de_carlos_siembra_sin_reventar(): void
+    public function test_el_banco_de_carlos_siembra_todas_sus_lenguas_sin_reventar(): void
     {
         $this->artisan('lenguas:sembrar')->assertSuccessful();
 
-        // Sembró ítems de italiano sobre descriptores del MCER, sin firmar
-        // (la puerta) y con su lengua.
-        $items = PracticeItem::where('lengua', 'it')->get();
-        $this->assertGreaterThan(10, $items->count(), 'El banco de Carlos no sembró ítems.');
-        $this->assertTrue($items->every(fn ($i) => $i->reviewed_at === null),
-            'El banco nació firmado: nada se publica sin que un docente lo firme.');
+        $banco = require database_path('data/banco-lenguas.php');
+        $lecciones = $banco['lecciones'] ?? [];
+        $items = array_is_list($banco) ? $banco : ($banco['items'] ?? []);
+
+        $lenguasDeItems = collect($items)->pluck('lengua')->unique()->values();
+        $lenguasDeLecciones = collect($lecciones)->pluck('lengua')->unique()->values();
+        $this->assertNotEmpty($lenguasDeItems, 'El banco no trae ítems.');
+
+        foreach ($lenguasDeItems as $lengua) {
+            $sembrados = PracticeItem::where('lengua', $lengua)->get();
+            $this->assertGreaterThan(0, $sembrados->count(),
+                "El banco no sembró ningún ítem de «{$lengua}».");
+            $this->assertTrue($sembrados->every(fn ($i) => $i->reviewed_at === null),
+                "El banco nació firmado en «{$lengua}»: nada se publica sin que lo firme un docente.");
+        }
+
+        foreach ($lenguasDeLecciones as $lengua) {
+            $this->assertGreaterThan(0, Resource::where('lengua', $lengua)->count(),
+                "El banco no sembró ninguna lección de «{$lengua}».");
+        }
+
+        // Y la cuenta EXACTA: cada entrada del banco aterrizó. Sin esto, un
+        // descriptor que el sembrador se salta con un aviso pasaría inadvertido
+        // mientras quedara UN ítem de esa lengua.
+        $this->assertSame(count($items), PracticeItem::whereNotNull('lengua')->count(),
+            'No aterrizaron todos los ítems del banco.');
+        $this->assertSame(count($lecciones), Resource::whereNotNull('lengua')->count(),
+            'No aterrizaron todas las lecciones del banco.');
     }
 
     // ================= el cabo suelto de #28 =================

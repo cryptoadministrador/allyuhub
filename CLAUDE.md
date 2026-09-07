@@ -542,6 +542,53 @@ Operación (post-merge): `php artisan dialogos:sembrar` (nace sin firmar) y
 `php artisan dialogos:firmar --lengua=it`. El demo `Il primo giorno` (it, U1,
 A1.IO.1) es de la IA: **pendiente de que un profesor lo firme**.
 
+## La revisión docente en pantalla (PR 5)
+
+Firmar contenido era `php artisan practica:firmar --bloque=A1.IO.it` por SSH.
+Ningún profesor de italiano iba a hacer eso, así que «antes del primer alumno lo
+lee un profesor» era una regla que no se podía cumplir. **`/docente/revisar`**
+la hace cierta.
+
+- **La pieza se abre TAL COMO LA VE EL ALUMNO.** No hay visor de revisión:
+  `docente-revisar-pieza` RENDERIZA `Recurso.jsx` o `Practicar.jsx` (que traen su
+  propio `AppLayout`) y les pone encima una barra fija. Un visor propio revisaría
+  una cosa distinta de la que se publica.
+- **`Practicar.jsx` necesita una API que sirva lo NO firmado**, porque la de
+  práctica solo sirve lo firmado — que es justo lo que falta por hacer. De ahí
+  `GET/POST /api/v1/revision/items/{item}/next|attempts`: mismo payload, mismas
+  piezas (`Tipos\Registro`, `PracticeEngine`, `AttemptTicket`), y **no persiste
+  nada** (ni intento, ni dominio, ni AGS). La identidad de la semilla es OTRA
+  (`revision:<id>`), así que **un billete de revisión no vale en la práctica
+  real** ni al revés: `AttemptTicket` ata el billete a quién.
+- **QUÉ ESCRIBE UNA FIRMA vive en UN sitio**: `App\Services\Revision\Firma::columnas`.
+  Estaba copiada en `practica:firmar` y `lecciones:firmar`, y la pantalla iba a
+  ser la tercera. Los tres tiran de ahí. La firma de un ítem está en
+  `practice_items.reviewed_at`; la de una lección, en la VERSIÓN vigente
+  (`resource_versions`) — esa asimetría la absorbe `Revision\Pieza`.
+- **QUIÉN ES DOCENTE vive en UN sitio**: `App\Services\Docente\Docencia` (instructor
+  en algún contexto LTI de Platform ACTIVA). Antes estaba dentro de
+  `HandleInertiaRequests` para el nav. Un docente revisa **todas las lenguas**:
+  no existe el rol «profesor de italiano» y no se inventa — la responsabilidad
+  es de quien firma, y su nombre queda.
+- **Un alumno y un invitado reciben 403, no una redirección.** Por eso estas
+  rutas **no cuelgan del grupo `auth`**, que mandaría al invitado a `/entrar`.
+- **Nada se des-firma sin nota.** `devolver` y `desfirmar` exigen nota, y el
+  rastro (`revisiones`) lo impone también el modelo al guardar, no solo el
+  controlador. Des-firmar **solo existe en la pantalla**, así que la regla se
+  cumple por construcción: no hay otra vía.
+- **Firmar la unidad entera exige haber MIRADO.** No es un `--todo`: las piezas
+  abiertas se apuntan EN LA SESIÓN del servidor al abrirlas, y el atajo
+  comprueba que están todas. «En esa sesión» es literalmente la sesión.
+- **La cola solo lista lo que la firma GOBIERNA.** Una lección `curado` se ve con
+  `reviewed_at` nulo (`Resource::published()` solo le exige firma a lo
+  `generado`), así que si entrara la pantalla diría «pendiente · no se ve» de
+  algo que el alumno ya está viendo, y «retirar» no lo escondería.
+
+Y una trampa de los tests que costó una mutación viva:
+`PHPUnit\Framework\Exception` **extiende `RuntimeException`**, así que un
+`catch (RuntimeException)` alrededor de un `$this->fail()` se traga el fallo y
+el oráculo pasa siempre. Se captura en una bandera y se afirma FUERA del `try`.
+
 ## La frontera del contenido abierto (modelo Khan)
 
 Se **navega** y se **practica** sin sesión; se **guarda** y se **califica** solo con
@@ -552,6 +599,8 @@ VE la tarea, no se envía —, `/corso/{lengua}/u{n}/hablar`), los cinco endpoin
 `/api/v1/practice/*` y `POST /api/v1/dialogos/{id}/completado` (el invitado juega
 y no escribe). Cerradas: `/inicio`, `/progreso`, `/docente/*` y **toda producción**
 (crear, borrar y servir la voz: `/api/v1/producciones*` — contenido de un menor).
+`/docente/revisar*` y `/api/v1/revision/*` son cerradas con **403** (no
+redirección) para alumno e invitado: ver PR 5 arriba.
 
 **Regla de oro**: un invitado no escribe NI UNA FILA atribuida a un usuario
 —`practice_attempts`, `objective_masteries`, `users`— ni encola `PushLtiScore`.

@@ -132,7 +132,15 @@ function textoDeOpcion(item, clave) {
     return (item?.options ?? []).find((o) => o.key === clave)?.text?.es ?? '';
 }
 
-export default function Practicar({ objective, mastery: masteryInicial, lengua = null, repaso = false }) {
+/**
+ * `revision` = el ID DEL ÍTEM que un docente está revisando, o null.
+ *
+ * En revisión la página es EXACTAMENTE la misma —esa es la idea: se revisa lo
+ * que se publica, no una maqueta— y solo cambian dos URLs: el ejercicio se pide
+ * a la API de revisión (la de práctica no sirve lo que aún no está firmado) y
+ * la respuesta se corrige sin guardar nada. Ni intento, ni dominio, ni nota.
+ */
+export default function Practicar({ objective, mastery: masteryInicial, lengua = null, repaso = false, revision = null }) {
     // estado: cargando | listo | enviando | respondido | sin-items | sesion |
     //         demasiadas | error
     const [estado, setEstado] = useState('cargando');
@@ -196,11 +204,14 @@ export default function Practicar({ objective, mastery: masteryInicial, lengua =
 
         try {
             const r = await pedirJson(
-                // La lengua del curso acompaña CADA petición: el servidor solo
-                // sirve italiano si se le pide italiano (regla cerrada).
-                `/api/v1/objectives/${objective.id}/practice/next?intento=${intento.current}` +
-                    (lengua ? `&lengua=${lengua}` : '') +
-                    (repaso ? '&repaso=1' : ''),
+                revision
+                    // Revisión: un ítem CONCRETO, aún sin firmar. Mismo payload.
+                    ? `/api/v1/revision/items/${revision}/next?intento=${intento.current}`
+                    // La lengua del curso acompaña CADA petición: el servidor solo
+                    // sirve italiano si se le pide italiano (regla cerrada).
+                    : `/api/v1/objectives/${objective.id}/practice/next?intento=${intento.current}` +
+                        (lengua ? `&lengua=${lengua}` : '') +
+                        (repaso ? '&repaso=1' : ''),
             );
 
             if (r.status === 401) return setEstado('sesion');
@@ -224,7 +235,7 @@ export default function Practicar({ objective, mastery: masteryInicial, lengua =
         } catch {
             setEstado('error');
         }
-    }, [objective.id, lengua, repaso]);
+    }, [objective.id, lengua, repaso, revision]);
 
     useEffect(() => {
         if (objective.has_items) {
@@ -262,7 +273,10 @@ export default function Practicar({ objective, mastery: masteryInicial, lengua =
 
         setEstado('enviando');
         try {
-            const r = await pedirJson(`/api/v1/practice/items/${item.item_id}/attempts`, {
+            const r = await pedirJson(revision
+                // Revisión: se corrige con el MISMO motor y no se guarda nada.
+                ? `/api/v1/revision/items/${item.item_id}/attempts`
+                : `/api/v1/practice/items/${item.item_id}/attempts`, {
                 method: 'POST',
                 body: JSON.stringify({
                     // Un choice manda la POSICIÓN elegida tal cual la sirvió el
@@ -305,8 +319,10 @@ export default function Practicar({ objective, mastery: masteryInicial, lengua =
             setResultado(veredicto);
             setEstado('respondido');
 
-            if (invitado) {
-                // El tanteo del invitado vive AQUÍ y solo aquí: al recargar
+            if (invitado || revision) {
+                // Ni el invitado ni la revisión tienen dominio que actualizar:
+                // los dos llevan su tanteo aquí y solo aquí. El tanteo del
+                // invitado vive AQUÍ y solo aquí: al recargar
                 // desaparece, que es exactamente lo que dice el aviso. Y el
                 // siguiente ejercicio necesita otro número de intento para no
                 // repetir los mismos números.
@@ -345,7 +361,7 @@ export default function Practicar({ objective, mastery: masteryInicial, lengua =
     // calculado aquí, que no finge ser un expediente. Fingir un «dominio» de
     // invitado obligaría además a duplicar la fórmula del MasteryTracker en el
     // cliente, y esa es exactamente la clase de copia que acaba divergiendo.
-    const porcentaje = invitado
+    const porcentaje = (invitado || revision)
         ? (tanteo.respondidos === 0 ? 0 : Math.round((tanteo.aciertos / tanteo.respondidos) * 100))
         : (mastery === null || mastery === undefined ? 0 : Math.round(mastery * 100));
 

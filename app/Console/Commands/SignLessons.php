@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\Resource;
 use App\Models\ResourceVersion;
 use App\Models\User;
+use App\Services\Revision\Firma;
 use Illuminate\Console\Command;
 
 /**
@@ -70,12 +71,11 @@ class SignLessons extends Command
             return self::SUCCESS;
         }
 
-        $pendientes->update([
-            'reviewed_at' => now(),
-            // Sin --docente queda NULL: nadie en concreto la firmó. Inventar una
-            // autoría sería peor que dejarla vacía (misma regla que el crosswalk).
-            'reviewed_by' => $docente?->id,
-        ]);
+        // La MISMA regla que `practica:firmar` y que la pantalla de revisión:
+        // qué escribe una firma lo dice `Firma::columnas`, en un solo sitio.
+        // Sin --docente queda `reviewed_by` NULL: inventar una autoría sería
+        // peor que dejarla vacía (misma regla que el crosswalk).
+        $pendientes->update(Firma::columnas($docente));
 
         $this->info(sprintf(
             '%d lección(es) firmadas%s%s. Ya se leen.',
