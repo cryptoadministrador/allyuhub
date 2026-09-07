@@ -538,9 +538,24 @@ tampoco lo obliga.
   clave): es la voz del GUION, contenido curricular, no la de un menor — al
   revés que la producción del alumno (PR 3). El demo va sin clips (texto).
 
-Operación (post-merge): `php artisan dialogos:sembrar` (nace sin firmar) y
-`php artisan dialogos:firmar --lengua=it`. El demo `Il primo giorno` (it, U1,
-A1.IO.1) es de la IA: **pendiente de que un profesor lo firme**.
+**Un clip que falta NO revienta la siembra** — la ÚNICA excepción a la regla del
+banco de lenguas, donde un clip ausente sí aborta. La diferencia es qué pasa sin
+el fichero: en un ítem de ESCUCHA no hay ejercicio (pregunta imposible: tiene
+que reventar); en un DIÁLOGO el audio es un añadido sobre un guion que se juega
+entero leyendo, y reventar obligaría a grabar antes de poder escribir. Así que
+la CLAVE se conserva siempre, la RUTA se rellena solo si el fichero está, y
+`dialogos:sembrar` AVISA de las que faltan. Re-sembrar tras grabar las engancha.
+
+Hay **tres guiones de U1**, uno por lengua, cada uno con el punto de su unidad
+dentro: `it` (essere, chiamarsi, presentar a un tercero), `fr` (la decisión
+**tu / vous** — el interlocutor es una profesora, así que `salut` es callejón —
+y la edad con `avoir`), `de` (**du / Sie**, el origen con `kommen aus` y no con
+`sein`, y **el verbo en segunda posición**). Los 19 clips pendientes están
+listados frase a frase en `docs/mision-lenguas/interlocutor-clips-pendientes.md`.
+
+Operación (post-merge): `php artisan dialogos:sembrar` (nacen sin firmar) y
+`php artisan dialogos:firmar --lengua=it|fr|de`. Los tres son de la IA:
+**pendientes de que un profesor de cada lengua los firme**.
 
 ## La revisión docente en pantalla (PR 5)
 
