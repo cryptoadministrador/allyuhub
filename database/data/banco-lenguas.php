@@ -10,7 +10,7 @@
  * FORMATO: entradas POR CLAVE. Cada tipo declara cómo se lee la suya en
  * `App\Services\Practice\Tipos\*::desdeBanco()`.
  *
- * ALCANCE ACTUAL: los CURSOS ENTEROS de ITALIANO, FRANCÉS y ALEMÁN A1, nueve unidades cada uno.
+ * ALCANCE ACTUAL: los CURSOS ENTEROS de ITALIANO, FRANCÉS, ALEMÁN y CHINO A1, nueve unidades cada uno.
  * Las unidades comparten esqueleto (los mismos «Puedo…» del MCER); lo que cambia
  * es el relleno lingüístico y el punto de oído de cada una.
  *
@@ -47,13 +47,23 @@
  *   U8 «Gestern» — el Perfekt con haben, el participio al final, el acento de compuestas.
  *   U9 «Ich verstehe nicht» — repaso, reparar la conversación, el proyecto final.
  *
- * Cada lengua cubre 10 de los 13 descriptores A1 con dos o más ítems cada uno. Los tres que
+ * Cada una de las cuatro lenguas cubre 10 de los 13 descriptores A1 con dos o más ítems cada uno. Los tres que
  * faltan —A1.CO.1, A1.CO.2 y A1.CO.3, comprensión oral— NO pueden tener ítems sin audio:
  * sus ejercicios de `escucha` y `dictado` están escritos en U1-audio-pendiente.md
  * y entran en cuanto el equipo grabe los clips. Declarado, no disimulado.
  *
- * El chino (zh) entra aquí con el mismo formato y el
- * mismo esqueleto de nueve unidades.
+ * CHINO (17 palabras por unidad, HSK 1; pinyin y tonos desde el primer día, los
+ * caracteres como pista aparte —cinco por unidad—; los `pares` a TRES columnas):
+ *   U1 «你好 Nǐ hǎo» — saludar, 是 y 叫, LOS CUATRO TONOS, leer el pinyin (x q zh).
+ *   U2 «我的家» — la familia, 有 / 没有, el medidor 个 y 口, la edad sin verbo, el sandhi del tercer tono.
+ *   U3 «我的一天» — la rutina, QUIÉN + CUÁNDO + 在 DÓNDE + VERBO, 在 frente a 是, la hora, 不 / 一.
+ *   U4 «我喜欢» — 喜欢, el adjetivo como verbo con 很, 也, zh ch sh frente a z c s.
+ *   U5 «在哪儿» — 在 + lugar, 哪儿, referencia + posición (学校旁边), 有 = hay, -n / -ng.
+ *   U6 «在饭馆» — 要, medidores 碗 / 杯, 多少钱 y 块, la ü tras j q x; letreros 出口 入口 男 女.
+ *   U7 «这个多少钱» — 这 / 那 + medidor, 太…了, el tiempo, tono neutro y erhua.
+ *   U8 «昨天» — 了 (acción terminada) y 没, la entonación de la frase.
+ *   U9 «我听不懂» — repaso, reparar la conversación, el proyecto final.
+ * El chino es la lengua que MÁS necesita audio (docs/mision-lenguas/zh-audio-pendiente.md).
  *
  * DOS REGLAS DE CONTENIDO que no son cosméticas y que conviene no perder:
  *
@@ -1865,6 +1875,644 @@ return [
                 ['tipo' => 'parrafo', 'texto' => ['es' => 'El proyecto final es una conversación de dos minutos con el interlocutor del curso, sobre lo que quieras de las ocho unidades. Vas a usar las siete frases de arriba al menos una vez. Si no te hacen falta, es que la conversación fue demasiado fácil.']],
 
                 ['tipo' => 'aviso', 'variante' => 'ojo', 'texto' => ['es' => 'Antes del proyecto, repasa las ocho cosas: ei / ie y el verbo segundo (U1), los tres géneros y las dos ch (U2), la -st de du y las vocales largas (U3), mögen / gern y los Umlaute (U4), es gibt einen (U5), möchte einen y la r final (U6), el adjetivo que no cambia y st- / sp- (U7), y habe … ge-…-t al final (U8). Si las tienes, tienes el A1.']],
+            ],
+        ],
+
+
+        // ================================================================
+        // ========================= CHINO · A1 ============================
+        // ================================================================
+        //
+        // El chino rompe la simetría de las otras tres lenguas y conviene
+        // decirlo aquí, donde vive el contenido:
+        //
+        //  - NO HAY ALFABETO. El alumno arranca con PINYIN (la escritura
+        //    latina oficial del chino) y los CUATRO TONOS desde el primer
+        //    día; los caracteres avanzan como una pista aparte y más lenta
+        //    (unos cinco por unidad, los del cuadro de ESQUELETO-9-UNIDADES).
+        //  - LO QUE SE ESCRIBE EN LOS `hueco` ES PINYIN CON TONOS. Se acepta
+        //    también el pinyin con números (ni3 hao3) —lo que escribe quien
+        //    no tiene el teclado configurado— y el carácter, para quien ya
+        //    lo sepa. El tono que falta es un error de «acento» para el
+        //    motor (`detalle: 'acento'`): en chino ese detalle se lee «tono».
+        //  - LOS `pares` LLEVAN TRES COLUMNAS: carácter (a), pinyin (b) y
+        //    significado (c). Emparejar carácter↔significado saltándose el
+        //    pinyin enseña a leer sin poder hablar.
+        //  - ~17 PALABRAS POR UNIDAD (HSK 1), no 30: cada palabra cuesta el
+        //    triple —sonido, tono y carácter—.
+        //  - SIN AUDIO NO SE PUEDE ENSEÑAR CHINO: mā má mǎ mà son cuatro
+        //    palabras. Las lecciones se escriben para que se puedan leer y
+        //    practicar SIN clip, pero los clips de cada unidad están en
+        //    docs/mision-lenguas/zh-audio-pendiente.md y son la primera
+        //    prioridad de grabación de las cuatro lenguas.
+        //  - Chino estándar (pǔtōnghuà), caracteres SIMPLIFICADOS, pinyin
+        //    según la norma oficial. Los nombres: Sofía (la alumna de
+        //    Quito, como en los otros cursos) y Lǐ Míng (李明), su compañero
+        //    de Pekín; la profesora es Wáng lǎoshī (王老师).
+
+        // ============ ZH U1 · A1.CO.2 · nǐ hǎo: saludar, los cuatro tonos y leer el pinyin ============
+        [
+            'lengua' => 'zh', 'descriptor' => 'A1.CO.2', 'slug' => 'ni-hao',
+            'titulo' => ['es' => '你好 Nǐ hǎo: saludar en chino (y por qué mā no es mà)'],
+            'resumen' => ['es' => 'Los saludos, y las dos cosas sin las que no hay chino: el pinyin, que es cómo se escribe el sonido, y los cuatro tonos, que son parte de la palabra.'],
+            'bloques' => [
+                ['tipo' => 'parrafo', 'texto' => ['es' => 'El chino no tiene alfabeto: cada palabra se escribe con uno o dos caracteres (你好). Para poder leer y escribir desde el primer día vas a usar el PINYIN, la escritura latina oficial del chino: 你好 se escribe nǐ hǎo. Los caracteres los irás aprendiendo aparte, unos pocos por unidad. El pinyin no es «chino fácil»: es la herramienta con la que los propios niños chinos aprenden a leer.']],
+
+                ['tipo' => 'aviso', 'variante' => 'ojo', 'texto' => ['es' => 'LOS TONOS SON PARTE DE LA PALABRA. La sílaba «ma» dicha con cuatro melodías distintas es cuatro palabras: mā (妈, mamá), má (麻, cáñamo), mǎ (马, caballo), mà (骂, regañar). Si dices «ma» sin tono no has dicho una palabra a medias: no has dicho ninguna. Por eso el tono se escribe siempre: la rayita sobre la vocal no es un adorno.']],
+
+                ['tipo' => 'lista', 'ordenada' => true, 'items' => [
+                    ['es' => 'Primer tono ā — alto y plano, como si cantaras una nota sostenida: mā, tā (él/ella), bā (ocho).'],
+                    ['es' => 'Segundo tono á — sube, como una pregunta en español («¿qué?»): má, rén (persona), shí (diez).'],
+                    ['es' => 'Tercer tono ǎ — baja y vuelve a subir, como un «hmm…» dubitativo: mǎ, nǐ (tú), hǎo (bien), wǒ (yo).'],
+                    ['es' => 'Cuarto tono à — cae de golpe, como una orden («¡no!»): mà, shì (ser), jiào (llamarse), sì (cuatro).'],
+                    ['es' => 'Y el tono neutro, sin marca: corto y suave, se apoya en la sílaba anterior: ma (吗, la partícula de pregunta), de (的).'],
+                ]],
+
+                ['tipo' => 'aviso', 'variante' => 'truco', 'texto' => ['es' => 'Con la mano: primer tono, la mano va recta; segundo, sube; tercero, baja y sube; cuarto, cae. Dilo moviendo la mano hasta que no haga falta. Y un descanso: cuando dos terceros tonos van seguidos, el primero se dice como segundo —nǐ hǎo suena «ní hǎo»—, pero se escribe nǐ hǎo. Lo verás con calma en la unidad 2.']],
+
+                ['tipo' => 'parrafo', 'texto' => ['es' => 'Los saludos y las fórmulas de la unidad. Fíjate en que cada sílaba lleva su tono.']],
+
+                ['tipo' => 'lista', 'ordenada' => false, 'items' => [
+                    ['es' => '你好 nǐ hǎo — hola (sirve con todos, a cualquier hora) · 您好 nín hǎo — hola (a un adulto: nín es el «usted»)'],
+                    ['es' => '老师好 lǎoshī hǎo — hola, profesor/a (así se saluda en clase) · 再见 zàijiàn — adiós'],
+                    ['es' => '谢谢 xièxie — gracias · 不客气 bú kèqi — de nada'],
+                    ['es' => '对不起 duìbuqǐ — perdón · 没关系 méi guānxi — no pasa nada'],
+                    ['es' => '请 qǐng — por favor (delante de lo que pides: 请坐 qǐng zuò, siéntate por favor)'],
+                    ['es' => '是 shì — sí (literalmente «es») · 不是 bú shì — no'],
+                ]],
+
+                ['tipo' => 'aviso', 'variante' => 'error-tipico', 'texto' => ['es' => 'Contestar «谢谢» con «请» porque se parece a decir «por favor / de nada» en otras lenguas. En chino a «gracias» se contesta «不客气 bú kèqi». Y a «对不起 duìbuqǐ» (perdón) se contesta «没关系 méi guānxi». Son parejas fijas: apréndelas de dos en dos.']],
+
+                ['tipo' => 'parrafo', 'texto' => ['es' => 'Y lo segundo sin lo que no hay chino: LEER EL PINYIN. Es latino pero no se lee a la española. Las letras que engañan, y solo esas:']],
+
+                ['tipo' => 'lista', 'ordenada' => false, 'items' => [
+                    ['es' => 'x → como una «sh» muy suave, con la lengua plana: xièxie (sie-sie, con sonrisa). NUNCA «ks».'],
+                    ['es' => 'q → «ch» suave, de la misma familia que la x: qǐng (ching). NUNCA «k».'],
+                    ['es' => 'zh → «ch» con la lengua hacia atrás, y sin aire: Zhōngguó (China). ch → la misma, pero con aire (como si soplaras). sh → «sh» con la lengua atrás: shì.'],
+                    ['es' => 'z → «ts» sin aire: zàijiàn (tsai-chien). c → «ts» con aire: cèsuǒ (baño). NUNCA «z» ni «c» a la española.'],
+                    ['es' => 'r → entre la r y la «y», con la lengua atrás y sin vibrar: rén (persona). Nada que ver con la rr.'],
+                    ['es' => 'i después de zh, ch, sh, r, z, c, s → casi no suena, es un zumbido: shì suena «shr», sì suena «sz». Ojo: en nǐ y en xièxie la i sí es una i.'],
+                    ['es' => 'e sola → una «e» oscura, hacia la «o»: rén, hěn (muy). ü → como la u francesa o alemana, con los labios en «u» y diciendo «i»: nǚ (mujer), lǜ (verde).'],
+                ]],
+
+                ['tipo' => 'aviso', 'variante' => 'truco', 'texto' => ['es' => 'Las tres letras que un hispanohablante siempre lee mal son x, q y zh. Si consigues decir bien «xièxie», «qǐng» y «Zhōngguó», tienes resuelta la mitad del pinyin de todo el año. Las demás casi se leen solas.']],
+
+                ['tipo' => 'aviso', 'variante' => 'error-tipico', 'texto' => ['es' => 'Escribir el pinyin sin tonos porque «se entiende». En este curso, un hueco escrito sin tonos está mal: el motor te dirá que es un error de acento —que en chino significa «te falta el tono»—, y no que la palabra no es. Si tu teclado no saca las rayitas, escribe el número del tono al final de la sílaba: ni3 hao3. Vale igual.']],
+            ],
+        ],
+
+        // ============ ZH U1 · A1.IO.3 · presentarse: 我叫…, 是, y de dónde eres ============
+        [
+            'lengua' => 'zh', 'descriptor' => 'A1.IO.3', 'slug' => 'wo-jiao',
+            'titulo' => ['es' => '我叫 Sofía · Wǒ jiào Sofía'],
+            'resumen' => ['es' => 'Decir tu nombre, de dónde eres y presentar a alguien, con los dos verbos de la unidad: 叫 jiào (llamarse) y 是 shì (ser). Y la primera buena noticia: los verbos chinos no se conjugan.'],
+            'bloques' => [
+                ['tipo' => 'parrafo', 'texto' => ['es' => 'Para presentarte necesitas dos verbos y cinco pronombres. Y la noticia que te va a ahorrar la mitad del trabajo del año: EL VERBO CHINO NO CAMBIA NUNCA. 是 shì es «soy», «eres», «es», «somos»… todo. Lo que dice quién es es el pronombre, y el pronombre no se puede callar.']],
+
+                ['tipo' => 'lista', 'ordenada' => false, 'items' => [
+                    ['es' => '我 wǒ — yo · 你 nǐ — tú · 您 nín — usted'],
+                    ['es' => '他 tā — él · 她 tā — ella (suenan igual: solo el carácter los distingue) · 我们 wǒmen — nosotros'],
+                    ['es' => '是 shì — ser · 叫 jiào — llamarse · 不 bù — no (delante del verbo)'],
+                ]],
+
+                ['tipo' => 'ejemplo', 'titulo' => ['es' => 'Presentarse y preguntar el nombre'], 'pasos' => [
+                    ['texto' => ['es' => '— 你叫什么名字？ Nǐ jiào shénme míngzi?  (¿Cómo te llamas? — literalmente «tú llamarse qué nombre»)']],
+                    ['texto' => ['es' => '— 我叫 Sofía。 Wǒ jiào Sofía.  (Me llamo Sofía.)']],
+                    ['texto' => ['es' => 'De otra persona: 他叫李明。 Tā jiào Lǐ Míng. (Él se llama Li Ming.) Fíjate: el verbo es el mismo, 叫. Solo cambia el pronombre.']],
+                    ['texto' => ['es' => 'A un adulto: 您叫什么名字？ Nín jiào shénme míngzi? — y con 您 se contesta igual, pero ya has sido educado.']],
+                ]],
+
+                ['tipo' => 'aviso', 'variante' => 'ojo', 'texto' => ['es' => 'LA PREGUNTA NO CAMBIA EL ORDEN. En español giramos («¿cómo te llamas?»); en chino la pregunta tiene el mismo orden que la respuesta y la palabra interrogativa ocupa el sitio de lo que preguntas: 你叫【什么】名字 → 我叫【Sofía】. La palabra 什么 shénme (qué) está exactamente donde va a estar tu nombre. Eso vale para todas las preguntas del curso.']],
+
+                ['tipo' => 'ejemplo', 'titulo' => ['es' => 'Decir de dónde eres'], 'pasos' => [
+                    ['texto' => ['es' => '— 你是哪国人？ Nǐ shì nǎ guó rén?  (¿De qué país eres? — «tú ser qué país persona»)']],
+                    ['texto' => ['es' => '— 我是厄瓜多尔人。 Wǒ shì Èguāduō’ěr rén.  (Soy ecuatoriana.)']],
+                    ['texto' => ['es' => '— 他是中国人。 Tā shì Zhōngguó rén.  (Él es chino.)']],
+                    ['texto' => ['es' => 'La receta es siempre la misma: PAÍS + 人 rén (persona). 中国 Zhōngguó (China) + 人 = chino. 厄瓜多尔 Èguāduō’ěr (Ecuador) + 人 = ecuatoriano. No hay masculino ni femenino ni plural: 人 sirve para todos.']],
+                ]],
+
+                ['tipo' => 'aviso', 'variante' => 'truco', 'texto' => ['es' => 'Para preguntar «¿y tú?» basta con 你呢？ Nǐ ne? — el pronombre y la partícula 呢. Y para convertir cualquier frase en pregunta de sí / no, añade 吗 ma al final: 你是中国人吗？ Nǐ shì Zhōngguó rén ma? (¿Eres chino?). Se contesta 是 shì (sí) o 不是 bú shì (no).']],
+
+                ['tipo' => 'aviso', 'variante' => 'error-tipico', 'texto' => ['es' => 'Poner 是 shì delante de un adjetivo: «我是好» para decir «estoy bien». En chino el adjetivo YA es el verbo: 我很好 wǒ hěn hǎo (estoy bien). 是 solo une dos nombres: 我是学生 (soy estudiante). Lo trabajamos en la U4; por ahora, 是 solo con nombres.']],
+
+                ['tipo' => 'parrafo', 'texto' => ['es' => 'Los cinco caracteres de la unidad. Míralos, cuenta sus trazos, y escríbelos de arriba abajo y de izquierda a derecha; son los que más vas a ver en el año.']],
+
+                ['tipo' => 'lista', 'ordenada' => false, 'items' => [
+                    ['es' => '我 wǒ — yo (7 trazos) · 你 nǐ — tú (7)'],
+                    ['es' => '好 hǎo — bien (6): una mujer 女 y un niño 子 juntos, «lo bueno»'],
+                    ['es' => '是 shì — ser (9) · 叫 jiào — llamarse (5): a la izquierda, la boca 口'],
+                ]],
+
+                ['tipo' => 'ejemplo', 'titulo' => ['es' => '第一天 · Dì yī tiān · El primer día'], 'pasos' => [
+                    ['texto' => ['es' => '李明 — 你好！我叫李明。你叫什么名字？ Nǐ hǎo! Wǒ jiào Lǐ Míng. Nǐ jiào shénme míngzi?']],
+                    ['texto' => ['es' => 'Sofía — 你好，李明。我叫 Sofía。 Nǐ hǎo, Lǐ Míng. Wǒ jiào Sofía.']],
+                    ['texto' => ['es' => '李明 — 你是哪国人？ Nǐ shì nǎ guó rén?']],
+                    ['texto' => ['es' => 'Sofía — 我是厄瓜多尔人。你呢？ Wǒ shì Èguāduō’ěr rén. Nǐ ne?']],
+                    ['texto' => ['es' => '李明 — 我是中国人，北京人。你是学生吗？ Wǒ shì Zhōngguó rén, Běijīng rén. Nǐ shì xuésheng ma?']],
+                    ['texto' => ['es' => 'Sofía — 是。对不起……她是谁？ Shì. Duìbuqǐ… tā shì shéi?']],
+                    ['texto' => ['es' => '李明 — 她是王老师。 Tā shì Wáng lǎoshī.']],
+                    ['texto' => ['es' => 'Sofía — 谢谢，李明。再见！ Xièxie, Lǐ Míng. Zàijiàn!']],
+                    ['texto' => ['es' => '李明 — 再见！ Zàijiàn!']],
+                ]],
+
+                ['tipo' => 'aviso', 'variante' => 'ojo', 'texto' => ['es' => 'En chino el APELLIDO va primero: 李明 es «Li» (apellido) + «Ming» (nombre), y 王老师 es «profesora Wang»: el título va DETRÁS del apellido, al revés que en español. A un profesor nunca se le llama por el nombre de pila: 王老师, siempre.']],
+            ],
+        ],
+
+        // ============ ZH U2 · A1.PO.1 · la familia, 有, el medidor 个 y el sandhi del tercer tono ============
+        [
+            'lengua' => 'zh', 'descriptor' => 'A1.PO.1', 'slug' => 'wo-de-jia',
+            'titulo' => ['es' => '我的家 · Wǒ de jiā'],
+            'resumen' => ['es' => 'Hablar de tu familia, contar cuántos sois y decir la edad. Con eso llegan 有 yǒu (tener), los números, el medidor 个 y la regla del tercer tono.'],
+            'bloques' => [
+                ['tipo' => 'parrafo', 'texto' => ['es' => 'Para hablar de tu familia necesitas los números del uno al diez, el verbo 有 yǒu (tener) y una pieza que el español no tiene: el MEDIDOR. En chino no se dice «tres hermanos» sino «tres [unidades de] hermanos»: 三个哥哥 sān gè gēge. Por ahora un solo medidor, 个 gè, que sirve para personas y para casi todo.']],
+
+                ['tipo' => 'lista', 'ordenada' => false, 'items' => [
+                    ['es' => '一 yī 1 · 二 èr 2 · 三 sān 3 · 四 sì 4 · 五 wǔ 5 · 六 liù 6 · 七 qī 7 · 八 bā 8 · 九 jiǔ 9 · 十 shí 10'],
+                    ['es' => '十一 shíyī 11 (diez-uno) · 十五 shíwǔ 15 · 二十 èrshí 20 (dos-diez) · 二十三 èrshísān 23. No hay nada que memorizar del 11 al 99: se componen.'],
+                ]],
+
+                ['tipo' => 'lista', 'ordenada' => false, 'items' => [
+                    ['es' => '家 jiā — familia, casa · 爸爸 bàba — papá · 妈妈 māma — mamá'],
+                    ['es' => '哥哥 gēge — hermano mayor · 弟弟 dìdi — hermano menor · 姐姐 jiějie — hermana mayor · 妹妹 mèimei — hermana menor'],
+                    ['es' => '有 yǒu — tener · 没有 méiyǒu — no tener (有 NUNCA se niega con 不) · 个 gè — el medidor · 口 kǒu — el medidor de miembros de la familia'],
+                    ['es' => '几 jǐ — cuántos (hasta diez) · 岁 suì — años de edad · 的 de — «de» (posesión): 我的 wǒ de, mi · 朋友 péngyou — amigo · 狗 gǒu — perro'],
+                ]],
+
+                ['tipo' => 'aviso', 'variante' => 'ojo', 'texto' => ['es' => 'En chino no existe «hermano» a secas: hay que decir si es MAYOR o MENOR que tú. 哥哥 gēge (mayor) o 弟弟 dìdi (menor); 姐姐 jiějie o 妹妹 mèimei. Cuando presentes a tu familia, la primera decisión no es el nombre: es quién nació antes.']],
+
+                ['tipo' => 'ejemplo', 'titulo' => ['es' => 'Contar la familia'], 'pasos' => [
+                    ['texto' => ['es' => '— 你家有几口人？ Nǐ jiā yǒu jǐ kǒu rén?  (¿Cuántos sois en tu familia? — «tu familia tener cuántas bocas persona»)']],
+                    ['texto' => ['es' => '— 我家有四口人：爸爸、妈妈、姐姐和我。 Wǒ jiā yǒu sì kǒu rén: bàba, māma, jiějie hé wǒ.  (Somos cuatro: papá, mamá, mi hermana mayor y yo.)']],
+                    ['texto' => ['es' => '— 你有哥哥吗？ Nǐ yǒu gēge ma?  (¿Tienes hermano mayor?)']],
+                    ['texto' => ['es' => '— 没有。我有一个姐姐。 Méiyǒu. Wǒ yǒu yí gè jiějie.  (No. Tengo una hermana mayor.)']],
+                    ['texto' => ['es' => 'Fíjate: los miembros de la familia se cuentan con 口 kǒu («bocas»), y todo lo demás con 个 gè. Y para negar 有 se usa 没 méi, no 不.']],
+                ]],
+
+                ['tipo' => 'ejemplo', 'titulo' => ['es' => 'La edad'], 'pasos' => [
+                    ['texto' => ['es' => '— 你多大？ Nǐ duō dà?  (¿Cuántos años tienes? — «tú cuánto grande»)']],
+                    ['texto' => ['es' => '— 我十五岁。 Wǒ shíwǔ suì.  (Tengo quince años.)']],
+                    ['texto' => ['es' => 'SIN VERBO. Ni 是 ni 有: en chino la edad se dice pronombre + número + 岁. «Yo quince años.» Poner 是 (我是十五岁) es el error más repetido de la unidad.']],
+                    ['texto' => ['es' => '— 你妹妹几岁？ Nǐ mèimei jǐ suì? — a un niño pequeño se le pregunta con 几 (cuántos, hasta diez); a alguien de tu edad, con 多大.']],
+                ]],
+
+                ['tipo' => 'aviso', 'variante' => 'error-tipico', 'texto' => ['es' => 'Olvidar el medidor: «我有一姐姐». Entre el número y la cosa SIEMPRE va 个 (o 口 con la familia): 我有一个姐姐. Piensa que el número en chino no puede tocar el nombre directamente; necesita esa pieza en medio.']],
+
+                ['tipo' => 'parrafo', 'texto' => ['es' => 'La regla de pronunciación de la unidad: EL SANDHI DEL TERCER TONO. Cuando dos sílabas de tercer tono van seguidas, la primera se pronuncia como segundo tono. Se ESCRIBE igual —nǐ hǎo—, pero se DICE «ní hǎo». Es automático en la boca de un chino y hay que hacerlo automático en la tuya.']],
+
+                ['tipo' => 'lista', 'ordenada' => false, 'items' => [
+                    ['es' => '你好 nǐ hǎo → se dice «ní hǎo» · 我有 wǒ yǒu → «wó yǒu» · 很好 hěn hǎo → «hén hǎo» · 五个 wǔ gè → no cambia (个 es cuarto tono / neutro).'],
+                    ['es' => 'Y dos cambios más que sí se escriben: 不 bù pasa a bú delante de un cuarto tono (不是 bú shì, 不客气 bú kèqi), y 一 yī pasa a yí delante de cuarto tono (一个 yí gè) y a yì delante de los demás (一天 yì tiān). Contando, sigue siendo yī.'],
+                ]],
+
+                ['tipo' => 'aviso', 'variante' => 'truco', 'texto' => ['es' => 'Un tercer tono entero (baja y sube) casi solo se oye cuando la palabra va al final. En medio de la frase se queda en la mitad de abajo, corto. Si dices los terceros tonos «a medias», sonarás más natural que si los cantas enteros.']],
+
+                ['tipo' => 'lista', 'ordenada' => false, 'items' => [
+                    ['es' => 'Caracteres de la unidad: 有 yǒu (tener) · 个 gè (medidor) · 人 rén (persona: dos piernas andando) · 大 dà (grande: una persona con los brazos abiertos) · 小 xiǎo (pequeño)'],
+                ]],
+            ],
+        ],
+
+        // ============ ZH U2 · A1.CE.2 · leer un mensaje breve ============
+        [
+            'lengua' => 'zh', 'descriptor' => 'A1.CE.2', 'slug' => 'yi-tiao-xinxi',
+            'titulo' => ['es' => '一条信息 · Leer un mensaje corto'],
+            'resumen' => ['es' => 'Entender un mensaje de WeChat sin conocer todos los caracteres: apoyarse en el pinyin, en los nombres y en las palabras que ya tienes.'],
+            'bloques' => [
+                ['tipo' => 'parrafo', 'texto' => ['es' => 'Un mensaje real llega en caracteres, sin pinyin. Con quince caracteres no puedes leerlo entero, y no hace falta: se lee buscando lo que SÍ conoces —los números, 我 / 你 / 他, 是, 有, los nombres— y dejando que el resto se apoye en eso. En este curso los mensajes vienen con el pinyin debajo para que puedas comprobar; en la vida real, primero los caracteres.']],
+
+                ['tipo' => 'ejemplo', 'titulo' => ['es' => 'El mensaje de Lǐ Míng'], 'pasos' => [
+                    ['texto' => ['es' => 'Sofía，你好！我是李明。我家有五口人：爸爸、妈妈、一个哥哥、一个妹妹和我。我哥哥十八岁，我妹妹八岁。我有一个狗，叫小白。你家有几口人？再见！']],
+                    ['texto' => ['es' => 'Sofía, nǐ hǎo! Wǒ shì Lǐ Míng. Wǒ jiā yǒu wǔ kǒu rén: bàba, māma, yí gè gēge, yí gè mèimei hé wǒ. Wǒ gēge shíbā suì, wǒ mèimei bā suì. Wǒ yǒu yí gè gǒu, jiào Xiǎo Bái. Nǐ jiā yǒu jǐ kǒu rén? Zàijiàn!']],
+                    ['texto' => ['es' => 'Qué sabes seguro: 五口人 (cinco personas), 一个哥哥 (un hermano mayor), 十八岁 (dieciocho años), 八岁 (ocho años), 叫小白 (se llama Xiǎo Bái —«Blanquito»—). Con eso el mensaje ya está entendido.']],
+                ]],
+
+                ['tipo' => 'aviso', 'variante' => 'truco', 'texto' => ['es' => 'Las tres señales que más te ayudan a leer: la coma china 、, que separa los elementos de una lista (爸爸、妈妈、…); los NÚMEROS, que casi siempre llevan detrás un medidor y una cosa (五口人, 一个狗); y 吗 / 呢 / ？ al final, que te dicen que eso era una pregunta y hay que contestarla.']],
+
+                ['tipo' => 'aviso', 'variante' => 'error-tipico', 'texto' => ['es' => 'Leer 我哥哥 como «yo hermano» y perderse. Cuando un pronombre va pegado a un miembro de la familia, es posesivo sin 的: 我哥哥 = mi hermano mayor, 你妈妈 = tu madre. El 的 se puede callar con la familia y con la gente cercana.']],
+            ],
+        ],
+
+        // ============ ZH U3 · A1.PO.2 · mi día: la rutina, 在 frente a 是, y los cambios de 不 y 一 ============
+        [
+            'lengua' => 'zh', 'descriptor' => 'A1.PO.2', 'slug' => 'wo-de-yi-tian',
+            'titulo' => ['es' => '我的一天 · Wǒ de yì tiān'],
+            'resumen' => ['es' => 'Contar tu día a día: a qué hora te levantas, qué haces, dónde estás. La rutina trae el orden de la frase china —cuándo y dónde van ANTES del verbo— y el verbo 在 zài (estar en).'],
+            'bloques' => [
+                ['tipo' => 'parrafo', 'texto' => ['es' => 'El verbo no se conjuga, así que contar tu rutina es cuestión de orden. Y el orden del chino tiene una regla que el español no tiene: EL TIEMPO Y EL LUGAR VAN ANTES DEL VERBO. «Yo a-las-siete en-casa como» — 我七点在家吃饭. Nunca «como en casa a las siete».']],
+
+                ['tipo' => 'lista', 'ordenada' => false, 'items' => [
+                    ['es' => '起床 qǐchuáng — levantarse · 吃饭 chī fàn — comer (comer-arroz) · 早饭 zǎofàn — desayuno · 午饭 wǔfàn — almuerzo · 晚饭 wǎnfàn — cena'],
+                    ['es' => '上课 shàngkè — tener clase · 学习 xuéxí — estudiar · 看书 kàn shū — leer (mirar-libro) · 看电视 kàn diànshì — ver la tele · 睡觉 shuìjiào — dormir'],
+                    ['es' => '在 zài — estar en · 家 jiā — casa · 学校 xuéxiào — escuela · 现在 xiànzài — ahora · 每天 měitiān — cada día · 回家 huí jiā — volver a casa'],
+                ]],
+
+                ['tipo' => 'ejemplo', 'titulo' => ['es' => 'El día de Sofía'], 'pasos' => [
+                    ['texto' => ['es' => '我每天六点起床。 Wǒ měitiān liù diǎn qǐchuáng.  (Me levanto cada día a las seis.)']],
+                    ['texto' => ['es' => '我七点吃早饭。 Wǒ qī diǎn chī zǎofàn.  (Desayuno a las siete.)']],
+                    ['texto' => ['es' => '我上午在学校上课。 Wǒ shàngwǔ zài xuéxiào shàngkè.  (Por la mañana tengo clase en la escuela.)']],
+                    ['texto' => ['es' => '我下午三点回家。晚上我看书，十点睡觉。 Wǒ xiàwǔ sān diǎn huí jiā. Wǎnshang wǒ kàn shū, shí diǎn shuìjiào.']],
+                    ['texto' => ['es' => 'Mira el esqueleto de cada frase: QUIÉN + CUÁNDO + (在 DÓNDE) + VERBO. Si respetas ese orden, cualquier frase de rutina te sale bien.']],
+                ]],
+
+                ['tipo' => 'aviso', 'variante' => 'ojo', 'texto' => ['es' => '在 zài y 是 shì son dos verbos distintos y el español los junta en «estar / ser». 是 dice QUÉ es algo (我是学生, soy estudiante). 在 dice DÓNDE está (我在学校, estoy en la escuela). Nunca 我是在学校. Si la respuesta a la pregunta es un lugar, el verbo es 在.']],
+
+                ['tipo' => 'aviso', 'variante' => 'error-tipico', 'texto' => ['es' => 'Poner la hora al final, como en español: «我起床六点». La hora va ANTES del verbo: 我六点起床. Cuando escribas una frase con hora, colócala justo después del sujeto y no la muevas.']],
+
+                ['tipo' => 'parrafo', 'texto' => ['es' => 'La regla de pronunciación de la unidad son los dos cambios de tono que SÍ se escriben, los de 不 bù y 一 yī. En la U2 los viste de pasada; aquí los vas a usar en cada frase.']],
+
+                ['tipo' => 'lista', 'ordenada' => false, 'items' => [
+                    ['es' => '不 bù → bú delante de cuarto tono: 不是 bú shì, 不去 bú qù, 不看 bú kàn. Delante de los otros tonos sigue bù: 不吃 bù chī, 不学 bù xué, 不好 bù hǎo.'],
+                    ['es' => '一 yī → yí delante de cuarto tono: 一个 yí gè, 一半 yí bàn. → yì delante de primero, segundo y tercero: 一天 yì tiān, 一年 yì nián, 一点 yì diǎn. Solo, o contando (一、二、三), sigue siendo yī.'],
+                ]],
+
+                ['tipo' => 'aviso', 'variante' => 'truco', 'texto' => ['es' => 'Ambos cambian por la misma razón: dos cuartos tonos seguidos (bù shì) son difíciles de decir, y la lengua pone el primero como segundo. No es una regla arbitraria: es la boca ahorrando esfuerzo. Dilo rápido diez veces y notarás que sale solo.']],
+
+                ['tipo' => 'lista', 'ordenada' => false, 'items' => [
+                    ['es' => 'Caracteres de la unidad: 在 zài (estar en) · 家 jiā (casa: un cerdo 豕 bajo un techo 宀) · 上 shàng (arriba, subir) · 下 xià (abajo, bajar) · 中 zhōng (centro: el de 中国, el «país del centro»)'],
+                ]],
+            ],
+        ],
+
+        // ============ ZH U3 · A1.IO.2 · la hora ============
+        [
+            'lengua' => 'zh', 'descriptor' => 'A1.IO.2', 'slug' => 'ji-dian',
+            'titulo' => ['es' => '几点？ · Jǐ diǎn? · ¿Qué hora es?'],
+            'resumen' => ['es' => 'Preguntar y decir la hora. Es la parte más regular del chino: número + 点 diǎn, y ya está.'],
+            'bloques' => [
+                ['tipo' => 'parrafo', 'texto' => ['es' => 'La hora en chino es la recompensa por haber aprendido los números: se dice el número y 点 diǎn («punto»). Sin artículo, sin «son las», sin plural. 三点 sān diǎn: las tres.']],
+
+                ['tipo' => 'ejemplo', 'titulo' => ['es' => 'Preguntar y decir la hora'], 'pasos' => [
+                    ['texto' => ['es' => '— 现在几点？ Xiànzài jǐ diǎn?  (¿Qué hora es? — «ahora cuántos puntos»)']],
+                    ['texto' => ['es' => '— 现在三点。 Xiànzài sān diǎn.  (Son las tres.)']],
+                    ['texto' => ['es' => '— 三点半。 Sān diǎn bàn.  (Las tres y media: 半 bàn = mitad.)']],
+                    ['texto' => ['es' => '— 三点十分。 Sān diǎn shí fēn.  (Las tres y diez: 分 fēn = minuto.)']],
+                    ['texto' => ['es' => '— 两点。 Liǎng diǎn.  (Las dos.) ← la única trampa: con 点 y con 个 el «dos» es 两 liǎng, no 二 èr.']],
+                ]],
+
+                ['tipo' => 'lista', 'ordenada' => false, 'items' => [
+                    ['es' => '点 diǎn — hora (en punto) · 半 bàn — y media · 分 fēn — minuto · 两 liǎng — dos (delante de medidor)'],
+                    ['es' => '早上 zǎoshang — por la mañana (temprano) · 上午 shàngwǔ — por la mañana · 中午 zhōngwǔ — mediodía · 下午 xiàwǔ — por la tarde · 晚上 wǎnshang — por la noche'],
+                    ['es' => '几点 jǐ diǎn — a qué hora / qué hora · 什么时候 shénme shíhou — cuándo'],
+                ]],
+
+                ['tipo' => 'aviso', 'variante' => 'ojo', 'texto' => ['es' => 'El chino no usa las 13, las 14, las 20 horas. Dice la parte del día y después la hora de 1 a 12: 下午三点 xiàwǔ sān diǎn (las tres de la tarde), 晚上八点 wǎnshang bā diǎn (las ocho de la noche). Y el orden es siempre de lo grande a lo pequeño: parte del día → hora → minutos. Igual que la fecha, que verás más adelante: año → mes → día.']],
+
+                ['tipo' => 'aviso', 'variante' => 'error-tipico', 'texto' => ['es' => '«二点» para decir las dos. Es 两点 liǎng diǎn. Cuando cuentas (一、二、三) es 二; cuando dices «dos cosas» o «las dos» es 两. Es la única excepción de todo el sistema numérico, y aparece a diario.']],
+
+                ['tipo' => 'aviso', 'variante' => 'truco', 'texto' => ['es' => 'Para preguntar a qué hora hace alguien algo, pon 几点 donde iría la hora: 你几点起床？ Nǐ jǐ diǎn qǐchuáng? (¿A qué hora te levantas?) → 我六点起床. La misma regla de la U1: la palabra interrogativa ocupa el sitio de la respuesta.']],
+            ],
+        ],
+
+
+        // ============ ZH U4 · A1.PO.2 · lo que me gusta: 喜欢, el adjetivo con 很, y zh ch sh frente a z c s ============
+        [
+            'lengua' => 'zh', 'descriptor' => 'A1.PO.2', 'slug' => 'wo-xihuan',
+            'titulo' => ['es' => '我喜欢 · Wǒ xǐhuan'],
+            'resumen' => ['es' => 'Decir lo que te gusta y lo que no, y describir con adjetivos. Descubres que en chino el adjetivo es un verbo, y afinas el oído con las consonantes que más se confunden.'],
+            'bloques' => [
+                ['tipo' => 'parrafo', 'texto' => ['es' => 'Para hablar de gustos hay un verbo, 喜欢 xǐhuan, y funciona como cualquier otro: 我喜欢音乐 wǒ xǐhuan yīnyuè (me gusta la música). Sin «me», sin «a mí»: el que gusta es el sujeto. Y detrás puede ir una cosa o un verbo: 我喜欢看书 (me gusta leer).']],
+
+                ['tipo' => 'lista', 'ordenada' => false, 'items' => [
+                    ['es' => '喜欢 xǐhuan — gustar · 不喜欢 bù xǐhuan — no gustar · 也 yě — también · 都 dōu — todos, ambos'],
+                    ['es' => '音乐 yīnyuè — música · 电影 diànyǐng — película, cine · 足球 zúqiú — fútbol · 中文 Zhōngwén — chino (la lengua) · 水果 shuǐguǒ — fruta · 苹果 píngguǒ — manzana · 茶 chá — té · 咖啡 kāfēi — café · 猫 māo — gato'],
+                    ['es' => '很 hěn — muy (y la pieza que une sujeto y adjetivo) · 好 hǎo — bueno · 好吃 hǎochī — rico (de comer) · 好看 hǎokàn — bonito · 大 dà — grande · 小 xiǎo — pequeño · 太…了 tài… le — demasiado'],
+                ]],
+
+                ['tipo' => 'ejemplo', 'titulo' => ['es' => 'Gustos'], 'pasos' => [
+                    ['texto' => ['es' => '— 你喜欢什么？ Nǐ xǐhuan shénme?  (¿Qué te gusta?)']],
+                    ['texto' => ['es' => '— 我喜欢音乐和足球。 Wǒ xǐhuan yīnyuè hé zúqiú.  (Me gustan la música y el fútbol.)']],
+                    ['texto' => ['es' => '— 你喜欢咖啡吗？ Nǐ xǐhuan kāfēi ma?  — 不喜欢，我喜欢茶。 Bù xǐhuan, wǒ xǐhuan chá.']],
+                    ['texto' => ['es' => '— 我也喜欢茶。 Wǒ yě xǐhuan chá.  (A mí también me gusta el té.) ← 也 va SIEMPRE entre el sujeto y el verbo, nunca al final.']],
+                ]],
+
+                ['tipo' => 'aviso', 'variante' => 'ojo', 'texto' => ['es' => 'EL ADJETIVO CHINO ES UN VERBO. Para decir «el té está rico» no hace falta 是: 茶很好喝 chá hěn hǎohē. El adjetivo lleva el trabajo del verbo, y delante casi siempre va 很 hěn, que aquí no significa «muy»: solo rellena el hueco. Sin 很, «茶好喝» suena a comparación («el té sí, lo otro no»). Regla práctica de A1: sujeto + 很 + adjetivo, siempre.']],
+
+                ['tipo' => 'aviso', 'variante' => 'error-tipico', 'texto' => ['es' => '«我是很高兴» para decir «estoy contento». Sobra el 是: 我很高兴 wǒ hěn gāoxìng. 是 solo va entre dos nombres (我是学生). Delante de un adjetivo, 是 está mal en el 99 % de las frases de A1.']],
+
+                ['tipo' => 'parrafo', 'texto' => ['es' => 'La regla de pronunciación de la unidad es la que más separa a quien suena a chino de quien no: dos familias de consonantes que un hispanohablante oye iguales.']],
+
+                ['tipo' => 'lista', 'ordenada' => false, 'items' => [
+                    ['es' => 'z c s — con la lengua PLANA, detrás de los dientes: zài (en), cài (plato), sān (tres). z suena «ts», c suena «ts» con aire, s es s.'],
+                    ['es' => 'zh ch sh — con la punta de la lengua CURVADA HACIA ATRÁS, contra el paladar: Zhōngguó (China), chī (comer), shì (ser). Si pones la lengua atrás y dices «ts», te sale zh.'],
+                    ['es' => 'Parejas para practicar: zài / zhài · cài / chài · sān / shān (montaña) · sì (cuatro) / shì (ser) · zì (carácter) / zhì.'],
+                ]],
+
+                ['tipo' => 'aviso', 'variante' => 'truco', 'texto' => ['es' => 'Un truco físico: para zh ch sh, empieza por poner la lengua como si fueras a decir la «r» inglesa de «red» y sin moverla di «ts», «ch», «sh». Para z c s, apoya la punta de la lengua en los dientes de abajo. Diez repeticiones de sì / shì y el oído empieza a separarlas.']],
+
+                ['tipo' => 'lista', 'ordenada' => false, 'items' => [
+                    ['es' => 'Caracteres de la unidad: 喜 xǐ · 欢 huān (juntos, 喜欢) · 不 bù (no) · 很 hěn (muy) · 天 tiān (día, cielo: una persona 大 con el cielo encima)'],
+                ]],
+            ],
+        ],
+
+        // ============ ZH U4 · A1.EE.1 · escribir una nota corta ============
+        [
+            'lengua' => 'zh', 'descriptor' => 'A1.EE.1', 'slug' => 'xie-yi-zhang-tiaozi',
+            'titulo' => ['es' => '写一张条子 · Escribir una nota corta'],
+            'resumen' => ['es' => 'Una nota de tres frases: a quién, qué, quién la escribe. En pinyin si hace falta; en caracteres los que ya tienes.'],
+            'bloques' => [
+                ['tipo' => 'parrafo', 'texto' => ['es' => 'Una nota corta en chino tiene la misma forma que en español: a quién va, qué dices, quién la firma. La diferencia es que puedes escribirla en pinyin. En este curso una nota en pinyin con los tonos bien puestos vale; una nota en caracteres con los tonos mal aprendidos, no.']],
+
+                ['tipo' => 'ejemplo', 'titulo' => ['es' => 'La nota de Sofía'], 'pasos' => [
+                    ['texto' => ['es' => '李明：你好！我今天下午三点在家。你来吗？ Sofía']],
+                    ['texto' => ['es' => 'Lǐ Míng: Nǐ hǎo! Wǒ jīntiān xiàwǔ sān diǎn zài jiā. Nǐ lái ma? Sofía']],
+                    ['texto' => ['es' => 'Tres piezas: el nombre con dos puntos (：) para dirigirte a alguien; la información con el orden de siempre (quién + cuándo + 在 dónde); la pregunta con 吗; y la firma.']],
+                    ['texto' => ['es' => 'Otra: 妈妈：我在学校。我六点回家。谢谢！ Māma: Wǒ zài xuéxiào. Wǒ liù diǎn huí jiā. Xièxie!']],
+                ]],
+
+                ['tipo' => 'lista', 'ordenada' => false, 'items' => [
+                    ['es' => 'Signos chinos: el punto es un circulito 。; la coma es ，; los dos puntos ：; la coma de lista es 、. Ocupan el ancho de un carácter y no llevan espacio detrás.'],
+                    ['es' => '今天 jīntiān — hoy · 明天 míngtiān — mañana · 来 lái — venir · 去 qù — ir · 好的 hǎo de — vale, de acuerdo'],
+                ]],
+
+                ['tipo' => 'aviso', 'variante' => 'truco', 'texto' => ['es' => 'Si escribes en pinyin, escribe cada PALABRA junta y separa las palabras con espacios: «Wǒ jīntiān zài jiā», no «Wo jin tian zai jia». Y las mayúsculas van donde en español: al empezar la frase y en los nombres propios (Zhōngguó, Lǐ Míng).']],
+
+                ['tipo' => 'aviso', 'variante' => 'error-tipico', 'texto' => ['es' => 'Olvidar el tono en la nota: «Wo jintian zai jia» es una nota que un chino lee a duras penas. Y poner un punto español (.) en un texto en caracteres: en chino, 。. Son detalles, pero son los que hacen que la nota parezca escrita por alguien que aprende chino y no por alguien que aprende «a escribir chino en latino».']],
+            ],
+        ],
+
+        // ============ ZH U5 · A1.CE.3 · orientarse: 在 + lugar, 哪儿, y -n frente a -ng ============
+        [
+            'lengua' => 'zh', 'descriptor' => 'A1.CE.3', 'slug' => 'zai-nar',
+            'titulo' => ['es' => '在哪儿？ · Zài nǎr? · ¿Dónde está?'],
+            'resumen' => ['es' => 'Preguntar dónde está algo y seguir indicaciones sencillas. Con eso llegan los lugares de la ciudad, 前面 / 后面 / 旁边, y la diferencia entre -n y -ng.'],
+            'bloques' => [
+                ['tipo' => 'parrafo', 'texto' => ['es' => 'Para orientarte necesitas el verbo 在 zài (estar en), la palabra 哪儿 nǎr (dónde) y unos pocos lugares. La pregunta sigue la regla de siempre: 哪儿 ocupa el sitio de la respuesta. 学校在哪儿？ Xuéxiào zài nǎr? → 学校在那儿。 Xuéxiào zài nàr. (La escuela está allí.)']],
+
+                ['tipo' => 'lista', 'ordenada' => false, 'items' => [
+                    ['es' => '哪儿 nǎr — dónde · 这儿 zhèr — aquí · 那儿 nàr — allí · 在 zài — estar en'],
+                    ['es' => '商店 shāngdiàn — tienda · 医院 yīyuàn — hospital · 饭馆 fànguǎn — restaurante · 火车站 huǒchēzhàn — estación de tren · 学校 xuéxiào — escuela · 银行 yínháng — banco'],
+                    ['es' => '前面 qiánmiàn — delante · 后面 hòumiàn — detrás · 旁边 pángbiān — al lado · 左边 zuǒbian — a la izquierda · 右边 yòubian — a la derecha'],
+                    ['es' => '走 zǒu — andar, ir · 远 yuǎn — lejos · 近 jìn — cerca · 请问 qǐngwèn — disculpe (para preguntar)'],
+                ]],
+
+                ['tipo' => 'ejemplo', 'titulo' => ['es' => 'Preguntar por un sitio'], 'pasos' => [
+                    ['texto' => ['es' => '— 请问，医院在哪儿？ Qǐngwèn, yīyuàn zài nǎr?  (Disculpe, ¿dónde está el hospital?)']],
+                    ['texto' => ['es' => '— 医院在学校旁边。 Yīyuàn zài xuéxiào pángbiān.  (El hospital está al lado de la escuela.)']],
+                    ['texto' => ['es' => '— 远吗？ Yuǎn ma?  — 不远，很近。 Bù yuǎn, hěn jìn.']],
+                    ['texto' => ['es' => 'El orden de «al lado de»: PRIMERO el punto de referencia, DESPUÉS la posición: 学校旁边 = «escuela-al lado» = al lado de la escuela. 商店前面 = delante de la tienda. Al revés que en español.']],
+                ]],
+
+                ['tipo' => 'aviso', 'variante' => 'ojo', 'texto' => ['es' => '在 zài hace dos trabajos y los dos con lugares: es «estar en» (我在家) y es «en» delante del verbo (我在家吃饭, como en casa). En las dos frases va ANTES del verbo o ES el verbo. Nunca va detrás del verbo: «我吃饭在家» está mal.']],
+
+                ['tipo' => 'aviso', 'variante' => 'error-tipico', 'texto' => ['es' => 'Decir «旁边学校» (al lado escuela) copiando el orden español. El punto de referencia va primero: 学校旁边. Piensa en «de la escuela, al lado». Todas las posiciones (前面, 后面, 旁边, 左边, 右边) funcionan igual.']],
+
+                ['tipo' => 'parrafo', 'texto' => ['es' => 'La regla de pronunciación de la unidad: -n frente a -ng al final de sílaba. Un hispanohablante los oye iguales y son sílabas distintas: 前 qián (delante) no es 墙 qiáng (pared); 银行 yínháng (banco) termina la primera sílaba en -n y la segunda en -ng.']],
+
+                ['tipo' => 'lista', 'ordenada' => false, 'items' => [
+                    ['es' => '-n → la lengua TOCA los dientes de arriba, como en «pan»: qián, yuǎn (lejos), jìn (cerca), sān (tres).'],
+                    ['es' => '-ng → la lengua NO toca nada, la boca se queda abierta y el sonido va por la nariz, como en «tango» sin llegar a decir la g: shàng (arriba), zhōng (centro), háng (el de 银行). Ojo con 饭馆 fànguǎn: fàn termina en -n, y la g que ves es el principio de guǎn. Léelo despacio.'],
+                    ['es' => 'Parejas para practicar: qián / qiáng · yīn / yīng · shēn / shēng · fàn / fàng · bàn (medio) / bàng (genial).'],
+                ]],
+
+                ['tipo' => 'aviso', 'variante' => 'truco', 'texto' => ['es' => 'Si dudas, mira la palabra siguiente en el ESQUELETO del pinyin: 中 zhōng, 上 shàng, 行 háng son -ng; 天 tiān, 三 sān, 半 bàn son -n. Y en pinyin un apóstrofo separa sílabas que se confundirían: 天安门 Tiān’ānmén, 西安 Xī’ān (que no es 先 xiān).']],
+
+                ['tipo' => 'lista', 'ordenada' => false, 'items' => [
+                    ['es' => 'Caracteres de la unidad: 儿 ér (el de 哪儿 / 这儿 / 那儿) · 里 lǐ (dentro) · 去 qù (ir) · 来 lái (venir) · 学 xué (estudiar: el de 学校 y 学生)'],
+                ]],
+            ],
+        ],
+
+        // ============ ZH U5 · A1.PO.1 · mi ciudad ============
+        [
+            'lengua' => 'zh', 'descriptor' => 'A1.PO.1', 'slug' => 'wo-de-chengshi',
+            'titulo' => ['es' => '我的城市 · Wǒ de chéngshì'],
+            'resumen' => ['es' => 'Describir tu ciudad en cuatro frases: cómo es, qué hay, dónde está. Con 有 en su segundo trabajo —«hay»— y los adjetivos de la U4.'],
+            'bloques' => [
+                ['tipo' => 'parrafo', 'texto' => ['es' => 'Describir tu ciudad junta tres cosas que ya tienes: el adjetivo con 很 (U4), 在 con lugares (U5) y 有 yǒu, que además de «tener» significa «hay»: 基多有很多山 Jīduō yǒu hěn duō shān (en Quito hay muchas montañas). El lugar va primero, como sujeto: LUGAR + 有 + cosa.']],
+
+                ['tipo' => 'lista', 'ordenada' => false, 'items' => [
+                    ['es' => '城市 chéngshì — ciudad · 基多 Jīduō — Quito · 北京 Běijīng — Pekín · 山 shān — montaña · 公园 gōngyuán — parque · 车 chē — coche, vehículo'],
+                    ['es' => '大 dà — grande · 小 xiǎo — pequeño · 漂亮 piàoliang — bonito · 多 duō — mucho · 很多 hěn duō — muchos · 高 gāo — alto · 冷 lěng — frío · 热 rè — calor, caliente'],
+                    ['es' => '有 yǒu — hay · 没有 méiyǒu — no hay · 但是 dànshì — pero'],
+                ]],
+
+                ['tipo' => 'ejemplo', 'titulo' => ['es' => 'Quito, por Sofía'], 'pasos' => [
+                    ['texto' => ['es' => '我的城市叫基多。 Wǒ de chéngshì jiào Jīduō.  (Mi ciudad se llama Quito.)']],
+                    ['texto' => ['es' => '基多不大，但是很漂亮。 Jīduō bú dà, dànshì hěn piàoliang.  (Quito no es grande, pero es muy bonita.)']],
+                    ['texto' => ['es' => '基多有很多山，有很多公园。 Jīduō yǒu hěn duō shān, yǒu hěn duō gōngyuán.  (En Quito hay muchas montañas y muchos parques.)']],
+                    ['texto' => ['es' => '我家在学校旁边。 Wǒ jiā zài xuéxiào pángbiān.  (Mi casa está al lado de la escuela.)']],
+                ]],
+
+                ['tipo' => 'aviso', 'variante' => 'ojo', 'texto' => ['es' => '«Mucho» se dice con 很多 hěn duō delante del nombre: 很多山, 很多人. Y con 有 no se usa 是: «hay» es 有. 基多有很多人 (en Quito hay mucha gente). Si empiezas por el lugar y sigues con 有, la frase sale sola.']],
+
+                ['tipo' => 'aviso', 'variante' => 'error-tipico', 'texto' => ['es' => 'Negar un adjetivo con 没: «基多没大». Los adjetivos se niegan con 不: 不大, 不冷, 不漂亮. 没 solo niega 有 (没有) y, más adelante, el pasado. Regla: 没 va con 有; todo lo demás, 不.']],
+            ],
+        ],
+
+        // ============ ZH U6 · A1.IO.2 · en el restaurante: 要, 多少钱, y la ü con j q x ============
+        [
+            'lengua' => 'zh', 'descriptor' => 'A1.IO.2', 'slug' => 'zai-fanguan',
+            'titulo' => ['es' => '在饭馆 · Zài fànguǎn · En el restaurante'],
+            'resumen' => ['es' => 'Pedir algo de comer y de beber, y preguntar cuánto cuesta. El verbo 要 yào (querer), el dinero en 块 kuài, y la ü que se esconde detrás de j, q, x.'],
+            'bloques' => [
+                ['tipo' => 'parrafo', 'texto' => ['es' => 'Para pedir en chino basta con 要 yào (querer) y lo que quieres, con su medidor: 我要一碗米饭 wǒ yào yì wǎn mǐfàn (quiero un cuenco de arroz). No hace falta condicional ni «por favor»: el 请 va en otra frase o no va. Ser directo no es ser maleducado; lo maleducado es no decir 谢谢 al recibirlo.']],
+
+                ['tipo' => 'lista', 'ordenada' => false, 'items' => [
+                    ['es' => '要 yào — querer (pedir) · 想 xiǎng — querer, tener ganas de · 吃 chī — comer · 喝 hē — beber · 服务员 fúwùyuán — camarero/a · 菜单 càidān — carta, menú'],
+                    ['es' => '米饭 mǐfàn — arroz · 面条 miàntiáo — fideos · 鸡 jī — pollo · 鱼 yú — pescado · 菜 cài — plato, verdura · 水 shuǐ — agua · 茶 chá — té · 果汁 guǒzhī — zumo'],
+                    ['es' => '碗 wǎn — cuenco (medidor) · 杯 bēi — vaso, taza (medidor) · 多少钱 duōshao qián — cuánto cuesta · 块 kuài — yuan (la unidad de dinero, hablando) · 买单 mǎidān — la cuenta'],
+                ]],
+
+                ['tipo' => 'ejemplo', 'titulo' => ['es' => 'Pedir'], 'pasos' => [
+                    ['texto' => ['es' => '— 服务员！ Fúwùyuán!  (¡Camarero!) — se le llama así, sin «perdone».']],
+                    ['texto' => ['es' => '— 你要什么？ Nǐ yào shénme?  (¿Qué quiere?)']],
+                    ['texto' => ['es' => '— 我要一碗面条和一杯茶。 Wǒ yào yì wǎn miàntiáo hé yì bēi chá.  (Quiero un cuenco de fideos y una taza de té.)']],
+                    ['texto' => ['es' => '— 好的。 Hǎo de.  (Vale.)']],
+                    ['texto' => ['es' => 'Cada cosa lleva SU medidor: 碗 para lo que va en cuenco, 杯 para lo que va en vaso. 个 sirve para casi todo… menos para comida y bebida. Y para pedir la cuenta: 买单！ Mǎidān!']],
+                ]],
+
+                ['tipo' => 'ejemplo', 'titulo' => ['es' => 'El precio'], 'pasos' => [
+                    ['texto' => ['es' => '— 多少钱？ Duōshao qián?  (¿Cuánto es?)']],
+                    ['texto' => ['es' => '— 二十五块。 Èrshíwǔ kuài.  (Veinticinco yuanes.)']],
+                    ['texto' => ['es' => '— 一杯茶多少钱？ Yì bēi chá duōshao qián?  (¿Cuánto cuesta un té?)  — 五块。 Wǔ kuài.']],
+                    ['texto' => ['es' => 'En la carta pone 元 yuán; hablando todo el mundo dice 块 kuài. Y 多少 duōshao es el «cuántos» sin límite: 几 jǐ solo llega hasta diez.']],
+                ]],
+
+                ['tipo' => 'aviso', 'variante' => 'error-tipico', 'texto' => ['es' => '«我要面条» sin medidor está bien si pides de forma general, pero en cuanto digas un número el medidor vuelve: 两碗面条 (dos cuencos de fideos), y recuerda que ese «dos» es 两 liǎng. «二碗» no existe.']],
+
+                ['tipo' => 'parrafo', 'texto' => ['es' => 'La regla de pronunciación de la unidad: la ü. Es la vocal francesa / alemana —labios en «u», lengua en «i»— y en pinyin juega al escondite: se escribe ü solo después de n y l (女 nǚ mujer, 绿 lǜ verde), y se escribe u, sin puntos, después de j, q, x, y… pero SIGUE SONANDO ü.']],
+
+                ['tipo' => 'lista', 'ordenada' => false, 'items' => [
+                    ['es' => 'j q x + u → siempre ü: 去 qù (ir) suena «chü», 鱼 yú suena «ü», 学 xué suena «süe». No existe «ju», «qu», «xu» con u española.'],
+                    ['es' => 'n l + ü → se escriben los puntos porque nu / lu con u normal también existen: 女 nǚ (mujer) frente a 努 nǔ; 绿 lǜ (verde) frente a 路 lù (camino).'],
+                    ['es' => 'Y una consecuencia: 服务员 fúwùyuán lleva -yuan al final, que suena «üen», no «yuan» a la española.'],
+                ]],
+
+                ['tipo' => 'aviso', 'variante' => 'truco', 'texto' => ['es' => 'Para sacar la ü: di una «i» larga y, sin mover la lengua, cierra los labios como para silbar. Lo que sale es ü. Para escribirla en pinyin con números, se usa la v: nv3 (nǚ), lv4 (lǜ). El curso lo acepta.']],
+
+                ['tipo' => 'lista', 'ordenada' => false, 'items' => [
+                    ['es' => 'Caracteres de la unidad: 要 yào (querer) · 钱 qián (dinero) · 多 duō (mucho) · 少 shǎo (poco) · 吃 chī (comer: a la izquierda, otra vez la boca 口)'],
+                ]],
+            ],
+        ],
+
+        // ============ ZH U6 · A1.CE.1 · leer una carta y los letreros ============
+        [
+            'lengua' => 'zh', 'descriptor' => 'A1.CE.1', 'slug' => 'caidan',
+            'titulo' => ['es' => '菜单和牌子 · Leer una carta y los letreros'],
+            'resumen' => ['es' => 'Los ocho caracteres que hay que reconocer de un vistazo en cualquier ciudad china —salida, entrada, hombres, mujeres, abierto, cerrado, empujar, tirar— y cómo leer una carta sin pinyin.'],
+            'bloques' => [
+                ['tipo' => 'parrafo', 'texto' => ['es' => 'Hay caracteres que no hace falta saber escribir ni pronunciar: hay que RECONOCERLOS, porque están en cada puerta y equivocarse tiene consecuencias. Estos ocho se aprenden con la vista, como se aprende un logo.']],
+
+                ['tipo' => 'lista', 'ordenada' => false, 'items' => [
+                    ['es' => '出口 chūkǒu — SALIDA · 入口 rùkǒu — ENTRADA (出 «salir» tiene dos montañas; 入 «entrar» es una persona 人 con el trazo cruzado)'],
+                    ['es' => '男 nán — HOMBRES · 女 nǚ — MUJERES (en la puerta del baño: 男 es un campo 田 sobre fuerza 力; 女 es la figura de una mujer)'],
+                    ['es' => '开 kāi — ABIERTO · 关 guān — CERRADO (en la puerta de una tienda; 开 también es «encender», 关 «apagar»)'],
+                    ['es' => '推 tuī — EMPUJAR · 拉 lā — TIRAR (en la puerta misma; los dos llevan la mano 扌 a la izquierda)'],
+                    ['es' => '厕所 cèsuǒ / 洗手间 xǐshǒujiān — baño · 请勿 qǐng wù — prohibido (请勿吸烟: prohibido fumar) · 小心 xiǎoxīn — cuidado'],
+                ]],
+
+                ['tipo' => 'aviso', 'variante' => 'ojo', 'texto' => ['es' => '出 y 入 se parecen a 山 (montaña) y a 人 (persona), y los dos pares se confunden. 出 son DOS 山 apilados (salir de las montañas). 入 tiene el trazo de la izquierda POR ENCIMA del de la derecha; en 人 es al revés. Es un detalle de un milímetro, y es la diferencia entre entrar y salir.']],
+
+                ['tipo' => 'ejemplo', 'titulo' => ['es' => 'Una carta de verdad'], 'pasos' => [
+                    ['texto' => ['es' => '菜单 · 米饭 5元 · 面条 12元 · 鸡 28元 · 鱼 35元 · 茶 5元 · 水 3元 · 果汁 10元']],
+                    ['texto' => ['es' => 'No sabes leer «鸡» todavía; sí sabes que 米饭 es arroz, 面条 fideos, 茶 té, 水 agua, y que 元 yuán marca el precio. Con eso ya puedes pedir y saber qué vas a pagar.']],
+                    ['texto' => ['es' => 'Truco de lectura: en las cartas chinas el nombre del plato suele terminar en el ingrediente principal: …鸡 lleva pollo, …鱼 pescado, …饭 arroz, …面 fideos. Lee el ÚLTIMO carácter de cada línea.']],
+                ]],
+
+                ['tipo' => 'aviso', 'variante' => 'error-tipico', 'texto' => ['es' => 'Quedarse parado delante de un texto porque no se conoce el 80 % de los caracteres. Leer en A1 es cazar el 20 % que conoces —números, 元, 人, 口, 大 / 小, 出 / 入— y deducir el resto. Un letrero con un número y 元 es un precio; uno con 口 es una puerta; uno rojo con 请勿 es una prohibición.']],
+            ],
+        ],
+
+
+        // ============ ZH U7 · A1.IO.2 · comprar y el tiempo: 这个 / 那个, 太…了, el tono neutro y la erhua ============
+        [
+            'lengua' => 'zh', 'descriptor' => 'A1.IO.2', 'slug' => 'duoshao-qian',
+            'titulo' => ['es' => '这个多少钱？ · Zhège duōshao qián?'],
+            'resumen' => ['es' => 'Comprar ropa, decir que algo es caro o barato, y hablar del tiempo que hace. Llegan 这个 / 那个, «demasiado» con 太…了, y las dos cosas que hacen que el chino de Pekín suene a Pekín: el tono neutro y la erhua.'],
+            'bloques' => [
+                ['tipo' => 'parrafo', 'texto' => ['es' => 'En una tienda señalas: 这个 zhège (este) y 那个 nàge (ese, aquel). Son 这 / 那 más el medidor 个, y por eso pueden ir solos («este») o delante de un nombre (这个衣服, esta ropa). Y para decir que algo es demasiado: 太 tài + adjetivo + 了 le. 太贵了 tài guì le, demasiado caro.']],
+
+                ['tipo' => 'lista', 'ordenada' => false, 'items' => [
+                    ['es' => '这个 zhège — este · 那个 nàge — ese, aquel · 衣服 yīfu — ropa · 件 jiàn — medidor de prendas · 买 mǎi — comprar · 卖 mài — vender'],
+                    ['es' => '贵 guì — caro · 便宜 piányi — barato · 太…了 tài… le — demasiado · 一点儿 yìdiǎnr — un poco · 红 hóng — rojo · 白 bái — blanco'],
+                    ['es' => '天气 tiānqì — el tiempo (meteorológico) · 冷 lěng — frío · 热 rè — calor · 下雨 xià yǔ — llover · 怎么样 zěnmeyàng — cómo es, qué tal · 今天 jīntiān — hoy · 明天 míngtiān — mañana'],
+                ]],
+
+                ['tipo' => 'ejemplo', 'titulo' => ['es' => 'En la tienda'], 'pasos' => [
+                    ['texto' => ['es' => '— 这件衣服多少钱？ Zhè jiàn yīfu duōshao qián?  (¿Cuánto cuesta esta prenda?) ← con nombre y medidor propio, 这 + 件 sustituye a 这个.']],
+                    ['texto' => ['es' => '— 一百二十块。 Yìbǎi èrshí kuài.  (Ciento veinte yuanes.)']],
+                    ['texto' => ['es' => '— 太贵了！便宜一点儿吧。 Tài guì le! Piányi yìdiǎnr ba.  (¡Demasiado caro! Un poco más barato, anda.)']],
+                    ['texto' => ['es' => '— 那个呢？ Nàge ne?  — 那个八十块。 Nàge bāshí kuài.']],
+                    ['texto' => ['es' => '— 好，我买那个。 Hǎo, wǒ mǎi nàge.  (Vale, compro ese.)']],
+                ]],
+
+                ['tipo' => 'ejemplo', 'titulo' => ['es' => 'El tiempo'], 'pasos' => [
+                    ['texto' => ['es' => '— 今天天气怎么样？ Jīntiān tiānqì zěnmeyàng?  (¿Qué tiempo hace hoy?)']],
+                    ['texto' => ['es' => '— 今天很冷。 Jīntiān hěn lěng.  (Hoy hace frío.) ← el adjetivo es el verbo, con 很, como en la U4. Sin «hace».']],
+                    ['texto' => ['es' => '— 明天下雨吗？ Míngtiān xià yǔ ma?  — 不下雨，明天很热。 Bú xià yǔ, míngtiān hěn rè.']],
+                ]],
+
+                ['tipo' => 'aviso', 'variante' => 'ojo', 'texto' => ['es' => '太…了 va con sus dos piezas: el 了 del final no es el 了 del pasado (que verás en la U8); aquí solo cierra la exclamación. 太贵了, 太热了, 太好了 (¡genial!). Sin el 了 suena a frase a medias.']],
+
+                ['tipo' => 'aviso', 'variante' => 'error-tipico', 'texto' => ['es' => '«这衣服» sin medidor, o «这个件衣服» con dos. Es 这 + medidor + nombre: 这件衣服 (prendas), 这个人 (personas), 这杯茶 (vasos). Cuando el nombre tiene medidor propio, 个 se retira.']],
+
+                ['tipo' => 'parrafo', 'texto' => ['es' => 'Las dos reglas de pronunciación de la unidad son las que un oído chino nota más: el TONO NEUTRO y la ERHUA.']],
+
+                ['tipo' => 'lista', 'ordenada' => false, 'items' => [
+                    ['es' => 'Tono neutro: la sílaba final de muchas palabras pierde su tono y se dice corta y floja, apoyada en la anterior: 衣服 yīfu (no yīfú), 便宜 piányi, 怎么样 zěnmeyàng (么 neutro), 爸爸 bàba, 谢谢 xièxie, 什么 shénme. En pinyin va sin marca. Si la cantas con tono, suena a extranjero.'],
+                    ['es' => 'Erhua: en el norte (y en el chino estándar) muchas palabras cortas añaden un -r al final que se funde con la sílaba: 一点儿 yìdiǎnr («un poco»), 哪儿 nǎr, 这儿 zhèr, 那儿 nàr, 玩儿 wánr (jugar). El 儿 no es una sílaba aparte: es la lengua curvándose al final de la anterior.'],
+                    ['es' => 'Cuando -r se pega a una sílaba en -n, la n desaparece: 一点儿 se dice «yìdiǎr», no «yìdiǎn-r». 玩儿 se dice «wár».'],
+                ]],
+
+                ['tipo' => 'aviso', 'variante' => 'truco', 'texto' => ['es' => 'Las palabras con tono neutro se aprenden con él: no memorices 衣服 como «yī-fú» y lo corrijas después. Escríbelo sin marca en la segunda sílaba desde el principio y dilo como si la segunda sílaba fuera un eco de la primera.']],
+
+                ['tipo' => 'lista', 'ordenada' => false, 'items' => [
+                    ['es' => 'Caracteres de la unidad: 这 zhè (este) · 那 nà (ese) · 些 xiē (algunos: 这些, estos) · 衣 yī · 服 fu (juntos, 衣服)'],
+                ]],
+            ],
+        ],
+
+        // ============ ZH U8 · A1.PO.2 · contar lo que hice: 了 y 没 ============
+        [
+            'lengua' => 'zh', 'descriptor' => 'A1.PO.2', 'slug' => 'zuotian',
+            'titulo' => ['es' => '昨天 · Zuótiān · Ayer'],
+            'resumen' => ['es' => 'Contar lo que hiciste ayer. El chino no tiene pasado: tiene 了 le, que dice «acción terminada», y 没 méi, que dice «no llegó a pasar».'],
+            'bloques' => [
+                ['tipo' => 'parrafo', 'texto' => ['es' => 'La segunda buena noticia del año: el chino no conjuga el pasado. «Fui», «voy» e «iré» son el mismo 去 qù; lo que cambia es la palabra de tiempo (昨天 ayer, 今天 hoy, 明天 mañana) y, para una acción hecha y terminada, la partícula 了 le detrás del verbo: 我去了商店 wǒ qù le shāngdiàn (fui a la tienda).']],
+
+                ['tipo' => 'lista', 'ordenada' => false, 'items' => [
+                    ['es' => '昨天 zuótiān — ayer · 今天 jīntiān — hoy · 明天 míngtiān — mañana · 上午 / 下午 / 晚上 — mañana / tarde / noche'],
+                    ['es' => '了 le — (acción terminada) · 没 méi — no (para el pasado) · 去 qù — ir · 看 kàn — ver, mirar · 买 mǎi — comprar · 做 zuò — hacer · 吃 chī — comer · 玩儿 wánr — jugar, pasarlo bien'],
+                    ['es' => '电影 diànyǐng — película · 朋友 péngyou — amigo · 商店 shāngdiàn — tienda · 累 lèi — cansado · 高兴 gāoxìng — contento · 作业 zuòyè — deberes'],
+                ]],
+
+                ['tipo' => 'ejemplo', 'titulo' => ['es' => 'El fin de semana de Sofía'], 'pasos' => [
+                    ['texto' => ['es' => '昨天我去了商店，买了一件衣服。 Zuótiān wǒ qù le shāngdiàn, mǎi le yí jiàn yīfu.  (Ayer fui a la tienda y compré una prenda.)']],
+                    ['texto' => ['es' => '下午我和朋友看了一个电影。 Xiàwǔ wǒ hé péngyou kàn le yí gè diànyǐng.  (Por la tarde vi una película con un amigo.)']],
+                    ['texto' => ['es' => '晚上我没做作业，太累了。 Wǎnshang wǒ méi zuò zuòyè, tài lèi le.  (Por la noche no hice los deberes: demasiado cansada.)']],
+                    ['texto' => ['es' => 'Mira la negación: 没做, y SIN 了. Cuando dices que algo NO pasó, 没 sustituye al 了; no van juntos nunca.']],
+                ]],
+
+                ['tipo' => 'aviso', 'variante' => 'ojo', 'texto' => ['es' => '了 NO ES «EL PASADO». Es «hecho, terminado». Por eso 昨天我很累 (ayer estaba cansada) no lleva 了: estar cansado no es una acción que se termina. Y por eso 我去了商店 puede ser ayer o hace cinco minutos. La palabra de tiempo pone la fecha; 了 solo dice que se completó.']],
+
+                ['tipo' => 'ejemplo', 'titulo' => ['es' => 'Preguntar por el pasado'], 'pasos' => [
+                    ['texto' => ['es' => '— 你昨天做了什么？ Nǐ zuótiān zuò le shénme?  (¿Qué hiciste ayer?)']],
+                    ['texto' => ['es' => '— 你去了学校吗？ Nǐ qù le xuéxiào ma?  — 去了。 Qù le.  / 没去。 Méi qù.']],
+                    ['texto' => ['es' => 'La respuesta corta repite el verbo: 去了 (sí, fui) o 没去 (no fui). Sin «sí» ni «no».']],
+                ]],
+
+                ['tipo' => 'aviso', 'variante' => 'error-tipico', 'texto' => ['es' => '«我不去了学校» para decir «no fui a la escuela». Dos errores: el pasado se niega con 没, y con 没 desaparece 了. Es 我没去学校. Y el contrario: «昨天我了去…» — 了 va DETRÁS del verbo, pegado a él, nunca delante.']],
+
+                ['tipo' => 'parrafo', 'texto' => ['es' => 'La regla de pronunciación de la unidad ya no es una letra sino la frase entera: la ENTONACIÓN. En chino no puedes subir la voz al final para preguntar, porque subir es el segundo tono y cambiarías la última palabra. La pregunta la hace 吗 (o la palabra interrogativa), no la melodía.']],
+
+                ['tipo' => 'lista', 'ordenada' => false, 'items' => [
+                    ['es' => 'Cada sílaba conserva su tono; la frase entera puede subir o bajar un poco de nivel, pero los contornos no se tocan. 你去了吗？ termina en el neutro de 吗, bajito, aunque sea pregunta.'],
+                    ['es' => 'Lo que sí hace la frase: acorta las sílabas en medio y alarga la última. Y en una lista (爸爸、妈妈、姐姐), cada elemento se dice con sus tonos completos.'],
+                    ['es' => 'El énfasis no se hace con volumen sino con palabras: 太…了, 很, 也, 都. «¡Qué bueno!» es 太好了, no «hǎo» gritado.'],
+                ]],
+
+                ['tipo' => 'lista', 'ordenada' => false, 'items' => [
+                    ['es' => 'Caracteres de la unidad: 了 le · 昨 zuó · 今 jīn · 明 míng (el sol 日 y la luna 月: «brillante», y «mañana») · 日 rì (sol, día)'],
+                ]],
+            ],
+        ],
+
+        // ============ ZH U9 · A1.IO.1 · reparar la conversación (repaso y proyecto) ============
+        [
+            'lengua' => 'zh', 'descriptor' => 'A1.IO.1', 'slug' => 'wo-ting-bu-dong',
+            'titulo' => ['es' => '我听不懂 · Wǒ tīng bu dǒng · No entiendo'],
+            'resumen' => ['es' => 'Las seis frases que mantienen viva una conversación cuando no entiendes: pedir que repitan, que hablen despacio, preguntar cómo se dice algo. Y el proyecto final del curso.'],
+            'bloques' => [
+                ['tipo' => 'parrafo', 'texto' => ['es' => 'El descriptor A1.IO.1 del MCER no pide que entiendas todo: pide que puedas interactuar «siempre que la otra persona hable despacio, repita o reformule». Esta unidad es cómo CONSEGUIR que lo haga — en chino, sin cambiar de idioma.']],
+
+                ['tipo' => 'lista', 'ordenada' => false, 'items' => [
+                    ['es' => '我听不懂。 Wǒ tīng bu dǒng. — No entiendo (lo que oigo). Literalmente «escucho-no-comprendo». El 不 en medio va neutro.'],
+                    ['es' => '请再说一遍。 Qǐng zài shuō yí biàn. — Repita, por favor (otra vez decir una vez).'],
+                    ['es' => '请说慢一点儿。 Qǐng shuō màn yìdiǎnr. — Hable más despacio, por favor.'],
+                    ['es' => '«mochila» 用中文怎么说？ … yòng Zhōngwén zěnme shuō? — ¿Cómo se dice «mochila» en chino?'],
+                    ['es' => '这是什么意思？ Zhè shì shénme yìsi? — ¿Qué significa esto?'],
+                    ['es' => '我知道 / 我不知道。 Wǒ zhīdào / wǒ bù zhīdào. — Lo sé / no lo sé. · 对 duì — correcto, sí. · 没问题 méi wèntí — sin problema.'],
+                ]],
+
+                ['tipo' => 'aviso', 'variante' => 'ojo', 'texto' => ['es' => 'Hay dos «no entiendo» y no son iguales: 听不懂 tīng bu dǒng es «no entiendo lo que OIGO» (habla muy rápido); 看不懂 kàn bu dǒng es «no entiendo lo que LEO» (un carácter que no conoces). Elegir el verbo correcto ya le dice al otro qué tiene que hacer: repetir, o escribirlo en pinyin.']],
+
+                ['tipo' => 'ejemplo', 'titulo' => ['es' => 'Reparar la conversación'], 'pasos' => [
+                    ['texto' => ['es' => '王老师 — Sofía，你周末做了什么？ (Sofía, ¿qué hiciste el fin de semana?) ← 周末 zhōumò no lo has visto.']],
+                    ['texto' => ['es' => 'Sofía — 对不起，老师，我听不懂。请再说一遍。 Duìbuqǐ, lǎoshī, wǒ tīng bu dǒng. Qǐng zài shuō yí biàn.']],
+                    ['texto' => ['es' => '王老师 — 周—末。星期六和星期天。 Zhōu-mò. Xīngqīliù hé xīngqītiān.  (Fin de semana: sábado y domingo.)']],
+                    ['texto' => ['es' => 'Sofía — 啊，周末！我去了公园，也看了一个电影。 À, zhōumò! Wǒ qù le gōngyuán, yě kàn le yí gè diànyǐng.']],
+                    ['texto' => ['es' => '王老师 — 很好！ Hěn hǎo!']],
+                    ['texto' => ['es' => 'Sofía — 老师，«fin de semana» 用中文怎么说？周末？ Lǎoshī, «fin de semana» yòng Zhōngwén zěnme shuō? Zhōumò?  — 对！ Duì!']],
+                ]],
+
+                ['tipo' => 'aviso', 'variante' => 'truco', 'texto' => ['es' => 'Repetir la palabra nueva con tono de pregunta —«周末？»— es la herramienta más rentable de esta unidad: confirmas que la has oído bien, la practicas, y le das al otro la oportunidad de corregirte el tono. Y como la pregunta se hace con la entonación de 吗 y no subiendo la voz, di «Zhōumò ma?» o simplemente «Zhōumò?» con los tonos intactos.']],
+
+                ['tipo' => 'aviso', 'variante' => 'error-tipico', 'texto' => ['es' => 'Cambiar a español o a inglés en cuanto una palabra se escapa. Con 听不懂, 请再说一遍 y …怎么说 puedes seguir en chino aunque no entiendas la mitad. Eso es exactamente el A1: no es saber, es saber seguir.']],
+
+                ['tipo' => 'parrafo', 'texto' => ['es' => 'EL PROYECTO FINAL. Una presentación de un minuto y una nota escrita, en chino, con todo lo que sabes hacer. Pinyin con tonos; caracteres, los que tengas (y los cuarenta y cinco del curso deberían salir). Se graba y la escucha tu profesor/a —solo él o ella y tú—; no se comparte.']],
+
+                ['tipo' => 'lista', 'ordenada' => true, 'items' => [
+                    ['es' => 'Quién eres: nombre, de dónde, edad, qué eres (U1–U2). 我叫…，我是厄瓜多尔人，我十五岁。'],
+                    ['es' => 'Tu familia: cuántos sois y quiénes, con 口 y 个 (U2).'],
+                    ['es' => 'Tu día: tres frases con hora y lugar, en el orden QUIÉN + CUÁNDO + 在 DÓNDE + VERBO (U3).'],
+                    ['es' => 'Lo que te gusta y lo que no, con 喜欢 y con un adjetivo + 很 (U4).'],
+                    ['es' => 'Tu ciudad: cómo es y qué hay, con 有 (U5).'],
+                    ['es' => 'Qué hiciste ayer: dos frases con 了 y una con 没 (U8).'],
+                    ['es' => 'Y una frase de reparación de las de esta unidad, colocada donde te haga falta.'],
+                ]],
             ],
         ],
     ],
@@ -4019,6 +4667,760 @@ return [
                 ['clave' => 'a', 'texto' => ['de' => 'Wie sagt man «mochila» auf Deutsch?']],
                 ['clave' => 'b', 'texto' => ['de' => 'Was bedeutet «mochila»?']],
                 ['clave' => 'c', 'texto' => ['de' => 'Können Sie «mochila» wiederholen?']],
+            ],
+            'correcta' => 'a',
+        ],
+
+
+        // ================================================================
+        // ========================= CHINO · A1 ============================
+        // ================================================================
+        //
+        // En los `hueco` se acepta, en este orden: el pinyin CON TONOS (la
+        // forma canónica, la que se enseña), el pinyin con NÚMEROS (ni3 hao3,
+        // para quien no tiene el teclado configurado; la ü se escribe v), y
+        // el CARÁCTER. Sin tono es error de «acento» (= tono). En los `orden`
+        // las fichas son pinyin en minúscula o caracteres, sin puntuación.
+        // Los `pares` llevan tres columnas: a = carácter, b = pinyin,
+        // c = significado.
+
+        // ============ ZH U1 · A1.IO.3 — cuatro ítems: presentarse ============
+
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.IO.3', 'lengua' => 'zh', 'seq' => 1,
+            // El verbo de presentarse. Se pide el pinyin con tono; sin tono
+            // el motor lo marca como error de acento (= tono), no de palabra.
+            'consigna' => ['es' => 'Completa en pinyin (con tonos, o con el número del tono): « Wǒ ___ Sofía. »  (ME LLAMO Sofía.)'],
+            'aceptadas' => ['jiào', 'jiao4', '叫'],
+        ],
+
+        [
+            'tipo' => 'orden', 'descriptor' => 'A1.IO.3', 'lengua' => 'zh', 'seq' => 2,
+            // El orden más simple del chino: sujeto + verbo + resto. Un solo
+            // orden válido; el signo ya está puesto.
+            'consigna' => ['es' => 'Ordena las fichas para decir «Soy ecuatoriana». El punto ya está puesto.'],
+            'palabras' => [
+                ['clave' => 'w1', 'texto' => ['zh' => 'wǒ']],
+                ['clave' => 'w2', 'texto' => ['zh' => 'shì']],
+                ['clave' => 'w3', 'texto' => ['zh' => 'èguāduō’ěr']],
+                ['clave' => 'w4', 'texto' => ['zh' => 'rén']],
+            ],
+            'secuencias' => [
+                ['w1', 'w2', 'w3', 'w4'],
+            ],
+        ],
+
+        [
+            'tipo' => 'pares', 'descriptor' => 'A1.IO.3', 'lengua' => 'zh', 'seq' => 3,
+            // Tres columnas: carácter, pinyin, significado. La razón de que
+            // el tipo tenga n columnas.
+            'consigna' => ['es' => 'Une cada carácter con su pinyin y con su significado (tres columnas: una ficha de cada).'],
+            'elementos' => [
+                ['clave' => 'c1', 'col' => 'a', 'texto' => ['zh' => '我']],
+                ['clave' => 'c2', 'col' => 'a', 'texto' => ['zh' => '你']],
+                ['clave' => 'c3', 'col' => 'a', 'texto' => ['zh' => '好']],
+                ['clave' => 'c4', 'col' => 'a', 'texto' => ['zh' => '是']],
+                ['clave' => 'c5', 'col' => 'a', 'texto' => ['zh' => '叫']],
+                ['clave' => 'p1', 'col' => 'b', 'texto' => ['zh' => 'wǒ']],
+                ['clave' => 'p2', 'col' => 'b', 'texto' => ['zh' => 'nǐ']],
+                ['clave' => 'p3', 'col' => 'b', 'texto' => ['zh' => 'hǎo']],
+                ['clave' => 'p4', 'col' => 'b', 'texto' => ['zh' => 'shì']],
+                ['clave' => 'p5', 'col' => 'b', 'texto' => ['zh' => 'jiào']],
+                ['clave' => 's1', 'col' => 'c', 'texto' => ['es' => 'yo']],
+                ['clave' => 's2', 'col' => 'c', 'texto' => ['es' => 'tú']],
+                ['clave' => 's3', 'col' => 'c', 'texto' => ['es' => 'bien']],
+                ['clave' => 's4', 'col' => 'c', 'texto' => ['es' => 'ser']],
+                ['clave' => 's5', 'col' => 'c', 'texto' => ['es' => 'llamarse']],
+            ],
+            'parejas' => [['c1', 'p1', 's1'], ['c2', 'p2', 's2'], ['c3', 'p3', 's3'], ['c4', 'p4', 's4'], ['c5', 'p5', 's5']],
+        ],
+
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.3', 'lengua' => 'zh', 'seq' => 4,
+            // Los tonos son parte de la palabra.
+            'consigna' => ['es' => '«mā», «má», «mǎ» y «mà» son…'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'Cuatro palabras distintas (mamá, cáñamo, caballo, regañar)']],
+                ['clave' => 'b', 'texto' => ['es' => 'La misma palabra dicha con más o menos énfasis']],
+                ['clave' => 'c', 'texto' => ['es' => 'Cuatro formas de escribir «ma» según la región']],
+            ],
+            'correcta' => 'a',
+        ],
+
+        // ============ ZH U1 · A1.CE.1 — dos ítems: reconocer lo escrito ============
+
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.1', 'lengua' => 'zh', 'seq' => 1,
+            'consigna' => ['es' => 'En la tarjeta de un compañero pone «李明 · 中国». ¿Qué sabes de él?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'Se llama Lǐ Míng y es de China']],
+                ['clave' => 'b', 'texto' => ['es' => 'Se llama Zhōngguó y es de Lǐ Míng']],
+                ['clave' => 'c', 'texto' => ['es' => 'Es profesor de chino']],
+            ],
+            'correcta' => 'a',
+        ],
+
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.1', 'lengua' => 'zh', 'seq' => 2,
+            'consigna' => ['es' => 'Alguien te da una nota que solo dice «谢谢！». ¿Qué te está diciendo?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'Gracias']],
+                ['clave' => 'b', 'texto' => ['es' => 'Adiós']],
+                ['clave' => 'c', 'texto' => ['es' => 'Perdón']],
+            ],
+            'correcta' => 'a',
+        ],
+
+        // ============ ZH U1 · A1.EE.2 — dos ítems: la ficha y país + 人 ============
+
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.EE.2', 'lengua' => 'zh', 'seq' => 1,
+            'consigna' => ['es' => 'Rellena la ficha de Sofía, que es de Quito, en pinyin.  名字 míngzi: Sofía · 国 guó: ______  (ecuatoriana: país + rén)'],
+            'aceptadas' => ['èguāduō’ěr rén', 'èguāduō’ěrrén', "èguāduō'ěr rén", "èguāduō'ěrrén", 'e4gua1duo1er3 ren2', 'e4gua1duo1er3ren2', '厄瓜多尔人'],
+        ],
+
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.EE.2', 'lengua' => 'zh', 'seq' => 2,
+            'consigna' => ['es' => 'Ahora la de Lǐ Míng, que es de Pekín.  名字 míngzi: 李明 · 国 guó: ______  (chino: país + rén)'],
+            'aceptadas' => ['zhōngguó rén', 'zhōngguórén', 'zhong1guo2 ren2', 'zhong1guo2ren2', '中国人'],
+        ],
+
+        // ============ ZH U2 · A1.PO.1 — cinco ítems: la familia ============
+
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.1', 'lengua' => 'zh', 'seq' => 1,
+            // La edad SIN verbo: el error más repetido de la unidad.
+            'consigna' => ['es' => 'Completa en pinyin: « Wǒ shíwǔ ___. »  (Tengo quince AÑOS — en chino no hay verbo: pronombre + número + esta palabra.)'],
+            'aceptadas' => ['suì', 'sui4', '岁'],
+        ],
+
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.1', 'lengua' => 'zh', 'seq' => 2,
+            // 有 no se niega con 不.
+            'consigna' => ['es' => 'Completa en pinyin la negación: « Wǒ ___ gēge. »  (NO TENGO hermano mayor — recuerda con qué palabra se niega 有.)'],
+            'aceptadas' => ['méiyǒu', 'méi yǒu', 'mei2you3', 'mei2 you3', '没有'],
+        ],
+
+        [
+            'tipo' => 'pares', 'descriptor' => 'A1.PO.1', 'lengua' => 'zh', 'seq' => 3,
+            'consigna' => ['es' => 'Une cada miembro de la familia con su pinyin y con su significado.'],
+            'elementos' => [
+                ['clave' => 'c1', 'col' => 'a', 'texto' => ['zh' => '爸爸']],
+                ['clave' => 'c2', 'col' => 'a', 'texto' => ['zh' => '妈妈']],
+                ['clave' => 'c3', 'col' => 'a', 'texto' => ['zh' => '哥哥']],
+                ['clave' => 'c4', 'col' => 'a', 'texto' => ['zh' => '妹妹']],
+                ['clave' => 'p1', 'col' => 'b', 'texto' => ['zh' => 'bàba']],
+                ['clave' => 'p2', 'col' => 'b', 'texto' => ['zh' => 'māma']],
+                ['clave' => 'p3', 'col' => 'b', 'texto' => ['zh' => 'gēge']],
+                ['clave' => 'p4', 'col' => 'b', 'texto' => ['zh' => 'mèimei']],
+                ['clave' => 's1', 'col' => 'c', 'texto' => ['es' => 'papá']],
+                ['clave' => 's2', 'col' => 'c', 'texto' => ['es' => 'mamá']],
+                ['clave' => 's3', 'col' => 'c', 'texto' => ['es' => 'hermano mayor']],
+                ['clave' => 's4', 'col' => 'c', 'texto' => ['es' => 'hermana menor']],
+            ],
+            'parejas' => [['c1', 'p1', 's1'], ['c2', 'p2', 's2'], ['c3', 'p3', 's3'], ['c4', 'p4', 's4']],
+        ],
+
+        [
+            'tipo' => 'orden', 'descriptor' => 'A1.PO.1', 'lengua' => 'zh', 'seq' => 4,
+            // Sujeto + 有 + número + medidor + nombre. Un solo orden.
+            'consigna' => ['es' => 'Ordena las fichas para decir «En mi familia somos cuatro» (mi familia tiene cuatro personas). El punto ya está puesto.'],
+            'palabras' => [
+                ['clave' => 'w1', 'texto' => ['zh' => 'wǒ jiā']],
+                ['clave' => 'w2', 'texto' => ['zh' => 'yǒu']],
+                ['clave' => 'w3', 'texto' => ['zh' => 'sì']],
+                ['clave' => 'w4', 'texto' => ['zh' => 'kǒu']],
+                ['clave' => 'w5', 'texto' => ['zh' => 'rén']],
+            ],
+            'secuencias' => [
+                ['w1', 'w2', 'w3', 'w4', 'w5'],
+            ],
+        ],
+
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.PO.1', 'lengua' => 'zh', 'seq' => 5,
+            // El medidor.
+            'consigna' => ['es' => '¿Cuál es la frase correcta para «Tengo una hermana mayor»?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['zh' => '我有一个姐姐。 Wǒ yǒu yí gè jiějie.']],
+                ['clave' => 'b', 'texto' => ['zh' => '我有一姐姐。 Wǒ yǒu yī jiějie.']],
+                ['clave' => 'c', 'texto' => ['zh' => '我是一个姐姐。 Wǒ shì yí gè jiějie.']],
+            ],
+            'correcta' => 'a',
+        ],
+
+        // ============ ZH U2 · A1.IO.3 — dos ítems más (siguen a los de la U1) ============
+
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.3', 'lengua' => 'zh', 'seq' => 5,
+            'consigna' => ['es' => 'Lǐ Míng te dice «我是北京人» (soy de Pekín). ¿Cómo le devuelves la pregunta con dos palabras?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['zh' => '你呢？ Nǐ ne?']],
+                ['clave' => 'b', 'texto' => ['zh' => '你吗？ Nǐ ma?']],
+                ['clave' => 'c', 'texto' => ['zh' => '你好？ Nǐ hǎo?']],
+            ],
+            'correcta' => 'a',
+        ],
+
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.IO.3', 'lengua' => 'zh', 'seq' => 6,
+            // La pregunta de la edad entre iguales.
+            'consigna' => ['es' => 'Completa en pinyin la pregunta a un compañero de tu edad: « Nǐ ___? »  (¿CUÁNTOS AÑOS tienes? — literalmente «cuánto grande», dos sílabas.)'],
+            'aceptadas' => ['duō dà', 'duōdà', 'duo1 da4', 'duo1da4', '多大'],
+        ],
+
+        // ============ ZH U2 · A1.CE.2 — dos ítems sobre el mensaje de Lǐ Míng ============
+
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.2', 'lengua' => 'zh', 'seq' => 1,
+            'consigna' => ['es' => 'Lee: «我家有五口人：爸爸、妈妈、一个哥哥、一个妹妹和我。» ¿Cuántos hermanos tiene Lǐ Míng y cuáles?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'Dos: un hermano mayor y una hermana menor']],
+                ['clave' => 'b', 'texto' => ['es' => 'Dos: un hermano menor y una hermana mayor']],
+                ['clave' => 'c', 'texto' => ['es' => 'Cinco hermanos']],
+            ],
+            'correcta' => 'a',
+        ],
+
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.2', 'lengua' => 'zh', 'seq' => 2,
+            'consigna' => ['es' => 'Sigue el mensaje: «我哥哥十八岁，我妹妹八岁。我有一个狗，叫小白。» ¿Qué es verdad?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'Su hermano tiene 18 años, su hermana 8, y tiene un perro llamado Xiǎo Bái']],
+                ['clave' => 'b', 'texto' => ['es' => 'Su hermano tiene 8 años, su hermana 18, y tiene un gato']],
+                ['clave' => 'c', 'texto' => ['es' => 'Su hermano se llama Xiǎo Bái y tiene 18 años']],
+            ],
+            'correcta' => 'a',
+        ],
+
+        // ============ ZH U3 · A1.PO.2 — cinco ítems: la rutina ============
+
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.2', 'lengua' => 'zh', 'seq' => 1,
+            // 在 frente a 是: la respuesta es un lugar.
+            'consigna' => ['es' => 'Completa en pinyin: « Wǒ ___ xuéxiào. »  (ESTOY EN la escuela — el verbo de lugar, no 是.)'],
+            'aceptadas' => ['zài', 'zai4', '在'],
+        ],
+
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.2', 'lengua' => 'zh', 'seq' => 2,
+            // El cambio de tono de 不 delante de cuarto tono: se escribe.
+            'consigna' => ['es' => 'Escribe en pinyin, con el tono que toca: « Wǒ ___ shì xuésheng. »  (NO soy estudiante — ojo: delante de shì, el tono de 不 cambia.)'],
+            'aceptadas' => ['bú', 'bu2', 'bù', 'bu4', '不'],
+        ],
+
+        [
+            'tipo' => 'pares', 'descriptor' => 'A1.PO.2', 'lengua' => 'zh', 'seq' => 3,
+            'consigna' => ['es' => 'Une cada acción del día con su pinyin y con su significado.'],
+            'elementos' => [
+                ['clave' => 'c1', 'col' => 'a', 'texto' => ['zh' => '起床']],
+                ['clave' => 'c2', 'col' => 'a', 'texto' => ['zh' => '吃饭']],
+                ['clave' => 'c3', 'col' => 'a', 'texto' => ['zh' => '上课']],
+                ['clave' => 'c4', 'col' => 'a', 'texto' => ['zh' => '睡觉']],
+                ['clave' => 'p1', 'col' => 'b', 'texto' => ['zh' => 'qǐchuáng']],
+                ['clave' => 'p2', 'col' => 'b', 'texto' => ['zh' => 'chī fàn']],
+                ['clave' => 'p3', 'col' => 'b', 'texto' => ['zh' => 'shàngkè']],
+                ['clave' => 'p4', 'col' => 'b', 'texto' => ['zh' => 'shuìjiào']],
+                ['clave' => 's1', 'col' => 'c', 'texto' => ['es' => 'levantarse']],
+                ['clave' => 's2', 'col' => 'c', 'texto' => ['es' => 'comer']],
+                ['clave' => 's3', 'col' => 'c', 'texto' => ['es' => 'tener clase']],
+                ['clave' => 's4', 'col' => 'c', 'texto' => ['es' => 'dormir']],
+            ],
+            'parejas' => [['c1', 'p1', 's1'], ['c2', 'p2', 's2'], ['c3', 'p3', 's3'], ['c4', 'p4', 's4']],
+        ],
+
+        [
+            'tipo' => 'orden', 'descriptor' => 'A1.PO.2', 'lengua' => 'zh', 'seq' => 4,
+            // La hora ANTES del verbo. Dos órdenes válidos: 我每天六点… y
+            // 每天我六点… (el tiempo puede abrir la frase). «我六点每天»
+            // y cualquier hora detrás del verbo, no.
+            'consigna' => ['es' => 'Ordena las fichas para decir «Cada día me levanto a las seis». Hay dos órdenes correctos; en los dos, la hora va ANTES del verbo. El punto ya está puesto.'],
+            'palabras' => [
+                ['clave' => 'w1', 'texto' => ['zh' => 'wǒ']],
+                ['clave' => 'w2', 'texto' => ['zh' => 'měitiān']],
+                ['clave' => 'w3', 'texto' => ['zh' => 'liù diǎn']],
+                ['clave' => 'w4', 'texto' => ['zh' => 'qǐchuáng']],
+            ],
+            'secuencias' => [
+                ['w1', 'w2', 'w3', 'w4'],
+                ['w2', 'w1', 'w3', 'w4'],
+            ],
+        ],
+
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.PO.2', 'lengua' => 'zh', 'seq' => 5,
+            // Quién + cuándo + 在 dónde + verbo.
+            'consigna' => ['es' => '¿Cuál es el orden correcto para «Por la mañana tengo clase en la escuela»?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['zh' => '我上午在学校上课。 Wǒ shàngwǔ zài xuéxiào shàngkè.']],
+                ['clave' => 'b', 'texto' => ['zh' => '我上课在学校上午。 Wǒ shàngkè zài xuéxiào shàngwǔ.']],
+                ['clave' => 'c', 'texto' => ['zh' => '我在学校上课上午。 Wǒ zài xuéxiào shàngkè shàngwǔ.']],
+            ],
+            'correcta' => 'a',
+        ],
+
+        // ============ ZH U3 · A1.IO.2 — tres ítems: la hora ============
+
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.2', 'lengua' => 'zh', 'seq' => 1,
+            // 两 frente a 二.
+            'consigna' => ['es' => 'Son las dos. ¿Cómo se dice?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['zh' => '两点 liǎng diǎn']],
+                ['clave' => 'b', 'texto' => ['zh' => '二点 èr diǎn']],
+                ['clave' => 'c', 'texto' => ['zh' => '两个 liǎng gè']],
+            ],
+            'correcta' => 'a',
+        ],
+
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.IO.2', 'lengua' => 'zh', 'seq' => 2,
+            'consigna' => ['es' => 'Completa en pinyin: « Xiànzài sān diǎn ___. »  (Son las tres Y MEDIA — una sílaba.)'],
+            'aceptadas' => ['bàn', 'ban4', '半'],
+        ],
+
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.2', 'lengua' => 'zh', 'seq' => 3,
+            // La palabra interrogativa ocupa el sitio de la respuesta.
+            'consigna' => ['es' => 'Quieres preguntar «¿A qué hora te levantas?». ¿Cuál es correcta?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['zh' => '你几点起床？ Nǐ jǐ diǎn qǐchuáng?']],
+                ['clave' => 'b', 'texto' => ['zh' => '几点你起床？ Jǐ diǎn nǐ qǐchuáng?']],
+                ['clave' => 'c', 'texto' => ['zh' => '你起床几点？ Nǐ qǐchuáng jǐ diǎn?']],
+            ],
+            'correcta' => 'a',
+        ],
+
+        // ============ ZH U3 · A1.CE.2 — un ítem más: el horario ============
+
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.2', 'lengua' => 'zh', 'seq' => 3,
+            'consigna' => ['es' => 'Un mensaje de Wáng lǎoshī: «明天上午八点半上课，下午三点回家。» ¿Qué dice?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'Mañana hay clase a las 8:30 de la mañana y se vuelve a casa a las 3 de la tarde']],
+                ['clave' => 'b', 'texto' => ['es' => 'Mañana hay clase a las 3 de la tarde y se vuelve a casa a las 8:30']],
+                ['clave' => 'c', 'texto' => ['es' => 'Hoy hay clase a las 8 y media y a las 3']],
+            ],
+            'correcta' => 'a',
+        ],
+
+        // ============ ZH U4 · A1.IO.2 — tres ítems más: gustos ============
+
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.IO.2', 'lengua' => 'zh', 'seq' => 4,
+            'consigna' => ['es' => 'Completa en pinyin la pregunta: « Nǐ ___ shénme? »  (¿Qué TE GUSTA? — dos sílabas, la segunda con tono neutro.)'],
+            'aceptadas' => ['xǐhuan', 'xǐ huan', 'xǐhuān', 'xi3huan', 'xi3 huan', 'xi3huan1', '喜欢'],
+        ],
+
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.2', 'lengua' => 'zh', 'seq' => 5,
+            // 也 entre sujeto y verbo.
+            'consigna' => ['es' => 'Lǐ Míng dice «我喜欢茶» y a ti también te gusta el té. ¿Qué dices?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['zh' => '我也喜欢茶。 Wǒ yě xǐhuan chá.']],
+                ['clave' => 'b', 'texto' => ['zh' => '我喜欢茶也。 Wǒ xǐhuan chá yě.']],
+                ['clave' => 'c', 'texto' => ['zh' => '也我喜欢茶。 Yě wǒ xǐhuan chá.']],
+            ],
+            'correcta' => 'a',
+        ],
+
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.2', 'lengua' => 'zh', 'seq' => 6,
+            'consigna' => ['es' => 'Te preguntan «你喜欢咖啡吗？» y no te gusta el café. ¿Qué contestas?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['zh' => '不喜欢。 Bù xǐhuan.']],
+                ['clave' => 'b', 'texto' => ['zh' => '没喜欢。 Méi xǐhuan.']],
+                ['clave' => 'c', 'texto' => ['zh' => '不是。 Bú shì.']],
+            ],
+            'correcta' => 'a',
+        ],
+
+        // ============ ZH U4 · A1.PO.2 — tres ítems más: el adjetivo con 很 ============
+
+        [
+            'tipo' => 'orden', 'descriptor' => 'A1.PO.2', 'lengua' => 'zh', 'seq' => 6,
+            // 也 va entre sujeto y verbo. Un solo orden.
+            'consigna' => ['es' => 'Ordena las fichas para decir «A mí también me gusta la música». El punto ya está puesto.'],
+            'palabras' => [
+                ['clave' => 'w1', 'texto' => ['zh' => 'wǒ']],
+                ['clave' => 'w2', 'texto' => ['zh' => 'yě']],
+                ['clave' => 'w3', 'texto' => ['zh' => 'xǐhuan']],
+                ['clave' => 'w4', 'texto' => ['zh' => 'yīnyuè']],
+            ],
+            'secuencias' => [
+                ['w1', 'w2', 'w3', 'w4'],
+            ],
+        ],
+
+        [
+            'tipo' => 'pares', 'descriptor' => 'A1.PO.2', 'lengua' => 'zh', 'seq' => 7,
+            'consigna' => ['es' => 'Une cada adjetivo con su pinyin y con su significado.'],
+            'elementos' => [
+                ['clave' => 'c1', 'col' => 'a', 'texto' => ['zh' => '大']],
+                ['clave' => 'c2', 'col' => 'a', 'texto' => ['zh' => '小']],
+                ['clave' => 'c3', 'col' => 'a', 'texto' => ['zh' => '好吃']],
+                ['clave' => 'c4', 'col' => 'a', 'texto' => ['zh' => '好看']],
+                ['clave' => 'p1', 'col' => 'b', 'texto' => ['zh' => 'dà']],
+                ['clave' => 'p2', 'col' => 'b', 'texto' => ['zh' => 'xiǎo']],
+                ['clave' => 'p3', 'col' => 'b', 'texto' => ['zh' => 'hǎochī']],
+                ['clave' => 'p4', 'col' => 'b', 'texto' => ['zh' => 'hǎokàn']],
+                ['clave' => 's1', 'col' => 'c', 'texto' => ['es' => 'grande']],
+                ['clave' => 's2', 'col' => 'c', 'texto' => ['es' => 'pequeño']],
+                ['clave' => 's3', 'col' => 'c', 'texto' => ['es' => 'rico (de comer)']],
+                ['clave' => 's4', 'col' => 'c', 'texto' => ['es' => 'bonito']],
+            ],
+            'parejas' => [['c1', 'p1', 's1'], ['c2', 'p2', 's2'], ['c3', 'p3', 's3'], ['c4', 'p4', 's4']],
+        ],
+
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.PO.2', 'lengua' => 'zh', 'seq' => 8,
+            // El adjetivo es el verbo: sin 是, con 很.
+            'consigna' => ['es' => '¿Cómo se dice «El té está rico»?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['zh' => '茶很好喝。 Chá hěn hǎohē.']],
+                ['clave' => 'b', 'texto' => ['zh' => '茶是好喝。 Chá shì hǎohē.']],
+                ['clave' => 'c', 'texto' => ['zh' => '茶是很好喝。 Chá shì hěn hǎohē.']],
+            ],
+            'correcta' => 'a',
+        ],
+
+        // ============ ZH U4 · A1.EE.1 — dos ítems: la nota corta ============
+
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.EE.1', 'lengua' => 'zh', 'seq' => 1,
+            // La partícula de pregunta cierra la nota.
+            'consigna' => ['es' => 'Termina la nota de Sofía en pinyin: « Lǐ Míng: Wǒ jīntiān xiàwǔ sān diǎn zài jiā. Nǐ lái ___? »  (¿VIENES? — la partícula que convierte la frase en pregunta.)'],
+            'aceptadas' => ['ma', 'ma5', 'ma0', '吗'],
+        ],
+
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.EE.1', 'lengua' => 'zh', 'seq' => 2,
+            'consigna' => ['es' => 'Tienes que dejarle una nota a tu madre: estás en la escuela y vuelves a las seis. ¿Cuál está bien escrita?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['zh' => '妈妈：我在学校。我六点回家。 Māma: Wǒ zài xuéxiào. Wǒ liù diǎn huí jiā.']],
+                ['clave' => 'b', 'texto' => ['zh' => '妈妈：我是学校。我回家六点。 Māma: Wǒ shì xuéxiào. Wǒ huí jiā liù diǎn.']],
+                ['clave' => 'c', 'texto' => ['zh' => '妈妈：我在学校。六点我回家在。 Māma: Wǒ zài xuéxiào. Liù diǎn wǒ huí jiā zài.']],
+            ],
+            'correcta' => 'a',
+        ],
+
+
+        // ============ ZH U5 · A1.CE.3 — tres ítems: seguir indicaciones ============
+
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.3', 'lengua' => 'zh', 'seq' => 1,
+            // El punto de referencia va primero.
+            'consigna' => ['es' => 'Lees: «医院在学校旁边。» ¿Dónde está el hospital?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'Al lado de la escuela']],
+                ['clave' => 'b', 'texto' => ['es' => 'Dentro de la escuela']],
+                ['clave' => 'c', 'texto' => ['es' => 'La escuela está al lado del hospital… es decir, no se sabe cuál es la referencia']],
+            ],
+            'correcta' => 'a',
+        ],
+
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.CE.3', 'lengua' => 'zh', 'seq' => 2,
+            'consigna' => ['es' => 'Completa en pinyin la pregunta: « Qǐngwèn, shāngdiàn zài ___? »  (Disculpe, ¿DÓNDE está la tienda? — con la r final del norte.)'],
+            'aceptadas' => ['nǎr', 'na3r', 'nǎ er', 'nǎer', 'na3 er5', '哪儿'],
+        ],
+
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.3', 'lengua' => 'zh', 'seq' => 3,
+            'consigna' => ['es' => 'Un mensaje: «饭馆在火车站前面，不远，很近。» ¿Qué haces?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'Voy delante de la estación de tren: el restaurante está cerca']],
+                ['clave' => 'b', 'texto' => ['es' => 'Voy detrás de la estación: el restaurante está lejos']],
+                ['clave' => 'c', 'texto' => ['es' => 'Cojo el tren: el restaurante está en otra ciudad']],
+            ],
+            'correcta' => 'a',
+        ],
+
+        // ============ ZH U5 · A1.IO.2 — dos ítems más: preguntar por un sitio ============
+
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.IO.2', 'lengua' => 'zh', 'seq' => 7,
+            // La fórmula para abordar a un desconocido.
+            'consigna' => ['es' => 'Completa en pinyin la fórmula para preguntar a un desconocido: « ___, yīyuàn zài nǎr? »  (DISCULPE — dos sílabas, «por favor-preguntar».)'],
+            'aceptadas' => ['qǐngwèn', 'qǐng wèn', 'qing3wen4', 'qing3 wen4', '请问'],
+        ],
+
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.2', 'lengua' => 'zh', 'seq' => 8,
+            'consigna' => ['es' => 'Preguntas «远吗？» (¿está lejos?) y te contestan «不远，很近». ¿Qué te han dicho?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'No está lejos, está muy cerca']],
+                ['clave' => 'b', 'texto' => ['es' => 'Está lejos, no está cerca']],
+                ['clave' => 'c', 'texto' => ['es' => 'No lo saben']],
+            ],
+            'correcta' => 'a',
+        ],
+
+        // ============ ZH U5 · A1.PO.1 — dos ítems más: describir mi ciudad ============
+
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.1', 'lengua' => 'zh', 'seq' => 6,
+            // 有 = hay.
+            'consigna' => ['es' => 'Completa en pinyin: « Jīduō ___ hěn duō shān. »  (En Quito HAY muchas montañas — el mismo verbo que «tener».)'],
+            'aceptadas' => ['yǒu', 'you3', '有'],
+        ],
+
+        [
+            'tipo' => 'pares', 'descriptor' => 'A1.PO.1', 'lengua' => 'zh', 'seq' => 7,
+            'consigna' => ['es' => 'Une cada lugar con su pinyin y con su significado.'],
+            'elementos' => [
+                ['clave' => 'c1', 'col' => 'a', 'texto' => ['zh' => '商店']],
+                ['clave' => 'c2', 'col' => 'a', 'texto' => ['zh' => '医院']],
+                ['clave' => 'c3', 'col' => 'a', 'texto' => ['zh' => '公园']],
+                ['clave' => 'c4', 'col' => 'a', 'texto' => ['zh' => '火车站']],
+                ['clave' => 'p1', 'col' => 'b', 'texto' => ['zh' => 'shāngdiàn']],
+                ['clave' => 'p2', 'col' => 'b', 'texto' => ['zh' => 'yīyuàn']],
+                ['clave' => 'p3', 'col' => 'b', 'texto' => ['zh' => 'gōngyuán']],
+                ['clave' => 'p4', 'col' => 'b', 'texto' => ['zh' => 'huǒchēzhàn']],
+                ['clave' => 's1', 'col' => 'c', 'texto' => ['es' => 'tienda']],
+                ['clave' => 's2', 'col' => 'c', 'texto' => ['es' => 'hospital']],
+                ['clave' => 's3', 'col' => 'c', 'texto' => ['es' => 'parque']],
+                ['clave' => 's4', 'col' => 'c', 'texto' => ['es' => 'estación de tren']],
+            ],
+            'parejas' => [['c1', 'p1', 's1'], ['c2', 'p2', 's2'], ['c3', 'p3', 's3'], ['c4', 'p4', 's4']],
+        ],
+
+        // ============ ZH U6 · A1.IO.2 — dos ítems más: pedir ============
+
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.IO.2', 'lengua' => 'zh', 'seq' => 9,
+            'consigna' => ['es' => 'Completa en pinyin lo que le dices al camarero: « Wǒ ___ yì wǎn mǐfàn. »  (QUIERO un cuenco de arroz — el verbo de pedir, una sílaba.)'],
+            'aceptadas' => ['yào', 'yao4', '要'],
+        ],
+
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.2', 'lengua' => 'zh', 'seq' => 10,
+            'consigna' => ['es' => 'Quieres saber cuánto cuesta un té. ¿Qué preguntas?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['zh' => '一杯茶多少钱？ Yì bēi chá duōshao qián?']],
+                ['clave' => 'b', 'texto' => ['zh' => '一杯茶几钱？ Yì bēi chá jǐ qián?']],
+                ['clave' => 'c', 'texto' => ['zh' => '多少钱一杯茶是？ Duōshao qián yì bēi chá shì?']],
+            ],
+            'correcta' => 'a',
+        ],
+
+        // ============ ZH U6 · A1.CE.1 — dos ítems más: los letreros ============
+
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.1', 'lengua' => 'zh', 'seq' => 3,
+            'consigna' => ['es' => 'En el metro ves una flecha y «出口». ¿Hacia dónde lleva?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'A la salida']],
+                ['clave' => 'b', 'texto' => ['es' => 'A la entrada']],
+                ['clave' => 'c', 'texto' => ['es' => 'A los baños']],
+            ],
+            'correcta' => 'a',
+        ],
+
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.1', 'lengua' => 'zh', 'seq' => 4,
+            'consigna' => ['es' => 'Dos puertas: una pone «男» y otra «女». Sofía busca el baño. ¿Cuál es el suyo?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => '女: es el de mujeres']],
+                ['clave' => 'b', 'texto' => ['es' => '男: es el de mujeres']],
+                ['clave' => 'c', 'texto' => ['es' => 'Ninguna: son «abierto» y «cerrado»']],
+            ],
+            'correcta' => 'a',
+        ],
+
+        // ============ ZH U6 · A1.PO.2 — dos ítems más: qué como, con medidor ============
+
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.2', 'lengua' => 'zh', 'seq' => 9,
+            // 两 delante de medidor.
+            'consigna' => ['es' => 'Completa en pinyin: « Wǒ yào ___ wǎn miàntiáo. »  (Quiero DOS cuencos de fideos — el «dos» que va delante de un medidor.)'],
+            'aceptadas' => ['liǎng', 'liang3', '两'],
+        ],
+
+        [
+            'tipo' => 'pares', 'descriptor' => 'A1.PO.2', 'lengua' => 'zh', 'seq' => 10,
+            'consigna' => ['es' => 'Une cada comida o bebida con su pinyin y con su significado.'],
+            'elementos' => [
+                ['clave' => 'c1', 'col' => 'a', 'texto' => ['zh' => '米饭']],
+                ['clave' => 'c2', 'col' => 'a', 'texto' => ['zh' => '面条']],
+                ['clave' => 'c3', 'col' => 'a', 'texto' => ['zh' => '水']],
+                ['clave' => 'c4', 'col' => 'a', 'texto' => ['zh' => '茶']],
+                ['clave' => 'c5', 'col' => 'a', 'texto' => ['zh' => '鱼']],
+                ['clave' => 'p1', 'col' => 'b', 'texto' => ['zh' => 'mǐfàn']],
+                ['clave' => 'p2', 'col' => 'b', 'texto' => ['zh' => 'miàntiáo']],
+                ['clave' => 'p3', 'col' => 'b', 'texto' => ['zh' => 'shuǐ']],
+                ['clave' => 'p4', 'col' => 'b', 'texto' => ['zh' => 'chá']],
+                ['clave' => 'p5', 'col' => 'b', 'texto' => ['zh' => 'yú']],
+                ['clave' => 's1', 'col' => 'c', 'texto' => ['es' => 'arroz']],
+                ['clave' => 's2', 'col' => 'c', 'texto' => ['es' => 'fideos']],
+                ['clave' => 's3', 'col' => 'c', 'texto' => ['es' => 'agua']],
+                ['clave' => 's4', 'col' => 'c', 'texto' => ['es' => 'té']],
+                ['clave' => 's5', 'col' => 'c', 'texto' => ['es' => 'pescado']],
+            ],
+            'parejas' => [['c1', 'p1', 's1'], ['c2', 'p2', 's2'], ['c3', 'p3', 's3'], ['c4', 'p4', 's4'], ['c5', 'p5', 's5']],
+        ],
+
+        // ============ ZH U7 · A1.IO.2 — dos ítems más: precios y tiempo ============
+
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.2', 'lengua' => 'zh', 'seq' => 11,
+            // 太…了 con sus dos piezas.
+            'consigna' => ['es' => 'Una prenda cuesta 300 yuanes y te parece demasiado. ¿Qué dices?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['zh' => '太贵了！ Tài guì le!']],
+                ['clave' => 'b', 'texto' => ['zh' => '很贵了！ Hěn guì le!']],
+                ['clave' => 'c', 'texto' => ['zh' => '太贵！ Tài guì!']],
+            ],
+            'correcta' => 'a',
+        ],
+
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.IO.2', 'lengua' => 'zh', 'seq' => 12,
+            'consigna' => ['es' => 'Completa en pinyin la respuesta a «今天天气怎么样？»: « Jīntiān hěn ___. »  (Hoy hace FRÍO — una sílaba, tercer tono.)'],
+            'aceptadas' => ['lěng', 'leng3', '冷'],
+        ],
+
+        // ============ ZH U7 · A1.PO.1 — dos ítems más: este / ese, y el adjetivo-verbo ============
+
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.1', 'lengua' => 'zh', 'seq' => 8,
+            // 这 + medidor propio: 件 para prendas.
+            'consigna' => ['es' => 'Completa en pinyin con «este» y el medidor de prendas: « ___ yīfu hěn piàoliang. »  (ESTA prenda es muy bonita — dos sílabas: 这 + el medidor de ropa.)'],
+            'aceptadas' => ['zhè jiàn', 'zhèjiàn', 'zhe4 jian4', 'zhe4jian4', '这件'],
+        ],
+
+        [
+            'tipo' => 'orden', 'descriptor' => 'A1.PO.1', 'lengua' => 'zh', 'seq' => 9,
+            // El adjetivo es el verbo; 很 delante. Un solo orden.
+            'consigna' => ['es' => 'Ordena las fichas para decir «Hoy hace mucho calor». El punto ya está puesto.'],
+            'palabras' => [
+                ['clave' => 'w1', 'texto' => ['zh' => 'jīntiān']],
+                ['clave' => 'w2', 'texto' => ['zh' => 'hěn']],
+                ['clave' => 'w3', 'texto' => ['zh' => 'rè']],
+            ],
+            'secuencias' => [
+                ['w1', 'w2', 'w3'],
+            ],
+        ],
+
+        // ============ ZH U7 · A1.CE.1 y A1.CE.2 — una etiqueta y un mensaje ============
+
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.1', 'lengua' => 'zh', 'seq' => 5,
+            'consigna' => ['es' => 'En la etiqueta de una camiseta pone «衣服 · 80元». ¿Qué es y cuánto cuesta?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'Una prenda de ropa, 80 yuanes']],
+                ['clave' => 'b', 'texto' => ['es' => 'Un par de zapatos, 80 dólares']],
+                ['clave' => 'c', 'texto' => ['es' => 'Ropa de la talla 80']],
+            ],
+            'correcta' => 'a',
+        ],
+
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.2', 'lengua' => 'zh', 'seq' => 4,
+            'consigna' => ['es' => 'Lǐ Míng escribe: «明天很冷，下雨。你来学校吗？» ¿Qué dice?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'Mañana hará frío y lloverá; pregunta si vienes a la escuela']],
+                ['clave' => 'b', 'texto' => ['es' => 'Mañana hará calor; pregunta si vienes a su casa']],
+                ['clave' => 'c', 'texto' => ['es' => 'Hoy llueve y no va a ir a la escuela']],
+            ],
+            'correcta' => 'a',
+        ],
+
+        // ============ ZH U8 · A1.PO.2 — tres ítems más: 了 y 没 ============
+
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.2', 'lengua' => 'zh', 'seq' => 11,
+            // 了 detrás del verbo.
+            'consigna' => ['es' => 'Completa en pinyin: « Zuótiān wǒ qù ___ shāngdiàn. »  (Ayer FUI a la tienda — la partícula de acción terminada, tono neutro.)'],
+            'aceptadas' => ['le', 'le5', 'le0', '了'],
+        ],
+
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.2', 'lengua' => 'zh', 'seq' => 12,
+            // La negación del pasado, sin 了.
+            'consigna' => ['es' => 'Completa en pinyin la negación: « Wǎnshang wǒ ___ zuò zuòyè. »  (Por la noche NO hice los deberes — la negación del pasado, una sílaba.)'],
+            'aceptadas' => ['méi', 'mei2', '没'],
+        ],
+
+        [
+            'tipo' => 'orden', 'descriptor' => 'A1.PO.2', 'lengua' => 'zh', 'seq' => 13,
+            // 了 va pegado al verbo; 昨天 puede abrir la frase o ir tras el
+            // sujeto. Dos órdenes válidos, en caracteres: a estas alturas
+            // los cinco son conocidos.
+            'consigna' => ['es' => 'Ordena las fichas para decir «Ayer vi una película». Hay dos órdenes correctos según dónde pongas «ayer». El punto ya está puesto.'],
+            'palabras' => [
+                ['clave' => 'w1', 'texto' => ['zh' => '昨天']],
+                ['clave' => 'w2', 'texto' => ['zh' => '我']],
+                ['clave' => 'w3', 'texto' => ['zh' => '看了']],
+                ['clave' => 'w4', 'texto' => ['zh' => '一个']],
+                ['clave' => 'w5', 'texto' => ['zh' => '电影']],
+            ],
+            'secuencias' => [
+                ['w1', 'w2', 'w3', 'w4', 'w5'],
+                ['w2', 'w1', 'w3', 'w4', 'w5'],
+            ],
+        ],
+
+        // ============ ZH U8 · A1.IO.2 — un ítem más: preguntar por el pasado ============
+
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.2', 'lengua' => 'zh', 'seq' => 13,
+            // La respuesta corta repite el verbo.
+            'consigna' => ['es' => 'Te preguntan «你昨天去了学校吗？» y no fuiste. ¿Qué contestas?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['zh' => '没去。 Méi qù.']],
+                ['clave' => 'b', 'texto' => ['zh' => '不去了。 Bú qù le.']],
+                ['clave' => 'c', 'texto' => ['zh' => '没去了。 Méi qù le.']],
+            ],
+            'correcta' => 'a',
+        ],
+
+        // ============ ZH U8 · A1.EE.1 y A1.CE.2 — escribir y leer el pasado ============
+
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.EE.1', 'lengua' => 'zh', 'seq' => 3,
+            'consigna' => ['es' => 'Termina la nota en pinyin: « Māma: Wǒ hé péngyou kàn ___ yí gè diànyǐng. Wǒ liù diǎn huí jiā. »  (Vi una película con un amigo — la partícula que marca la acción terminada.)'],
+            'aceptadas' => ['le', 'le5', 'le0', '了'],
+        ],
+
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.2', 'lengua' => 'zh', 'seq' => 5,
+            'consigna' => ['es' => 'Lǐ Míng escribe: «昨天我去了公园，没看电影。太累了！» ¿Qué hizo ayer?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'Fue al parque y no vio la película; acabó muy cansado']],
+                ['clave' => 'b', 'texto' => ['es' => 'Vio una película en el parque']],
+                ['clave' => 'c', 'texto' => ['es' => 'No fue al parque porque estaba cansado']],
+            ],
+            'correcta' => 'a',
+        ],
+
+        // ============ ZH U9 · A1.IO.1 — tres ítems: reparar la conversación ============
+
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.1', 'lengua' => 'zh', 'seq' => 1,
+            'consigna' => ['es' => 'Wáng lǎoshī te dice algo muy rápido y no entiendes nada. ¿Qué dices para que la conversación siga en chino?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['zh' => '对不起，我听不懂。请再说一遍。 Duìbuqǐ, wǒ tīng bu dǒng. Qǐng zài shuō yí biàn.']],
+                ['clave' => 'b', 'texto' => ['zh' => 'No entiendo, ¿puede repetir?']],
+                ['clave' => 'c', 'texto' => ['zh' => '是，是，好的。 Shì, shì, hǎo de.']],
+            ],
+            'correcta' => 'a',
+        ],
+
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.IO.1', 'lengua' => 'zh', 'seq' => 2,
+            'consigna' => ['es' => 'Completa en pinyin: « Qǐng shuō ___ yìdiǎnr. »  (Hable más DESPACIO, por favor — una sílaba, cuarto tono.)'],
+            'aceptadas' => ['màn', 'man4', '慢'],
+        ],
+
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.1', 'lengua' => 'zh', 'seq' => 3,
+            'consigna' => ['es' => 'No sabes cómo se dice «mochila» en chino y la necesitas en la frase. ¿Qué preguntas?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['zh' => '«mochila» 用中文怎么说？ … yòng Zhōngwén zěnme shuō?']],
+                ['clave' => 'b', 'texto' => ['zh' => '«mochila» 是什么意思？ … shì shénme yìsi?']],
+                ['clave' => 'c', 'texto' => ['zh' => '请再说一遍 «mochila»。 Qǐng zài shuō yí biàn «mochila».']],
             ],
             'correcta' => 'a',
         ],
