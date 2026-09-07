@@ -69,7 +69,7 @@ class RevisionController extends Controller
         $notas = $this->ultimasNotas($piezas);
         $vistas = $this->vistas();
 
-        $porDescriptor = $this->curso->unidadesPorDescriptor();
+        $porDescriptor = $this->curso->unidadesPorDescriptor($lengua);
         $unidades = [];
 
         foreach ($piezas as $pieza) {
@@ -81,7 +81,7 @@ class RevisionController extends Controller
             $n = $porDescriptor[$code] ?? 0;
 
             $unidades[$n]['n'] = $n;
-            $unidades[$n]['titulo'] = $n === 0 ? 'Sin unidad' : ($this->curso->tituloUnidad($n) ?? "Unidad {$n}");
+            $unidades[$n]['titulo'] = $n === 0 ? 'Sin unidad' : ($this->curso->tituloDeUnidad($lengua, $n) ?? "Unidad {$n}");
             $unidades[$n]['descriptores'][$code]['code'] = $code;
             $unidades[$n]['descriptores'][$code]['statement'] = $descriptor?->statement['es'] ?? '';
             $unidades[$n]['descriptores'][$code]['piezas'][] = [
@@ -238,7 +238,7 @@ class RevisionController extends Controller
             'lengua' => ['nullable', 'string', \Illuminate\Validation\Rule::in(Lenguas::LISTA)],
         ]);
 
-        $porDescriptor = $this->curso->unidadesPorDescriptor();
+        $porDescriptor = $this->curso->unidadesPorDescriptor($data['lengua'] ?? null);
         $vistas = $this->vistas();
 
         $delaUnidad = $this->piezasDe($data['lengua'] ?? null, firmadas: false)

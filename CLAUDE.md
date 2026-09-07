@@ -589,12 +589,62 @@ Y una trampa de los tests que costó una mutación viva:
 `catch (RuntimeException)` alrededor de un `$this->fail()` se traga el fallo y
 el oráculo pasa siempre. Se captura en una bandera y se afirma FUERA del `try`.
 
+## Cambridge inglés, y un curso que DECLARA su forma (PR 6)
+
+Cambridge es inglés, y el grafo solo tenía su STEM. Ahora entra la lengua
+inglesa —y al entrar rompe tres reglas que el cascarón tenía escritas dentro.
+
+**El cascarón se generalizó.** Un curso ya no es «nueve unidades sobre trece
+descriptores `A1.*`»: cada curso DECLARA su marco y su lista de unidades en
+`database/data/cursos-lenguas.php` (clave `cursos`), y `CursoDeLenguas` no sabe
+cuántas hay ni cómo se llaman sus códigos. Lo que se sacó de dentro:
+
+- **El marco**: `contexto()` pedía `versionesDe('CEFR')` a pelo. Ahora
+  `marco($lengua)` — el inglés cuelga de `CAIE-LSEC`.
+- **Las unidades**: `existeUnidad($lengua, $n)` es POR CURSO. `/corso/en/u1` es
+  404 y `/corso/it/u1` es 200: el inglés son los Stages 7-9.
+- **Qué destreza es productiva**: era `str_contains($code, '.EE.')` dentro de
+  `CursoController`. Ahora lo declara el curso (`productivas`); el inglés no
+  declara ninguna, así que no tiene página de tarea.
+
+`/corso/en` = **Cambridge Lower Secondary English 0861, Stages 7-9** — la banda
+que este colegio enseña, la misma que ya declara `CAIE-LSEC`. Nace con las tres
+unidades en «próximamente»: el contenido de inglés lo escribe Carlos.
+
+**Lo que entró al grafo, y lo que NO** (`database/data/marcos-ingles-cambridge.json`,
+`CambridgeEnglishSeeder`):
+
+- `CAIE-PRI` es un marco NUEVO (Cambridge Primary 0058). El resto son
+  **injertos** bajo programas ya sembrados (`lsec`, `igcse`, `asa`): no se
+  duplica el programa, se busca por `path` y **revienta** si no está — un
+  injerto silencioso deja media lengua fuera del grafo sin que nadie se entere.
+- **Primary 0058 y Lower Secondary 0861 entran SIN objetivos.** Su framework
+  completo es de descarga protegida (solo escuelas Cambridge), así que entran
+  sus *strands* y *sub-strands* —públicos en el curriculum outline— como NODOS
+  sin código. **No se inventa un código para rellenar.**
+- **IGCSE (0500, 0510, 0511, 0472) y AS & A Level (9093) sí traen sus assessment
+  objectives** con código real, prefijado por syllabus (`0500.R1`), porque la
+  clave es (marco, versión, código) y Cambridge recicla códigos.
+- Enunciados = paráfrasis, `is_verified = false`, `source_url` por nodo. La
+  regla la impone `App\Services\Curriculum\ArbolDeMarco`, que es ahora el
+  único sitio que sabe aterrizar un nodo de marco (lo usaban dos seeders).
+
+**El mapeo con el MCER se declara, no se fabrica.** El CEFR sembrado tiene SOLO
+A1 (13 descriptores) y los objetivos ingleses con código están en B1-C1: enlazar
+unos con otros sería escribir una equivalencia falsa. Así que la banda va como
+ATRIBUTO del nodo (`mcer_aprox`, `mcer_fuente: SIN cotejar`) en la línea de
+SEGUNDA lengua y en 9093, y `alignments` se queda **vacía** para el inglés hasta
+que existan A2/B1/B2/C1. Además: 0058/0861/0500 son inglés como PRIMERA lengua y
+el MCER mide segundas — ahí la banda no es desconocida, es que **no aplica**, y
+el nodo lo dice (`mcer: SIN MAPEAR`).
+
 ## La frontera del contenido abierto (modelo Khan)
 
 Se **navega** y se **practica** sin sesión; se **guarda** y se **califica** solo con
 sesión LTI. Abiertas: `/catalogo`, `/catalogo/{node}`, `/destreza/{objective}`,
 `/buscar`, `/practicar/{objective}`, `/recurso/{resource}`, el cascarón del curso
-(`/corso/{lengua}`, `/corso/{lengua}/u{n}`, `/corso/{lengua}/u{n}/producir` — se
+(`/corso/{lengua}` para las CINCO lenguas —`fr it de zh en`—, `/corso/{lengua}/u{n}`,
+`/corso/{lengua}/u{n}/producir` — se
 VE la tarea, no se envía —, `/corso/{lengua}/u{n}/hablar`), los cinco endpoints de
 `/api/v1/practice/*` y `POST /api/v1/dialogos/{id}/completado` (el invitado juega
 y no escribe). Cerradas: `/inicio`, `/progreso`, `/docente/*` y **toda producción**
