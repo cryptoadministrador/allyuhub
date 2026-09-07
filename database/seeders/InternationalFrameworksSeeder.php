@@ -2,10 +2,9 @@
 
 namespace Database\Seeders;
 
-use App\Models\CurNode;
 use App\Models\Framework;
 use App\Models\FrameworkVersion;
-use App\Models\LearningObjective;
+use App\Services\Curriculum\ArbolDeMarco;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -71,49 +70,9 @@ class InternationalFrameworksSeeder extends Seeder
                 );
 
                 foreach ($fwData['nodes'] as $i => $node) {
-                    $this->seedNode($ver, $node, null, $i);
+                    ArbolDeMarco::sembrar($ver, $node, null, $i);
                 }
             }
         });
-    }
-
-    /** Inserta un nodo, sus objetivos y —recursivamente— su subárbol. */
-    private function seedNode(FrameworkVersion $ver, array $data, ?string $parentId, int $seq): void
-    {
-        $node = CurNode::updateOrCreate(
-            ['version_id' => $ver->id, 'path' => $data['path']],
-            [
-                'parent_id' => $parentId,
-                'node_type' => $data['node_type'],
-                'native_code' => $data['native_code'] ?? null,
-                'title' => array_filter([
-                    'es' => $data['title_es'] ?? null,
-                    'en' => $data['title_en'] ?? null,
-                ]),
-                'seq' => $seq,
-                'age_min' => $data['age_min'] ?? null,
-                'age_max' => $data['age_max'] ?? null,
-                'attrs' => $data['attrs'] ?? [],
-            ],
-        );
-
-        foreach ($data['objectives'] ?? [] as $o) {
-            [$code, $en, $es] = $o;
-            $attrs = $o[3] ?? [];
-
-            LearningObjective::updateOrCreate(
-                ['version_id' => $ver->id, 'node_id' => $node->id, 'native_code' => $code],
-                [
-                    'statement' => ['es' => $es, 'en' => $en],
-                    // Paráfrasis de trabajo: nadie las ha cotejado contra la fuente oficial.
-                    'is_verified' => false,
-                    'attrs' => $attrs + ['fuente' => 'parafrasis-semilla'],
-                ],
-            );
-        }
-
-        foreach ($data['children'] ?? [] as $i => $child) {
-            $this->seedNode($ver, $child, $node->id, $i);
-        }
     }
 }

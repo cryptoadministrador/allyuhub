@@ -1,7 +1,16 @@
 <?php
 
 /**
- * LA ESTRUCTURA DE LOS CUATRO CURSOS — el molde de 9 unidades del MCER.
+ * LA ESTRUCTURA DE LOS CURSOS DE LENGUA — y CADA CURSO DECLARA LA SUYA.
+ *
+ * Hasta que entró el inglés, aquí había un solo molde —nueve unidades sobre los
+ * trece descriptores de A1— y el cascarón lo daba por hecho. El inglés lo rompe
+ * en los tres sitios a la vez: no son nueve unidades sino tres STAGES, su marco
+ * no es el MCER sino CAIE, y sus códigos no empiezan por `A1.`. Por eso ahora un
+ * curso DECLARA su marco y su lista de unidades, y `CursoDeLenguas` no sabe
+ * cuántas hay ni cómo se llaman los descriptores.
+ *
+ * El molde de 9 unidades del MCER.
  *
  * Nueve unidades idénticas en las cuatro lenguas (lo que el alumno SABE HACER
  * es lo mismo; cambia cómo se dice), del `ESQUELETO-9-UNIDADES.md` de Carlos.
@@ -69,12 +78,63 @@ $unidades = [
     ],
 ];
 
+/**
+ * EL CURSO DE INGLÉS: Cambridge Lower Secondary English 0861, Stages 7-9.
+ *
+ * Un alumno de inglés no avanza por el MCER: avanza por STAGES y por syllabus,
+ * que es lo que el colegio certifica. Se toma Lower Secondary —y no Primary ni
+ * IGCSE— porque es la banda que este colegio enseña, la misma que ya declara
+ * `CAIE-LSEC` en el grafo (`equivalencia_ec`: 8.º-10.º EGB).
+ *
+ * `descriptores` va VACÍO a propósito, y no es un olvido: el framework completo
+ * de Cambridge (el que trae el código de cada objetivo) es de descarga
+ * protegida, así que en el grafo entraron sus strands y sub-strands como NODOS
+ * y CERO objetivos con código. Sin descriptores no hay «Puedo…» que pintar, y
+ * las tres unidades salen «próximamente» — que es exactamente lo que tiene que
+ * pasar mientras no haya contenido de inglés, que lo escribe Carlos.
+ */
+$stagesIngles = [
+    7 => [
+        'titulo' => 'Stage 7',
+        'puede' => 'Leer, escribir y hablar en inglés con los objetivos del Stage 7 de Cambridge Lower Secondary.',
+        'descriptores' => [],
+    ],
+    8 => [
+        'titulo' => 'Stage 8',
+        'puede' => 'Ampliar lectura, escritura y expresión oral con los objetivos del Stage 8.',
+        'descriptores' => [],
+    ],
+    9 => [
+        'titulo' => 'Stage 9',
+        'puede' => 'Cerrar Lower Secondary y quedar listo para IGCSE con los objetivos del Stage 9.',
+        'descriptores' => [],
+    ],
+];
+
+/**
+ * Las destrezas PRODUCTIVAS de un curso: qué descriptor admite una tarea de
+ * escritura y cuál una de voz (`/corso/{lengua}/u{n}/producir`).
+ *
+ * Era una regla escrita DENTRO del controlador (`str_contains($code, '.EE.')`),
+ * cierta solo porque todos los cursos eran del MCER. Ahora la declara el curso:
+ * el inglés no declara ninguna, así que su página de tarea no existe (404) en
+ * vez de ofrecer una tarea contra un descriptor que no está.
+ */
+$productivasMcer = ['escritura' => '.EE.', 'voz' => '.PO.'];
+
 return [
     'nombres' => [
         'fr' => 'Francés',
         'it' => 'Italiano',
         'de' => 'Alemán',
         'zh' => 'Chino',
+        'en' => 'Inglés',
     ],
-    'unidades' => $unidades,
+    'cursos' => [
+        'fr' => ['marco' => 'CEFR', 'unidades' => $unidades, 'productivas' => $productivasMcer],
+        'it' => ['marco' => 'CEFR', 'unidades' => $unidades, 'productivas' => $productivasMcer],
+        'de' => ['marco' => 'CEFR', 'unidades' => $unidades, 'productivas' => $productivasMcer],
+        'zh' => ['marco' => 'CEFR', 'unidades' => $unidades, 'productivas' => $productivasMcer],
+        'en' => ['marco' => 'CAIE-LSEC', 'unidades' => $stagesIngles, 'productivas' => []],
+    ],
 ];

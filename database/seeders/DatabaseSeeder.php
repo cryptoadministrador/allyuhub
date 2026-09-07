@@ -13,6 +13,9 @@ class DatabaseSeeder extends Seeder
         // Los marcos internacionales van después de EC-MINEDEC porque el crosswalk
         // necesita las dos puntas ya sembradas.
         $this->call(InternationalFrameworksSeeder::class);
+        // El ingles de Cambridge INJERTA en los programas de arriba (lsec/igcse/asa),
+        // asi que va justo despues y revienta si no los encuentra.
+        $this->call(CambridgeEnglishSeeder::class);
         // El MCER: el marco de los cursos de idiomas (FR/IT/DE/ZH). Entra
         // verificado y citado — sus descriptores son públicos, al revés que
         // los syllabus de CAIE/IB.

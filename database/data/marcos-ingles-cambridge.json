@@ -1,0 +1,787 @@
+{
+    "_meta": {
+        "proposito": "La LENGUA INGLESA de Cambridge en el grafo curricular: Primary 0058, Lower Secondary 0861, IGCSE 0500/0510/0511/0472 y AS & A Level 9093. Complementa marcos-internacionales.json, que solo trae STEM.",
+        "codigos": "Cotejados contra las fuentes publicas vigentes en septiembre de 2026 (source_url de cada nodo). NO se inventa ningun codigo: los marcos de Primary y Lower Secondary son de descarga protegida, asi que de ellos entran STRANDS y SUB-STRANDS como NODOS (sin codigo) y CERO objetivos. De IGCSE y AS & A Level, cuyos syllabus si son publicos, entran los assessment objectives con su codigo real, prefijado por syllabus porque la clave es (marco, version, codigo).",
+        "advertencia": "Los ENUNCIADOS son parafrasis de trabajo, no citas literales de documentos con copyright de Cambridge Assessment International Education. Todos entran con is_verified=false: un docente con acceso al syllabus oficial debe cotejarlos antes de verificarlos.",
+        "mcer": "El mapeo con el MCER solo se declara en la linea de SEGUNDA lengua (0510/0511/0472) y en 9093, y siempre como aproximado y sin cotejar. 0058, 0861 y 0500 son ingles como PRIMERA lengua: el MCER mide segundas lenguas, asi que ahi no se afirma banda ninguna.",
+        "objetivos_formato": "[codigo_nativo, enunciado_en, enunciado_es]"
+    },
+    "frameworks": [
+        {
+            "code": "CAIE-PRI",
+            "authority": "Cambridge International",
+            "kind": "international",
+            "country": null,
+            "label": {
+                "es": "Cambridge Primary (marco curricular)",
+                "en": "Cambridge Primary Curriculum Frameworks"
+            },
+            "version": {
+                "label": "foto-2026-09",
+                "valid_from": "2019-01-01",
+                "source_url": "https://www.cambridgeinternational.org/programmes-and-qualifications/cambridge-primary/curriculum/english/"
+            },
+            "nodes": [
+                {
+                    "node_type": "programme",
+                    "path": "primary",
+                    "title_es": "Cambridge Primary",
+                    "title_en": "Cambridge Primary",
+                    "age_min": 5,
+                    "age_max": 11,
+                    "attrs": {
+                        "equivalencia_ec": [
+                            "g1",
+                            "g2",
+                            "g3",
+                            "g4",
+                            "g5",
+                            "g6"
+                        ],
+                        "source_url": "https://www.cambridgeinternational.org/programmes-and-qualifications/cambridge-primary/curriculum/english/"
+                    },
+                    "children": [
+                        {
+                            "node_type": "subject",
+                            "path": "primary.en0058",
+                            "title_es": "Ingles 0058 (primera lengua)",
+                            "title_en": "English 0058",
+                            "attrs": {
+                                "syllabus": "0058",
+                                "stages": [
+                                    1,
+                                    2,
+                                    3,
+                                    4,
+                                    5,
+                                    6
+                                ],
+                                "linea": "primera-lengua",
+                                "source_url": "https://www.cambridgeinternational.org/programmes-and-qualifications/cambridge-primary/curriculum/english/",
+                                "source_outline": "https://www.cambridgeinternational.org/languages/vietnam/Images/23894-cambridge-primary-english-curriculum-outline.pdf",
+                                "nota": "El marco curricular completo (el que trae el codigo de cada objetivo) solo lo descargan las escuelas Cambridge desde su sitio protegido. Aqui entran los STRANDS y SUB-STRANDS, que si son publicos en el curriculum outline. Los objetivos con codigo NO se inventan: entraran el dia que el colegio aporte el framework oficial.",
+                                "mcer": "SIN MAPEAR a proposito: 0058 es ingles como PRIMERA lengua y el MCER mide segundas lenguas. La escala pre-A1/A1 corresponde a la linea de segunda lengua (Primary English as a Second Language 0057), que no entra en esta tanda."
+                            },
+                            "children": [
+                                {
+                                    "node_type": "strand",
+                                    "path": "primary.en0058.reading",
+                                    "title_en": "Reading",
+                                    "title_es": "Lectura",
+                                    "attrs": {
+                                        "source_url": "https://www.cambridgeinternational.org/languages/vietnam/Images/23894-cambridge-primary-english-curriculum-outline.pdf"
+                                    },
+                                    "children": [
+                                        {
+                                            "node_type": "sub_strand",
+                                            "path": "primary.en0058.reading.ss1",
+                                            "title_en": "Develop broad reading skills.",
+                                            "title_es": "Desarrollar destrezas lectoras amplias.",
+                                            "attrs": {
+                                                "source_url": "https://www.cambridgeinternational.org/languages/vietnam/Images/23894-cambridge-primary-english-curriculum-outline.pdf"
+                                            }
+                                        },
+                                        {
+                                            "node_type": "sub_strand",
+                                            "path": "primary.en0058.reading.ss2",
+                                            "title_en": "Demonstrate understanding of explicit meaning in texts.",
+                                            "title_es": "Demostrar comprension del significado explicito de los textos.",
+                                            "attrs": {
+                                                "source_url": "https://www.cambridgeinternational.org/languages/vietnam/Images/23894-cambridge-primary-english-curriculum-outline.pdf"
+                                            }
+                                        },
+                                        {
+                                            "node_type": "sub_strand",
+                                            "path": "primary.en0058.reading.ss3",
+                                            "title_en": "Demonstrate understanding of implicit meaning in texts.",
+                                            "title_es": "Demostrar comprension del significado implicito de los textos.",
+                                            "attrs": {
+                                                "source_url": "https://www.cambridgeinternational.org/languages/vietnam/Images/23894-cambridge-primary-english-curriculum-outline.pdf"
+                                            }
+                                        },
+                                        {
+                                            "node_type": "sub_strand",
+                                            "path": "primary.en0058.reading.ss4",
+                                            "title_en": "Explain, comment on and analyse the way writers use stylistic and other features of language and structure in texts.",
+                                            "title_es": "Explicar, comentar y analizar como los autores usan recursos estilisticos y otros rasgos de lengua y estructura en los textos.",
+                                            "attrs": {
+                                                "source_url": "https://www.cambridgeinternational.org/languages/vietnam/Images/23894-cambridge-primary-english-curriculum-outline.pdf"
+                                            }
+                                        },
+                                        {
+                                            "node_type": "sub_strand",
+                                            "path": "primary.en0058.reading.ss5",
+                                            "title_en": "Recognise conventions and evaluate viewpoint, purpose, themes and ideas in texts.",
+                                            "title_es": "Reconocer convenciones y evaluar punto de vista, proposito, temas e ideas en los textos.",
+                                            "attrs": {
+                                                "source_url": "https://www.cambridgeinternational.org/languages/vietnam/Images/23894-cambridge-primary-english-curriculum-outline.pdf"
+                                            }
+                                        }
+                                    ]
+                                },
+                                {
+                                    "node_type": "strand",
+                                    "path": "primary.en0058.writing",
+                                    "title_en": "Writing",
+                                    "title_es": "Escritura",
+                                    "attrs": {
+                                        "source_url": "https://www.cambridgeinternational.org/languages/vietnam/Images/23894-cambridge-primary-english-curriculum-outline.pdf"
+                                    },
+                                    "children": [
+                                        {
+                                            "node_type": "sub_strand",
+                                            "path": "primary.en0058.writing.ss1",
+                                            "title_en": "Develop broad writing skills.",
+                                            "title_es": "Desarrollar destrezas de escritura amplias.",
+                                            "attrs": {
+                                                "source_url": "https://www.cambridgeinternational.org/languages/vietnam/Images/23894-cambridge-primary-english-curriculum-outline.pdf"
+                                            }
+                                        },
+                                        {
+                                            "node_type": "sub_strand",
+                                            "path": "primary.en0058.writing.ss2",
+                                            "title_en": "Select and develop content and use register and language appropriate to genre, purpose and audience.",
+                                            "title_es": "Seleccionar y desarrollar contenido y usar registro y lengua apropiados al genero, proposito y destinatario.",
+                                            "attrs": {
+                                                "source_url": "https://www.cambridgeinternational.org/languages/vietnam/Images/23894-cambridge-primary-english-curriculum-outline.pdf"
+                                            }
+                                        },
+                                        {
+                                            "node_type": "sub_strand",
+                                            "path": "primary.en0058.writing.ss3",
+                                            "title_en": "Structure and organise ideas coherently using sections or paragraphs.",
+                                            "title_es": "Estructurar y organizar ideas con coherencia usando secciones o parrafos.",
+                                            "attrs": {
+                                                "source_url": "https://www.cambridgeinternational.org/languages/vietnam/Images/23894-cambridge-primary-english-curriculum-outline.pdf"
+                                            }
+                                        },
+                                        {
+                                            "node_type": "sub_strand",
+                                            "path": "primary.en0058.writing.ss4",
+                                            "title_en": "Use a range of sentence structures and punctuation accurately to convey meaning and create particular effects.",
+                                            "title_es": "Usar variedad de estructuras oracionales y puntuacion con precision para transmitir significado y crear efectos.",
+                                            "attrs": {
+                                                "source_url": "https://www.cambridgeinternational.org/languages/vietnam/Images/23894-cambridge-primary-english-curriculum-outline.pdf"
+                                            }
+                                        },
+                                        {
+                                            "node_type": "sub_strand",
+                                            "path": "primary.en0058.writing.ss5",
+                                            "title_en": "Use accurate spelling.",
+                                            "title_es": "Usar ortografia correcta.",
+                                            "attrs": {
+                                                "source_url": "https://www.cambridgeinternational.org/languages/vietnam/Images/23894-cambridge-primary-english-curriculum-outline.pdf"
+                                            }
+                                        }
+                                    ]
+                                },
+                                {
+                                    "node_type": "strand",
+                                    "path": "primary.en0058.speaking_listening",
+                                    "title_en": "Speaking and listening",
+                                    "title_es": "Expresion oral y escucha",
+                                    "attrs": {
+                                        "source_url": "https://www.cambridgeinternational.org/languages/vietnam/Images/23894-cambridge-primary-english-curriculum-outline.pdf",
+                                        "nota": "El outline publico describe este strand en prosa y NO enumera sus sub-strands, asi que entra sin hijos en vez de con una lista inventada."
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "injertos": [
+        {
+            "framework": "CAIE-LSEC",
+            "padre": "lsec",
+            "nodo": {
+                "node_type": "subject",
+                "path": "lsec.en0861",
+                "title_es": "Ingles 0861 (primera lengua)",
+                "title_en": "English 0861",
+                "attrs": {
+                    "syllabus": "0861",
+                    "stages": [
+                        7,
+                        8,
+                        9
+                    ],
+                    "linea": "primera-lengua",
+                    "source_url": "https://www.cambridgeinternational.org/programmes-and-qualifications/cambridge-lower-secondary/curriculum/english/",
+                    "source_outline": "https://www.cambridgeinternational.org/Images/80589-cambridge-lower-secondary-english-curriculum-outline.pdf",
+                    "nota": "El marco curricular completo (el que trae el codigo de cada objetivo) solo lo descargan las escuelas Cambridge desde su sitio protegido. Aqui entran los STRANDS y SUB-STRANDS, que si son publicos en el curriculum outline. Los objetivos con codigo NO se inventan: entraran el dia que el colegio aporte el framework oficial.",
+                    "mcer": "SIN MAPEAR a proposito: 0861 es ingles como PRIMERA lengua. La escala A2/B1 corresponde a Lower Secondary English as a Second Language 0876, fuera de esta tanda."
+                },
+                "children": [
+                    {
+                        "node_type": "strand",
+                        "path": "lsec.en0861.reading",
+                        "title_en": "Reading",
+                        "title_es": "Lectura",
+                        "attrs": {
+                            "source_url": "https://www.cambridgeinternational.org/Images/80589-cambridge-lower-secondary-english-curriculum-outline.pdf"
+                        },
+                        "children": [
+                            {
+                                "node_type": "sub_strand",
+                                "path": "lsec.en0861.reading.ss1",
+                                "title_en": "Develop broad reading skills.",
+                                "title_es": "Desarrollar destrezas lectoras amplias.",
+                                "attrs": {
+                                    "source_url": "https://www.cambridgeinternational.org/Images/80589-cambridge-lower-secondary-english-curriculum-outline.pdf"
+                                }
+                            },
+                            {
+                                "node_type": "sub_strand",
+                                "path": "lsec.en0861.reading.ss2",
+                                "title_en": "Demonstrate understanding of explicit meaning in texts.",
+                                "title_es": "Demostrar comprension del significado explicito de los textos.",
+                                "attrs": {
+                                    "source_url": "https://www.cambridgeinternational.org/Images/80589-cambridge-lower-secondary-english-curriculum-outline.pdf"
+                                }
+                            },
+                            {
+                                "node_type": "sub_strand",
+                                "path": "lsec.en0861.reading.ss3",
+                                "title_en": "Demonstrate understanding of implicit meaning in texts.",
+                                "title_es": "Demostrar comprension del significado implicito de los textos.",
+                                "attrs": {
+                                    "source_url": "https://www.cambridgeinternational.org/Images/80589-cambridge-lower-secondary-english-curriculum-outline.pdf"
+                                }
+                            },
+                            {
+                                "node_type": "sub_strand",
+                                "path": "lsec.en0861.reading.ss4",
+                                "title_en": "Explain, comment on and analyse the way writers use stylistic and other features of language and structure in texts.",
+                                "title_es": "Explicar, comentar y analizar como los autores usan recursos estilisticos y otros rasgos de lengua y estructura en los textos.",
+                                "attrs": {
+                                    "source_url": "https://www.cambridgeinternational.org/Images/80589-cambridge-lower-secondary-english-curriculum-outline.pdf"
+                                }
+                            },
+                            {
+                                "node_type": "sub_strand",
+                                "path": "lsec.en0861.reading.ss5",
+                                "title_en": "Recognise conventions and evaluate viewpoint, purpose, themes and ideas in texts.",
+                                "title_es": "Reconocer convenciones y evaluar punto de vista, proposito, temas e ideas en los textos.",
+                                "attrs": {
+                                    "source_url": "https://www.cambridgeinternational.org/Images/80589-cambridge-lower-secondary-english-curriculum-outline.pdf"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "node_type": "strand",
+                        "path": "lsec.en0861.writing",
+                        "title_en": "Writing",
+                        "title_es": "Escritura",
+                        "attrs": {
+                            "source_url": "https://www.cambridgeinternational.org/Images/80589-cambridge-lower-secondary-english-curriculum-outline.pdf"
+                        },
+                        "children": [
+                            {
+                                "node_type": "sub_strand",
+                                "path": "lsec.en0861.writing.ss1",
+                                "title_en": "Develop broad writing skills.",
+                                "title_es": "Desarrollar destrezas de escritura amplias.",
+                                "attrs": {
+                                    "source_url": "https://www.cambridgeinternational.org/Images/80589-cambridge-lower-secondary-english-curriculum-outline.pdf"
+                                }
+                            },
+                            {
+                                "node_type": "sub_strand",
+                                "path": "lsec.en0861.writing.ss2",
+                                "title_en": "Select and develop content and use register and language appropriate to genre, purpose and audience.",
+                                "title_es": "Seleccionar y desarrollar contenido y usar registro y lengua apropiados al genero, proposito y destinatario.",
+                                "attrs": {
+                                    "source_url": "https://www.cambridgeinternational.org/Images/80589-cambridge-lower-secondary-english-curriculum-outline.pdf"
+                                }
+                            },
+                            {
+                                "node_type": "sub_strand",
+                                "path": "lsec.en0861.writing.ss3",
+                                "title_en": "Structure and organise ideas coherently using sections or paragraphs.",
+                                "title_es": "Estructurar y organizar ideas con coherencia usando secciones o parrafos.",
+                                "attrs": {
+                                    "source_url": "https://www.cambridgeinternational.org/Images/80589-cambridge-lower-secondary-english-curriculum-outline.pdf"
+                                }
+                            },
+                            {
+                                "node_type": "sub_strand",
+                                "path": "lsec.en0861.writing.ss4",
+                                "title_en": "Use a range of sentence structures and punctuation accurately to convey meaning and create particular effects.",
+                                "title_es": "Usar variedad de estructuras oracionales y puntuacion con precision para transmitir significado y crear efectos.",
+                                "attrs": {
+                                    "source_url": "https://www.cambridgeinternational.org/Images/80589-cambridge-lower-secondary-english-curriculum-outline.pdf"
+                                }
+                            },
+                            {
+                                "node_type": "sub_strand",
+                                "path": "lsec.en0861.writing.ss5",
+                                "title_en": "Use accurate spelling.",
+                                "title_es": "Usar ortografia correcta.",
+                                "attrs": {
+                                    "source_url": "https://www.cambridgeinternational.org/Images/80589-cambridge-lower-secondary-english-curriculum-outline.pdf"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "node_type": "strand",
+                        "path": "lsec.en0861.speaking_listening",
+                        "title_en": "Speaking and listening",
+                        "title_es": "Expresion oral y escucha",
+                        "attrs": {
+                            "source_url": "https://www.cambridgeinternational.org/Images/80589-cambridge-lower-secondary-english-curriculum-outline.pdf",
+                            "nota": "El outline publico describe este strand en prosa y NO enumera sus sub-strands, asi que entra sin hijos en vez de con una lista inventada."
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "framework": "CAIE-IGCSE",
+            "padre": "igcse",
+            "nodo": {
+                "node_type": "syllabus",
+                "path": "igcse.en0500",
+                "title_es": "Ingles primera lengua 0500",
+                "title_en": "First Language English 0500",
+                "attrs": {
+                    "vigencia": "2027-2029",
+                    "linea": "primera-lengua",
+                    "source_url": "https://www.cambridgeinternational.org/Images/718783-2027-2029-syllabus.pdf",
+                    "nota": "AO del syllabus 2027-2029. El componente de Speaking and listening es opcional."
+                },
+                "objectives": [
+                    [
+                        "0500.R1",
+                        "Demonstrate understanding of explicit meanings.",
+                        "Demostrar comprension de significados explicitos."
+                    ],
+                    [
+                        "0500.R2",
+                        "Demonstrate understanding of implicit meanings and attitudes.",
+                        "Demostrar comprension de significados implicitos y de actitudes."
+                    ],
+                    [
+                        "0500.R3",
+                        "Analyse, evaluate and develop facts, ideas and opinions with support from the text.",
+                        "Analizar, evaluar y desarrollar hechos, ideas y opiniones apoyandose en el texto."
+                    ],
+                    [
+                        "0500.R4",
+                        "Demonstrate understanding of how writers achieve effects and influence readers.",
+                        "Demostrar comprension de como los autores logran efectos e influyen en quien lee."
+                    ],
+                    [
+                        "0500.R5",
+                        "Select and use information for specific purposes.",
+                        "Seleccionar y usar informacion para propositos concretos."
+                    ],
+                    [
+                        "0500.W1",
+                        "Articulate experience and express what is thought, felt and imagined.",
+                        "Articular la experiencia y expresar lo que se piensa, se siente y se imagina."
+                    ],
+                    [
+                        "0500.W2",
+                        "Organise and structure facts, ideas and opinions for deliberate effect.",
+                        "Organizar y estructurar hechos, ideas y opiniones con un efecto buscado."
+                    ],
+                    [
+                        "0500.W3",
+                        "Use a range of vocabulary and sentence structures appropriate to context.",
+                        "Usar variedad de vocabulario y de estructuras oracionales apropiadas al contexto."
+                    ],
+                    [
+                        "0500.W4",
+                        "Use language appropriate to purpose and to engage the audience.",
+                        "Usar una lengua apropiada al proposito y capaz de enganchar a quien lee o escucha."
+                    ],
+                    [
+                        "0500.W5",
+                        "Make accurate use of spelling, punctuation and grammar.",
+                        "Usar con correccion la ortografia, la puntuacion y la gramatica."
+                    ],
+                    [
+                        "0500.SL1",
+                        "Articulate experience and express what is thought, felt and imagined.",
+                        "Articular la experiencia y expresar lo que se piensa, se siente y se imagina."
+                    ],
+                    [
+                        "0500.SL2",
+                        "Present facts, ideas and opinions for deliberate effect.",
+                        "Presentar hechos, ideas y opiniones con un efecto buscado."
+                    ],
+                    [
+                        "0500.SL3",
+                        "Communicate clearly, purposefully and fluently, appropriate to context.",
+                        "Comunicar con claridad, intencion y fluidez, de forma apropiada al contexto."
+                    ],
+                    [
+                        "0500.SL4",
+                        "Use register appropriate to context.",
+                        "Usar el registro apropiado al contexto."
+                    ],
+                    [
+                        "0500.SL5",
+                        "Listen and respond appropriately in conversation.",
+                        "Escuchar y responder de forma apropiada en la conversacion."
+                    ]
+                ]
+            }
+        },
+        {
+            "framework": "CAIE-IGCSE",
+            "padre": "igcse",
+            "nodo": {
+                "node_type": "syllabus",
+                "path": "igcse.esl0510",
+                "title_es": "Ingles segunda lengua 0510 (speaking endorsement)",
+                "title_en": "English as a Second Language 0510 (Speaking Endorsement)",
+                "attrs": {
+                    "vigencia": "2024-2026",
+                    "linea": "segunda-lengua",
+                    "source_url": "https://www.cambridgeinternational.org/Images/637160-2024-2026-syllabus.pdf",
+                    "mcer_aprox": "B1-B2",
+                    "mcer_fuente": "mapeo de trabajo, SIN cotejar contra Cambridge",
+                    "nota": "La nota de Speaking se informa aparte (endorsement). 0511 es la variante que la promedia."
+                },
+                "objectives": [
+                    [
+                        "0510.R1",
+                        "Demonstrate understanding of specific factual information.",
+                        "Demostrar comprension de informacion factual concreta."
+                    ],
+                    [
+                        "0510.R2",
+                        "Demonstrate understanding of the connections between ideas, opinions and attitudes.",
+                        "Demostrar comprension de las conexiones entre ideas, opiniones y actitudes."
+                    ],
+                    [
+                        "0510.R3",
+                        "Identify and select details for a specific purpose.",
+                        "Identificar y seleccionar detalles para un proposito concreto."
+                    ],
+                    [
+                        "0510.R4",
+                        "Demonstrate understanding of implied meaning.",
+                        "Demostrar comprension del significado implicito."
+                    ],
+                    [
+                        "0510.W1",
+                        "Communicate information, ideas and opinions.",
+                        "Comunicar informacion, ideas y opiniones."
+                    ],
+                    [
+                        "0510.W2",
+                        "Organise ideas into coherent text using a range of linking devices.",
+                        "Organizar las ideas en un texto coherente con variedad de conectores."
+                    ],
+                    [
+                        "0510.W3",
+                        "Use a range of appropriate grammatical structures and vocabulary.",
+                        "Usar variedad de estructuras gramaticales y vocabulario apropiados."
+                    ],
+                    [
+                        "0510.W4",
+                        "Use appropriate register and style for the given purpose and audience.",
+                        "Usar registro y estilo apropiados al proposito y al destinatario."
+                    ],
+                    [
+                        "0510.L1",
+                        "Demonstrate understanding of specific information.",
+                        "Demostrar comprension de informacion concreta."
+                    ],
+                    [
+                        "0510.L2",
+                        "Demonstrate understanding of the ideas, opinions and attitudes of speakers.",
+                        "Demostrar comprension de las ideas, opiniones y actitudes de quien habla."
+                    ],
+                    [
+                        "0510.L3",
+                        "Demonstrate understanding of the connections between ideas, opinions and attitudes.",
+                        "Demostrar comprension de las conexiones entre ideas, opiniones y actitudes."
+                    ],
+                    [
+                        "0510.L4",
+                        "Demonstrate understanding of what is implied but not directly stated.",
+                        "Demostrar comprension de lo que se implica sin decirse directamente."
+                    ],
+                    [
+                        "0510.S1",
+                        "Communicate a range of ideas, facts and opinions.",
+                        "Comunicar variedad de ideas, hechos y opiniones."
+                    ],
+                    [
+                        "0510.S2",
+                        "Demonstrate control of a range of vocabulary and grammatical structures.",
+                        "Demostrar control de variedad de vocabulario y estructuras gramaticales."
+                    ],
+                    [
+                        "0510.S3",
+                        "Develop responses and maintain communication.",
+                        "Desarrollar las respuestas y mantener la comunicacion."
+                    ],
+                    [
+                        "0510.S4",
+                        "Demonstrate control of pronunciation and intonation.",
+                        "Demostrar control de la pronunciacion y la entonacion."
+                    ]
+                ]
+            }
+        },
+        {
+            "framework": "CAIE-IGCSE",
+            "padre": "igcse",
+            "nodo": {
+                "node_type": "syllabus",
+                "path": "igcse.esl0511",
+                "title_es": "Ingles segunda lengua 0511 (count-in speaking)",
+                "title_en": "English as a Second Language 0511 (Count-in Speaking)",
+                "attrs": {
+                    "vigencia": "2024-2026",
+                    "linea": "segunda-lengua",
+                    "source_url": "https://www.cambridgeinternational.org/Images/637163-2024-2026-syllabus.pdf",
+                    "mcer_aprox": "B1-B2",
+                    "mcer_fuente": "mapeo de trabajo, SIN cotejar contra Cambridge",
+                    "nota": "Mismos AO que 0510, cotejados en SU propio syllabus; lo que cambia es como cuenta Speaking en la nota final. Los codigos van prefijados por syllabus porque la clave es (marco, version, codigo) y Cambridge recicla codigos."
+                },
+                "objectives": [
+                    [
+                        "0511.R1",
+                        "Demonstrate understanding of specific factual information.",
+                        "Demostrar comprension de informacion factual concreta."
+                    ],
+                    [
+                        "0511.R2",
+                        "Demonstrate understanding of the connections between ideas, opinions and attitudes.",
+                        "Demostrar comprension de las conexiones entre ideas, opiniones y actitudes."
+                    ],
+                    [
+                        "0511.R3",
+                        "Identify and select details for a specific purpose.",
+                        "Identificar y seleccionar detalles para un proposito concreto."
+                    ],
+                    [
+                        "0511.R4",
+                        "Demonstrate understanding of implied meaning.",
+                        "Demostrar comprension del significado implicito."
+                    ],
+                    [
+                        "0511.W1",
+                        "Communicate information, ideas and opinions.",
+                        "Comunicar informacion, ideas y opiniones."
+                    ],
+                    [
+                        "0511.W2",
+                        "Organise ideas into coherent text using a range of linking devices.",
+                        "Organizar las ideas en un texto coherente con variedad de conectores."
+                    ],
+                    [
+                        "0511.W3",
+                        "Use a range of appropriate grammatical structures and vocabulary.",
+                        "Usar variedad de estructuras gramaticales y vocabulario apropiados."
+                    ],
+                    [
+                        "0511.W4",
+                        "Use appropriate register and style for the given purpose and audience.",
+                        "Usar registro y estilo apropiados al proposito y al destinatario."
+                    ],
+                    [
+                        "0511.L1",
+                        "Demonstrate understanding of specific information.",
+                        "Demostrar comprension de informacion concreta."
+                    ],
+                    [
+                        "0511.L2",
+                        "Demonstrate understanding of the ideas, opinions and attitudes of speakers.",
+                        "Demostrar comprension de las ideas, opiniones y actitudes de quien habla."
+                    ],
+                    [
+                        "0511.L3",
+                        "Demonstrate understanding of the connections between ideas, opinions and attitudes.",
+                        "Demostrar comprension de las conexiones entre ideas, opiniones y actitudes."
+                    ],
+                    [
+                        "0511.L4",
+                        "Demonstrate understanding of what is implied but not directly stated.",
+                        "Demostrar comprension de lo que se implica sin decirse directamente."
+                    ],
+                    [
+                        "0511.S1",
+                        "Communicate a range of ideas, facts and opinions.",
+                        "Comunicar variedad de ideas, hechos y opiniones."
+                    ],
+                    [
+                        "0511.S2",
+                        "Demonstrate control of a range of vocabulary and grammatical structures.",
+                        "Demostrar control de variedad de vocabulario y estructuras gramaticales."
+                    ],
+                    [
+                        "0511.S3",
+                        "Develop responses and maintain communication.",
+                        "Desarrollar las respuestas y mantener la comunicacion."
+                    ],
+                    [
+                        "0511.S4",
+                        "Demonstrate control of pronunciation and intonation.",
+                        "Demostrar control de la pronunciacion y la entonacion."
+                    ]
+                ]
+            }
+        },
+        {
+            "framework": "CAIE-IGCSE",
+            "padre": "igcse",
+            "nodo": {
+                "node_type": "syllabus",
+                "path": "igcse.eal0472",
+                "title_es": "Ingles como lengua adicional 0472",
+                "title_en": "English (as an Additional Language) 0472",
+                "attrs": {
+                    "vigencia": "2026-2028",
+                    "linea": "segunda-lengua",
+                    "source_url": "https://www.cambridgeinternational.org/Images/697158-2026-2028-syllabus.pdf",
+                    "mcer_aprox": "A2-B1",
+                    "mcer_fuente": "mapeo de trabajo, SIN cotejar contra Cambridge",
+                    "nota": "No estaba en el encargo: entra porque es el syllabus VIGENTE 2026-2028 de la linea de lengua adicional, el que un colegio abriria hoy. No esta disponible en todas las zonas."
+                },
+                "objectives": [
+                    [
+                        "0472.L1",
+                        "Understand the main points and key information in simple everyday material.",
+                        "Comprender las ideas principales y la informacion clave de material cotidiano sencillo."
+                    ],
+                    [
+                        "0472.L2",
+                        "Understand clear speech on a range of familiar topics.",
+                        "Comprender un habla clara sobre temas familiares."
+                    ],
+                    [
+                        "0472.L3",
+                        "Understand the description of events and the expression of ideas, opinions and attitudes in simple texts.",
+                        "Comprender la descripcion de hechos y la expresion de ideas, opiniones y actitudes en textos sencillos."
+                    ],
+                    [
+                        "0472.L4",
+                        "Identify and select relevant information in predictable texts.",
+                        "Identificar y seleccionar informacion relevante en textos predecibles."
+                    ],
+                    [
+                        "0472.R1",
+                        "Understand the main points and key information in simple everyday material.",
+                        "Comprender las ideas principales y la informacion clave de material cotidiano sencillo."
+                    ],
+                    [
+                        "0472.R2",
+                        "Understand authentic factual texts on a range of familiar topics.",
+                        "Comprender textos factuales autenticos sobre temas familiares."
+                    ],
+                    [
+                        "0472.R3",
+                        "Understand the description of events and the expression of ideas, opinions and attitudes in simple texts.",
+                        "Comprender la descripcion de hechos y la expresion de ideas, opiniones y actitudes en textos sencillos."
+                    ],
+                    [
+                        "0472.R4",
+                        "Identify and select relevant information in predictable texts.",
+                        "Identificar y seleccionar informacion relevante en textos predecibles."
+                    ],
+                    [
+                        "0472.S1",
+                        "Communicate clearly and effectively in a range of predictable everyday situations.",
+                        "Comunicarse con claridad y eficacia en situaciones cotidianas predecibles."
+                    ],
+                    [
+                        "0472.S2",
+                        "Engage in conversations on familiar topics, expressing opinions and feelings.",
+                        "Participar en conversaciones sobre temas familiares, expresando opiniones y sentimientos."
+                    ],
+                    [
+                        "0472.S3",
+                        "Use a range of structures and vocabulary with reasonable accuracy.",
+                        "Usar variedad de estructuras y vocabulario con correccion razonable."
+                    ],
+                    [
+                        "0472.S4",
+                        "Demonstrate some ability to maintain interaction.",
+                        "Demostrar cierta capacidad para mantener la interaccion."
+                    ],
+                    [
+                        "0472.S5",
+                        "Show some control of pronunciation and intonation.",
+                        "Mostrar cierto control de la pronunciacion y la entonacion."
+                    ],
+                    [
+                        "0472.W1",
+                        "Communicate simple factual information clearly for everyday purposes.",
+                        "Comunicar informacion factual sencilla con claridad para fines cotidianos."
+                    ],
+                    [
+                        "0472.W2",
+                        "Write simple phrases and sentences on a familiar topic.",
+                        "Escribir frases y oraciones sencillas sobre un tema familiar."
+                    ],
+                    [
+                        "0472.W3",
+                        "Write simple connected texts describing events, experiences, opinions, hopes and ambitions.",
+                        "Escribir textos sencillos y enlazados que describan hechos, experiencias, opiniones, deseos y aspiraciones."
+                    ],
+                    [
+                        "0472.W4",
+                        "Use a range of simple vocabulary and language structures reasonably accurately.",
+                        "Usar variedad de vocabulario y estructuras sencillas con correccion razonable."
+                    ]
+                ]
+            }
+        },
+        {
+            "framework": "CAIE-ASA",
+            "padre": "asa",
+            "nodo": {
+                "node_type": "syllabus",
+                "path": "asa.en9093",
+                "title_es": "Lengua inglesa 9093",
+                "title_en": "English Language 9093",
+                "attrs": {
+                    "vigencia": "2027-2028",
+                    "linea": "primera-lengua",
+                    "source_url": "https://www.cambridgeinternational.org/Images/721359-2027-2028-syllabus.pdf",
+                    "mcer_aprox": "C1",
+                    "mcer_fuente": "mapeo de trabajo, SIN cotejar contra Cambridge",
+                    "nota": "Los AO de 9093 son transversales (AO1-AO5): no van divididos por destreza como los de IGCSE."
+                },
+                "objectives": [
+                    [
+                        "9093.AO1",
+                        "Read and demonstrate understanding of a wide variety of texts.",
+                        "Leer y demostrar comprension de una amplia variedad de textos."
+                    ],
+                    [
+                        "9093.AO2",
+                        "Write effectively, creatively, accurately and appropriately for a range of audiences and purposes.",
+                        "Escribir con eficacia, creatividad, correccion y adecuacion para distintos destinatarios y propositos."
+                    ],
+                    [
+                        "9093.AO3",
+                        "Analyse how the choices of form, structure and language made by writers and speakers produce meaning and style.",
+                        "Analizar como las elecciones de forma, estructura y lengua de quien escribe o habla producen significado y estilo."
+                    ],
+                    [
+                        "9093.AO4",
+                        "Demonstrate understanding of linguistic issues, concepts, methods and approaches.",
+                        "Demostrar comprension de cuestiones, conceptos, metodos y enfoques linguisticos."
+                    ],
+                    [
+                        "9093.AO5",
+                        "Analyse and synthesise language data from a variety of sources.",
+                        "Analizar y sintetizar datos linguisticos de diversas fuentes."
+                    ]
+                ]
+            }
+        }
+    ]
+}

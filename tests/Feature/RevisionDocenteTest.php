@@ -125,8 +125,10 @@ class RevisionDocenteTest extends TestCase
                 ->component('docente-revisar')
                 ->where('total', 2)
                 ->where('docente.name', 'Prof. Rossi')
-                // A1.CO.2 vive en la unidad 1 del curso.
-                ->where('unidades.0.n', 1));
+                // A1.CO.2 vive en la unidad 1 del curso, y la cola la nombra:
+                // el titulo sale del curso, no de un "Unidad 1" generico.
+                ->where('unidades.0.n', 1)
+                ->where('unidades.0.titulo', 'Primer contacto'));
     }
 
     /** Un docente revisa TODAS las lenguas: no existe «profesor de italiano». */
@@ -140,9 +142,11 @@ class RevisionDocenteTest extends TestCase
             ->assertInertia(fn (Assert $p) => $p->where('total', 1)
                 ->where('unidades.0.descriptores.0.piezas.0.lengua', 'fr'));
 
-        // Sin lengua las ve todas: la lengua filtra, su ausencia no esconde.
+        // Sin lengua las ve todas: la lengua filtra, su ausencia no esconde. Y
+        // sigue sabiendo en que unidad va cada pieza aunque no se haya filtrado.
         $this->actingAs($this->docente)->get('/docente/revisar')
-            ->assertInertia(fn (Assert $p) => $p->where('total', 3));
+            ->assertInertia(fn (Assert $p) => $p->where('total', 3)
+                ->where('unidades.0.titulo', 'Primer contacto'));
 
         // Fuera de la lista, 422 (no una lengua inventada por un typo).
         $this->actingAs($this->docente)->get('/docente/revisar?lengua=klingon')->assertStatus(422);

@@ -79,6 +79,92 @@ class DialogoTest extends TestCase
             'Re-sembrar borró la firma.');
     }
 
+    /**
+     * PR 7 · LOS TRES GUIONES (it, fr, de) se siembran, nacen SIN firmar y cada
+     * nodo conserva su CLAVE de clip aunque el fichero no exista todavía.
+     */
+    public function test_los_tres_guiones_entran_con_su_clip_declarado(): void
+    {
+        $this->artisan('dialogos:sembrar')->assertExitCode(0);
+
+        $banco = require database_path('data/dialogos-lenguas.php');
+        $this->assertGreaterThanOrEqual(3, count($banco));
+
+        foreach (['it', 'fr', 'de'] as $lengua) {
+            $d = Dialogo::where('lengua', $lengua)->firstOrFail();
+            $this->assertNull($d->reviewed_at, "El guion de «{$lengua}» nació firmado.");
+            $this->assertSame(1, $d->unidad);
+
+            foreach ($d->nodos as $nodo) {
+                // La CLAVE se conserva: el guion queda listo para el audio.
+                $this->assertArrayHasKey('clip', $nodo,
+                    "Un nodo de «{$lengua}» perdió su clave de clip al sembrar.");
+                $this->assertStringStartsWith("{$lengua}/u1/dialogo/", $nodo['clip']);
+                // Y la RUTA no se inventa: no hay ficheros todavía.
+                $this->assertArrayNotHasKey('audio', $nodo,
+                    "Un nodo de «{$lengua}» trae ruta de audio sin fichero que la respalde.");
+            }
+        }
+    }
+
+    /**
+     * UN CLIP SIN FICHERO NO ABORTA LA SIEMBRA — y es la única excepción a la
+     * regla del banco de lenguas, donde sí aborta.
+     *
+     * Sin esto no se puede escribir un guion antes de grabarlo, que es al revés
+     * de como se trabaja: primero el texto que revisa el profesor, después la
+     * voz. El comando lo AVISA en vez de callárselo.
+     */
+    public function test_un_clip_sin_fichero_avisa_pero_no_aborta(): void
+    {
+        $this->artisan('dialogos:sembrar')
+            ->expectsOutputToContain('clip(s) declarados sin fichero')
+            ->assertExitCode(0);
+
+        $this->assertSame(3, Dialogo::count());
+    }
+
+    /** La firma es POR LENGUA también aquí: quien sabe francés firma el francés. */
+    public function test_la_firma_de_guiones_es_por_lengua(): void
+    {
+        $this->artisan('dialogos:sembrar')->assertExitCode(0);
+        $this->artisan('dialogos:firmar', ['--lengua' => 'fr'])->assertExitCode(0);
+
+        $this->assertNotNull(Dialogo::where('lengua', 'fr')->first()->reviewed_at);
+        $this->assertNull(Dialogo::where('lengua', 'it')->first()->reviewed_at,
+            'Firmar francés firmó también el italiano.');
+        $this->assertNull(Dialogo::where('lengua', 'de')->first()->reviewed_at);
+    }
+
+    /**
+     * Cada curso sirve SU guion, con las cinco lenguas en juego. El italiano no
+     * puede acabar en la página de francés ni al revés.
+     */
+    public function test_cada_lengua_sirve_su_propio_guion(): void
+    {
+        $this->artisan('dialogos:sembrar')->assertExitCode(0);
+        foreach (['it', 'fr', 'de'] as $lengua) {
+            $this->artisan('dialogos:firmar', ['--lengua' => $lengua])->assertExitCode(0);
+        }
+
+        $esperado = [
+            'it' => 'Il primo giorno',
+            'fr' => 'Le premier jour',
+            'de' => 'Der erste Tag',
+        ];
+        foreach ($esperado as $lengua => $titulo) {
+            $this->get("/corso/{$lengua}/u1/hablar")->assertOk()
+                ->assertInertia(fn (Assert $p) => $p->where('dialogo.titulo', $titulo));
+        }
+
+        // Las lenguas sin guion lo DICEN, no toman prestado el de otra.
+        foreach (['zh', 'en'] as $lengua) {
+            $unidad = $lengua === 'en' ? 7 : 1;
+            $this->get("/corso/{$lengua}/u{$unidad}/hablar")->assertOk()
+                ->assertInertia(fn (Assert $p) => $p->where('dialogo', null));
+        }
+    }
+
     // ================= la puerta de la firma =================
 
     public function test_un_dialogo_sin_firmar_no_se_sirve(): void

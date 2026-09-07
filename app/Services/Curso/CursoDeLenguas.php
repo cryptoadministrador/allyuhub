@@ -25,8 +25,8 @@ use Illuminate\Support\Collection;
  */
 class CursoDeLenguas
 {
-    /** @var array<int, array{titulo: string, puede: string, descriptores: list<string>}> */
-    private array $unidades;
+    /** @var array<string, array{marco: string, unidades: array, productivas: array}> */
+    private array $cursos;
 
     /** @var array<string, string> */
     private array $nombres;
@@ -34,7 +34,7 @@ class CursoDeLenguas
     public function __construct()
     {
         $datos = require database_path('data/cursos-lenguas.php');
-        $this->unidades = $datos['unidades'];
+        $this->cursos = $datos['cursos'];
         $this->nombres = $datos['nombres'];
     }
 
@@ -43,20 +43,66 @@ class CursoDeLenguas
         return $this->nombres[$lengua] ?? strtoupper($lengua);
     }
 
-    public function existeUnidad(int $n): bool
+    /**
+     * EL MARCO DE ESTE CURSO. Estaba escrito `'CEFR'` dentro de `contexto()`, y
+     * era cierto solo porque las cuatro lenguas eran del MCER: el inglés de
+     * Cambridge cuelga de CAIE. Lo declara el curso, no el servicio.
+     */
+    public function marco(string $lengua): string
     {
-        return isset($this->unidades[$n]);
+        return $this->cursos[$lengua]['marco'] ?? 'CEFR';
     }
 
-    public function tituloUnidad(int $n): ?string
+    /**
+     * Las unidades de ESTE curso: nueve para el MCER, tres Stages para el
+     * inglés. El servicio ya no sabe cuántas hay.
+     *
+     * @return array<int, array{titulo: string, puede: string, descriptores: list<string>}>
+     */
+    public function unidades(string $lengua): array
     {
-        return $this->unidades[$n]['titulo'] ?? null;
+        return $this->cursos[$lengua]['unidades'] ?? [];
     }
 
-    /** @return array<int, array{titulo: string, descriptores: list<string>}> */
-    public function unidades(): array
+    /**
+     * Qué destreza admite tarea de escritura y cuál de voz, POR CURSO. Vacío =
+     * este curso no tiene tarea de producción todavía.
+     *
+     * @return array<string, string>
+     */
+    public function productivas(string $lengua): array
     {
-        return $this->unidades;
+        return $this->cursos[$lengua]['productivas'] ?? [];
+    }
+
+    public function existeUnidad(string $lengua, int $n): bool
+    {
+        return isset($this->cursos[$lengua]['unidades'][$n]);
+    }
+
+    public function tituloUnidad(string $lengua, int $n): ?string
+    {
+        return $this->cursos[$lengua]['unidades'][$n]['titulo'] ?? null;
+    }
+
+    /**
+     * El título de la unidad `n` en el curso de `$lengua`; sin lengua, el del
+     * primer curso que tenga esa unidad. Lo necesita la cola de revisión, que
+     * agrupa por unidad aunque no se haya filtrado por lengua.
+     */
+    public function tituloDeUnidad(?string $lengua, int $n): ?string
+    {
+        if ($lengua !== null) {
+            return $this->tituloUnidad($lengua, $n);
+        }
+
+        foreach ($this->cursos as $curso) {
+            if (isset($curso['unidades'][$n])) {
+                return $curso['unidades'][$n]['titulo'];
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -67,14 +113,24 @@ class CursoDeLenguas
      * pero DETERMINISTA, que es lo que hace falta para agrupar la revisión sin
      * que la misma pieza salga en seis sitios.
      *
+     * Con `$lengua`, el mapa de ESE curso. Sin ella, la union de todos: la cola
+     * de revision sin filtro tiene que poder colocar una pieza de cualquier
+     * lengua, y dos cursos del mismo marco comparten descriptores.
+     *
      * @return array<string, int>
      */
-    public function unidadesPorDescriptor(): array
+    public function unidadesPorDescriptor(?string $lengua = null): array
     {
+        $cursos = $lengua === null
+            ? $this->cursos
+            : array_intersect_key($this->cursos, [$lengua => true]);
+
         $mapa = [];
-        foreach ($this->unidades as $n => $u) {
-            foreach ($u['descriptores'] as $code) {
-                $mapa[$code] ??= (int) $n;
+        foreach ($cursos as $curso) {
+            foreach ($curso['unidades'] as $n => $u) {
+                foreach ($u['descriptores'] as $code) {
+                    $mapa[$code] ??= (int) $n;
+                }
             }
         }
 
@@ -90,7 +146,7 @@ class CursoDeLenguas
     {
         $ctx = $this->contexto($lengua, $userId);
 
-        $unidades = collect($this->unidades)->map(
+        $unidades = collect($this->unidades($lengua))->map(
             fn (array $u, int $n) => $this->estadoDeUnidad($n, $u, $lengua, $ctx),
         )->values();
 
@@ -110,7 +166,7 @@ class CursoDeLenguas
      */
     public function unidad(string $lengua, int $n, ?int $userId): array
     {
-        $u = $this->unidades[$n];
+        $u = $this->unidades($lengua)[$n];
         $ctx = $this->contexto($lengua, $userId);
 
         $puedo = collect($u['descriptores'])
@@ -161,8 +217,8 @@ class CursoDeLenguas
      */
     private function contexto(string $lengua, ?int $userId): array
     {
-        $codes = collect($this->unidades)->flatMap(fn ($u) => $u['descriptores'])->unique()->values();
-        $versiones = DestinosDeBloque::versionesDe('CEFR');
+        $codes = collect($this->unidades($lengua))->flatMap(fn ($u) => $u['descriptores'])->unique()->values();
+        $versiones = DestinosDeBloque::versionesDe($this->marco($lengua));
 
         $descriptores = $versiones === null
             ? collect()

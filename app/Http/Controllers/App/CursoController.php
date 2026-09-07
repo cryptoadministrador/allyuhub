@@ -42,7 +42,7 @@ class CursoController extends Controller
     public function unidad(Request $request, string $lengua, int $n)
     {
         abort_unless(in_array($lengua, Lenguas::LISTA, true), 404);
-        abort_unless($this->curso->existeUnidad($n), 404);
+        abort_unless($this->curso->existeUnidad($lengua, $n), 404);
 
         $userId = $request->user()?->id;
 
@@ -65,7 +65,7 @@ class CursoController extends Controller
     public function hablar(Request $request, string $lengua, int $n)
     {
         abort_unless(in_array($lengua, Lenguas::LISTA, true), 404);
-        abort_unless($this->curso->existeUnidad($n), 404);
+        abort_unless($this->curso->existeUnidad($lengua, $n), 404);
 
         $userId = $request->user()?->id;
         $detalle = $this->curso->unidad($lengua, $n, $userId);
@@ -103,18 +103,26 @@ class CursoController extends Controller
     public function producir(Request $request, string $lengua, int $n)
     {
         abort_unless(in_array($lengua, Lenguas::LISTA, true), 404);
-        abort_unless($this->curso->existeUnidad($n), 404);
+        abort_unless($this->curso->existeUnidad($lengua, $n), 404);
 
         $userId = $request->user()?->id;
         $detalle = $this->curso->unidad($lengua, $n, $userId);
 
+        // QUÉ DESTREZA ES PRODUCTIVA lo declara el CURSO, no este controlador.
+        // Aquí ponía `str_contains($code, '.EE.')`, cierto solo mientras todos
+        // los cursos fueran del MCER: el inglés de Cambridge no tiene códigos
+        // `A1.*` y no declara ninguna, así que su página de tarea no existe.
+        $productivas = $this->curso->productivas($lengua);
+
         $productivos = collect($detalle['puedo'])
-            ->map(function (array $p) {
-                $tipo = match (true) {
-                    str_contains($p['code'], '.EE.') => 'escritura',
-                    str_contains($p['code'], '.PO.') => 'voz',
-                    default => null,
-                };
+            ->map(function (array $p) use ($productivas) {
+                $tipo = null;
+                foreach ($productivas as $cual => $marca) {
+                    if (str_contains($p['code'], $marca)) {
+                        $tipo = $cual;
+                        break;
+                    }
+                }
 
                 return $tipo === null ? null : [
                     'descriptor_id' => $p['descriptor_id'],
