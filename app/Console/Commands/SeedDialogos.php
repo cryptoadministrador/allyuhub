@@ -36,6 +36,9 @@ class SeedDialogos extends Command
 
     protected $description = 'Siembra los diálogos guionizados del interlocutor (nacen sin firmar)';
 
+    /** Claves de clip declaradas en el banco cuyo fichero todavía no existe. */
+    private array $pendientes = [];
+
     public function handle(): int
     {
         $banco = require ($this->option('banco') ?: database_path('data/dialogos-lenguas.php'));
@@ -106,6 +109,15 @@ class SeedDialogos extends Command
 
         $this->info("Diálogos: {$creados} nuevo(s), {$actualizados} actualizado(s). Nacen SIN firmar: dialogos:firmar.");
 
+        // Los clips que faltan se DICEN, no se esconden: el guion ya los pide.
+        $faltan = array_values(array_unique($this->pendientes));
+        if ($faltan !== []) {
+            $this->warn(count($faltan).' clip(s) declarados sin fichero todavía (el guion se juega leyendo):');
+            foreach ($faltan as $clip) {
+                $this->line("  - {$clip}");
+            }
+        }
+
         return self::SUCCESS;
     }
 
@@ -132,11 +144,27 @@ class SeedDialogos extends Command
                     break;
                 }
             }
+
+            // UN CLIP QUE FALTA NO REVIENTA AQUÍ, y es la única excepción a la
+            // regla del banco de lenguas —donde un clip ausente sí aborta la
+            // siembra entera—. La diferencia es qué pasa sin el fichero:
+            //
+            //  - En un ítem de ESCUCHA, sin audio no hay ejercicio: lo que
+            //    llega al alumno es una pregunta imposible. Tiene que reventar.
+            //  - En un DIÁLOGO, el audio es un añadido sobre un guion que se
+            //    juega entero leyendo. Reventar obligaría a grabar antes de
+            //    poder escribir, que es justo al revés de como se trabaja.
+            //
+            // Así que la CLAVE se conserva siempre (el guion queda listo para el
+            // audio del día que llegue) y la RUTA se rellena solo si el fichero
+            // está. Re-sembrar después de grabar la completa sin tocar el banco.
+            $nodo['clip'] = $clip;
             if ($ruta === null) {
-                throw new RuntimeException("Falta el clip «{$clip}» del diálogo «{$quien}»: no hay {$dir}/{$clip}.(mp3|ogg|m4a).");
+                $this->pendientes[] = $clip;
+
+                return $nodo;
             }
 
-            unset($nodo['clip']);
             $nodo['audio'] = $almacen->publicar(new ClipCurricular($ruta));
 
             return $nodo;
