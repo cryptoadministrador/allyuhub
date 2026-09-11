@@ -74,8 +74,11 @@ class DialogoTest extends TestCase
         $this->artisan('dialogos:firmar', ['--lengua' => 'it'])->assertExitCode(0);
         $this->artisan('dialogos:sembrar')->assertExitCode(0);   // re-sembrar
 
-        $this->assertSame(1, Dialogo::where('lengua', 'it')->count());
-        $this->assertNotNull(Dialogo::where('lengua', 'it')->first()->reviewed_at,
+        // Uno por unidad: re-sembrar no duplica ninguno.
+        $banco = require database_path('data/dialogos-lenguas.php');
+        $enBanco = count(array_filter($banco, fn ($d) => $d['lengua'] === 'it'));
+        $this->assertSame($enBanco, Dialogo::where('lengua', 'it')->count());
+        $this->assertNotNull(Dialogo::where('lengua', 'it')->where('unidad', 1)->first()->reviewed_at,
             'Re-sembrar borró la firma.');
     }
 
@@ -91,7 +94,7 @@ class DialogoTest extends TestCase
         $this->assertGreaterThanOrEqual(3, count($banco));
 
         foreach (['it', 'fr', 'de'] as $lengua) {
-            $d = Dialogo::where('lengua', $lengua)->firstOrFail();
+            $d = Dialogo::where('lengua', $lengua)->where('unidad', 1)->firstOrFail();
             $this->assertNull($d->reviewed_at, "El guion de «{$lengua}» nació firmado.");
             $this->assertSame(1, $d->unidad);
 
@@ -121,7 +124,8 @@ class DialogoTest extends TestCase
             ->expectsOutputToContain('clip(s) declarados sin fichero')
             ->assertExitCode(0);
 
-        $this->assertSame(3, Dialogo::count());
+        // Todos los guiones del banco entran, tengan o no clip: la cuenta EXACTA.
+        $this->assertSame(count(require database_path('data/dialogos-lenguas.php')), Dialogo::count());
     }
 
     /** La firma es POR LENGUA también aquí: quien sabe francés firma el francés. */
@@ -131,9 +135,11 @@ class DialogoTest extends TestCase
         $this->artisan('dialogos:firmar', ['--lengua' => 'fr'])->assertExitCode(0);
 
         $this->assertNotNull(Dialogo::where('lengua', 'fr')->first()->reviewed_at);
-        $this->assertNull(Dialogo::where('lengua', 'it')->first()->reviewed_at,
+        $this->assertSame(0, Dialogo::where('lengua', 'it')->whereNotNull('reviewed_at')->count(),
             'Firmar francés firmó también el italiano.');
-        $this->assertNull(Dialogo::where('lengua', 'de')->first()->reviewed_at);
+        $this->assertSame(0, Dialogo::where('lengua', 'de')->whereNotNull('reviewed_at')->count());
+        $this->assertSame(0, Dialogo::where('lengua', 'fr')->whereNull('reviewed_at')->count(),
+            'Firmar francés dejó algún guion de francés sin firmar.');
     }
 
     /**

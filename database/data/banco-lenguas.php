@@ -47,7 +47,9 @@
  *   U8 «Gestern» — el Perfekt con haben, el participio al final, el acento de compuestas.
  *   U9 «Ich verstehe nicht» — repaso, reparar la conversación, el proyecto final.
  *
- * Cada una de las cuatro lenguas cubre 10 de los 13 descriptores A1 con dos o más ítems cada uno. Los tres que
+ * Cada una de las cuatro lenguas cubre 10 de los 13 descriptores A1 con dos o más ítems cada uno
+ * (121 ítems por lengua tras la AMPLIACIÓN: ~13 por unidad, al estilo de una práctica
+ * de Khan Academy — varios ejercicios cortos por punto, con corrección inmediata). Los tres que
  * faltan —A1.CO.1, A1.CO.2 y A1.CO.3, comprensión oral— NO pueden tener ítems sin audio:
  * sus ejercicios de `escucha` y `dictado` están escritos en U1-audio-pendiente.md
  * y entran en cuanto el equipo grabe los clips. Declarado, no disimulado.
@@ -5421,6 +5423,2103 @@ return [
                 ['clave' => 'a', 'texto' => ['zh' => '«mochila» 用中文怎么说？ … yòng Zhōngwén zěnme shuō?']],
                 ['clave' => 'b', 'texto' => ['zh' => '«mochila» 是什么意思？ … shì shénme yìsi?']],
                 ['clave' => 'c', 'texto' => ['zh' => '请再说一遍 «mochila»。 Qǐng zài shuō yí biàn «mochila».']],
+            ],
+            'correcta' => 'a',
+        ],
+
+
+        // ================================================================
+        // ============ ITALIANO · AMPLIACIÓN U1–U9 (59 ítems) ============
+        // ================================================================
+
+        // ---- U1 ----
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.IO.3', 'lengua' => 'it', 'seq' => 7,
+            'consigna' => ['es' => 'Completa la pregunta: « Come ti ___? »  (¿Cómo te LLAMAS?)'],
+            'aceptadas' => ['chiami'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.3', 'lengua' => 'it', 'seq' => 8,
+            'consigna' => ['es' => 'Te preguntan «Di dove sei?». Eres de Guayaquil. ¿Qué contestas?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['it' => 'Sono di Guayaquil.']],
+                ['clave' => 'b', 'texto' => ['it' => 'Sono a Guayaquil.']],
+                ['clave' => 'c', 'texto' => ['it' => 'Ho Guayaquil.']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'pares', 'descriptor' => 'A1.IO.3', 'lengua' => 'it', 'seq' => 9,
+            'consigna' => ['es' => 'Empareja cada persona con su forma de «essere» (ser).'],
+            'elementos' => [
+                ['clave' => 'i1', 'col' => 'a', 'texto' => ['it' => 'io']],
+                ['clave' => 'i2', 'col' => 'a', 'texto' => ['it' => 'tu']],
+                ['clave' => 'i3', 'col' => 'a', 'texto' => ['it' => 'lei']],
+                ['clave' => 'i4', 'col' => 'a', 'texto' => ['it' => 'noi']],
+                ['clave' => 'e1', 'col' => 'b', 'texto' => ['it' => 'sono']],
+                ['clave' => 'e2', 'col' => 'b', 'texto' => ['it' => 'sei']],
+                ['clave' => 'e3', 'col' => 'b', 'texto' => ['it' => 'è']],
+                ['clave' => 'e4', 'col' => 'b', 'texto' => ['it' => 'siamo']],
+            ],
+            'parejas' => [['i1', 'e1'], ['i2', 'e2'], ['i3', 'e3'], ['i4', 'e4']],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.1', 'lengua' => 'it', 'seq' => 6,
+            'consigna' => ['es' => 'Sobre una puerta del museo pone «ENTRATA». ¿Qué es?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'La entrada']],
+                ['clave' => 'b', 'texto' => ['es' => 'La salida']],
+                ['clave' => 'c', 'texto' => ['es' => 'La taquilla']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.1', 'lengua' => 'it', 'seq' => 7,
+            'consigna' => ['es' => 'En la puerta de la tienda hay dos palabras: «SPINGERE» por fuera y «TIRARE» por dentro. Para entrar, ¿qué haces?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'Empujar: «spingere» es empujar']],
+                ['clave' => 'b', 'texto' => ['es' => 'Tirar: «spingere» es tirar']],
+                ['clave' => 'c', 'texto' => ['es' => 'Esperar: está cerrada']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.EE.2', 'lengua' => 'it', 'seq' => 3,
+            'consigna' => ['es' => 'Rellena tu ficha en letras.  Nome: Sofía · Età: ______  (quince años: escribe el número en italiano)'],
+            'aceptadas' => ['quindici'],
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.EE.2', 'lengua' => 'it', 'seq' => 4,
+            'consigna' => ['es' => 'Sigue la ficha.  Città: Quito · Paese: ______  (el nombre del país en italiano)'],
+            'aceptadas' => ['Ecuador'],
+        ],
+
+        // ---- U2 ----
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.1', 'lengua' => 'it', 'seq' => 10,
+            'consigna' => ['es' => 'Completa: « Mio padre si ___ Luis. »  (Mi padre se LLAMA Luis.)'],
+            'aceptadas' => ['chiama'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.PO.1', 'lengua' => 'it', 'seq' => 11,
+            'consigna' => ['es' => 'Tienes dos hermanos. ¿Cuál es la forma correcta?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['it' => 'Ho due fratelli.']],
+                ['clave' => 'b', 'texto' => ['it' => 'Ho due fratello.']],
+                ['clave' => 'c', 'texto' => ['it' => 'Ho due fratellos.']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'orden', 'descriptor' => 'A1.PO.1', 'lengua' => 'it', 'seq' => 12,
+            'consigna' => ['es' => 'Ordena las palabras para decir «Tengo una hermana y un hermano». La mayúscula y el punto ya están puestos.'],
+            'palabras' => [
+                ['clave' => 'w1', 'texto' => ['it' => 'ho']],
+                ['clave' => 'w2', 'texto' => ['it' => 'una']],
+                ['clave' => 'w3', 'texto' => ['it' => 'sorella']],
+                ['clave' => 'w4', 'texto' => ['it' => 'e']],
+                ['clave' => 'w5', 'texto' => ['it' => 'un']],
+                ['clave' => 'w6', 'texto' => ['it' => 'fratello']],
+            ],
+            'secuencias' => [
+                ['w1', 'w2', 'w3', 'w4', 'w5', 'w6'],
+                ['w1', 'w5', 'w6', 'w4', 'w2', 'w3'],
+            ],
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.1', 'lengua' => 'it', 'seq' => 13,
+            // Posesivo sin artículo con la familia en singular.
+            'consigna' => ['es' => 'Completa: « ___ madre si chiama Rosa. »  (MI madre se llama Rosa — sin artículo: es familia en singular.)'],
+            'aceptadas' => ['Mia'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.2', 'lengua' => 'it', 'seq' => 6,
+            'consigna' => ['es' => 'Lee el mensaje de Marco: «Ciao! Domenica pranzo con i miei nonni. Mio nonno ha settanta anni!». ¿Qué hace Marco el domingo?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'Almuerza con sus abuelos']],
+                ['clave' => 'b', 'texto' => ['es' => 'Cumple setenta años']],
+                ['clave' => 'c', 'texto' => ['es' => 'Cena con sus padres']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.2', 'lengua' => 'it', 'seq' => 7,
+            'consigna' => ['es' => 'Anna escribe: «Ho un cane e due gatti. Il cane si chiama Bruno.» ¿Cuántos animales tiene y cómo se llama el perro?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'Tres: un perro llamado Bruno y dos gatos']],
+                ['clave' => 'b', 'texto' => ['es' => 'Dos: un perro y un gato llamado Bruno']],
+                ['clave' => 'c', 'texto' => ['es' => 'Tres: dos perros y un gato llamado Bruno']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.3', 'lengua' => 'it', 'seq' => 10,
+            'consigna' => ['es' => 'Marco señala a una señora y pregunta «Chi è?». Es tu madre. ¿Qué dices?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['it' => 'È mia madre.']],
+                ['clave' => 'b', 'texto' => ['it' => 'È la mia madre.']],
+                ['clave' => 'c', 'texto' => ['it' => 'Ha mia madre.']],
+            ],
+            'correcta' => 'a',
+        ],
+
+        // ---- U3 ----
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.2', 'lengua' => 'it', 'seq' => 14,
+            'consigna' => ['es' => 'Completa con «parlare»: « Noi ___ spagnolo a casa. »  (Nosotros HABLAMOS español en casa.)'],
+            'aceptadas' => ['parliamo'],
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.2', 'lengua' => 'it', 'seq' => 15,
+            'consigna' => ['es' => 'Completa con «studiare»: « I miei amici ___ la sera. »  (Mis amigos ESTUDIAN por la noche.)'],
+            'aceptadas' => ['studiano'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.PO.2', 'lengua' => 'it', 'seq' => 16,
+            'consigna' => ['es' => '¿Cuál es la frase correcta para «Voy al colegio a las ocho»?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['it' => 'Vado a scuola alle otto.']],
+                ['clave' => 'b', 'texto' => ['it' => 'Vado alla scuola a le otto.']],
+                ['clave' => 'c', 'texto' => ['it' => 'Vado a scuola a otto.']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.IO.2', 'lengua' => 'it', 'seq' => 14,
+            'consigna' => ['es' => 'Completa: « Sono le tre e ___. »  (Son las tres y MEDIA.)'],
+            'aceptadas' => ['mezza', 'mezzo'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.2', 'lengua' => 'it', 'seq' => 15,
+            'consigna' => ['es' => 'Son las 9:45. ¿Cómo se dice en italiano?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['it' => 'Sono le dieci meno un quarto.']],
+                ['clave' => 'b', 'texto' => ['it' => 'Sono le nove e quarantacinque minuti meno.']],
+                ['clave' => 'c', 'texto' => ['it' => 'È le nove e tre quarti.']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.2', 'lengua' => 'it', 'seq' => 16,
+            'consigna' => ['es' => 'Te preguntan «A che ora ti alzi?». Te levantas a las siete. ¿Qué contestas?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['it' => 'Mi alzo alle sette.']],
+                ['clave' => 'b', 'texto' => ['it' => 'Alzo alle sette.']],
+                ['clave' => 'c', 'texto' => ['it' => 'Mi alzo le sette.']],
+            ],
+            'correcta' => 'a',
+        ],
+
+        // ---- U4 ----
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.2', 'lengua' => 'it', 'seq' => 17,
+            'consigna' => ['es' => 'Completa: « Non mi ___ il caffè. »  (No me GUSTA el café — singular.)'],
+            'aceptadas' => ['piace'],
+        ],
+        [
+            'tipo' => 'orden', 'descriptor' => 'A1.PO.2', 'lengua' => 'it', 'seq' => 18,
+            'consigna' => ['es' => 'Ordena las palabras para decir «Me gustan las películas italianas». La mayúscula y el punto ya están puestos.'],
+            'palabras' => [
+                ['clave' => 'w1', 'texto' => ['it' => 'mi']],
+                ['clave' => 'w2', 'texto' => ['it' => 'piacciono']],
+                ['clave' => 'w3', 'texto' => ['it' => 'i']],
+                ['clave' => 'w4', 'texto' => ['it' => 'film']],
+                ['clave' => 'w5', 'texto' => ['it' => 'italiani']],
+            ],
+            'secuencias' => [
+                ['w1', 'w2', 'w3', 'w4', 'w5'],
+            ],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.PO.2', 'lengua' => 'it', 'seq' => 19,
+            'consigna' => ['es' => '¿Cómo suena el «gn» de «gnocchi»?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'Como la «ñ»: ño-qui']],
+                ['clave' => 'b', 'texto' => ['es' => 'Como «g» + «n»: g-no-qui']],
+                ['clave' => 'c', 'texto' => ['es' => 'La g es muda: no-qui']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.2', 'lengua' => 'it', 'seq' => 17,
+            'consigna' => ['es' => 'Marco dice «Mi piace il gelato». A ti también. ¿Qué dices?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['it' => 'Anche a me!']],
+                ['clave' => 'b', 'texto' => ['it' => 'Anche io piace!']],
+                ['clave' => 'c', 'texto' => ['it' => 'Anche mi!']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.IO.2', 'lengua' => 'it', 'seq' => 18,
+            'consigna' => ['es' => 'Completa: « ___ me piace la musica, e a te? »  (A mí me gusta la música, ¿y a ti? — una palabra.)'],
+            'aceptadas' => ['A'],
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.EE.1', 'lengua' => 'it', 'seq' => 4,
+            'consigna' => ['es' => 'Escribes una nota a Anna. Completa: « Ciao Anna! Ti ___ il gelato? Andiamo domani? »  (¿Te GUSTA el helado?)'],
+            'aceptadas' => ['piace'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.EE.1', 'lengua' => 'it', 'seq' => 5,
+            'consigna' => ['es' => 'Empiezas una nota a tu amiga Anna. ¿Cuál es el saludo correcto?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['it' => 'Cara Anna,']],
+                ['clave' => 'b', 'texto' => ['it' => 'Caro Anna,']],
+                ['clave' => 'c', 'texto' => ['it' => 'Gentile Anna,']],
+            ],
+            'correcta' => 'a',
+        ],
+
+        // ---- U5 ----
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.3', 'lengua' => 'it', 'seq' => 4,
+            'consigna' => ['es' => 'Lees: «Il supermercato è di fronte alla scuola, tra la banca e la farmacia.» ¿Dónde está el supermercado?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'Enfrente de la escuela, entre el banco y la farmacia']],
+                ['clave' => 'b', 'texto' => ['es' => 'Detrás de la escuela, al lado del banco']],
+                ['clave' => 'c', 'texto' => ['es' => 'Dentro de la escuela']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.CE.3', 'lengua' => 'it', 'seq' => 5,
+            'consigna' => ['es' => 'Completa la indicación: « Gira a ___, poi vai dritto. »  (Gira a la IZQUIERDA, luego sigue recto.)'],
+            'aceptadas' => ['sinistra'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.3', 'lengua' => 'it', 'seq' => 6,
+            'consigna' => ['es' => 'Preguntas por el museo y te escriben: «Non è lontano: cinque minuti a piedi, sempre dritto». ¿Qué haces?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'Ir andando recto: está a cinco minutos']],
+                ['clave' => 'b', 'texto' => ['es' => 'Tomar un taxi: está lejos']],
+                ['clave' => 'c', 'texto' => ['es' => 'Girar a la derecha en cinco minutos']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.IO.2', 'lengua' => 'it', 'seq' => 19,
+            'consigna' => ['es' => 'Completa la pregunta: « Scusi, ___ una banca qui vicino? »  (Perdone, ¿HAY un banco cerca? — singular.)'],
+            'aceptadas' => ["c'è", 'c’è'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.2', 'lengua' => 'it', 'seq' => 20,
+            'consigna' => ['es' => 'Un señor te ha indicado el camino y le dices «Grazie mille!». ¿Qué te contesta?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['it' => 'Prego!']],
+                ['clave' => 'b', 'texto' => ['it' => 'Per favore!']],
+                ['clave' => 'c', 'texto' => ['it' => 'Scusi!']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.1', 'lengua' => 'it', 'seq' => 14,
+            'consigna' => ['es' => 'Completa: « Nella mia città ___ un museo molto bello. »  (En mi ciudad HAY un museo muy bonito — singular.)'],
+            'aceptadas' => ["c'è", 'c’è'],
+        ],
+        [
+            'tipo' => 'orden', 'descriptor' => 'A1.PO.1', 'lengua' => 'it', 'seq' => 15,
+            'consigna' => ['es' => 'Ordena las palabras para decir «La escuela está cerca de la estación». La mayúscula y el punto ya están puestos.'],
+            'palabras' => [
+                ['clave' => 'w1', 'texto' => ['it' => 'la scuola']],
+                ['clave' => 'w2', 'texto' => ['it' => 'è']],
+                ['clave' => 'w3', 'texto' => ['it' => 'vicino']],
+                ['clave' => 'w4', 'texto' => ['it' => 'alla stazione']],
+            ],
+            'secuencias' => [
+                ['w1', 'w2', 'w3', 'w4'],
+            ],
+        ],
+
+        // ---- U6 ----
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.IO.2', 'lengua' => 'it', 'seq' => 21,
+            'consigna' => ['es' => 'Has terminado de comer. Completa: « Il ___, per favore. »  (La CUENTA, por favor.)'],
+            'aceptadas' => ['conto'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.2', 'lengua' => 'it', 'seq' => 22,
+            'consigna' => ['es' => 'Quieres saber cuánto es en total. ¿Qué preguntas?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['it' => 'Quant\'è?']],
+                ['clave' => 'b', 'texto' => ['it' => 'Quanti anni?']],
+                ['clave' => 'c', 'texto' => ['it' => 'Che ore sono?']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.2', 'lengua' => 'it', 'seq' => 23,
+            'consigna' => ['es' => 'Pides un vaso de agua. ¿Cuál es correcta?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['it' => 'Un bicchiere d\'acqua, per favore.']],
+                ['clave' => 'b', 'texto' => ['it' => 'Un bicchiere di acqua, per favore.']],
+                ['clave' => 'c', 'texto' => ['it' => 'Un bicchiere acqua, per favore.']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.1', 'lengua' => 'it', 'seq' => 8,
+            'consigna' => ['es' => 'En el menú hay tres secciones: «PRIMI», «SECONDI», «DOLCI». Quieres un plato de pasta. ¿Dónde lo buscas?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'En «Primi»: los primeros platos son pasta, arroz y sopa']],
+                ['clave' => 'b', 'texto' => ['es' => 'En «Secondi»: los segundos son la pasta']],
+                ['clave' => 'c', 'texto' => ['es' => 'En «Dolci»: son los platos principales']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.1', 'lengua' => 'it', 'seq' => 9,
+            'consigna' => ['es' => 'En la puerta del bar pone «APERTO 7–20». ¿Puedes entrar a las nueve de la noche?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'No: está abierto de 7 a 20, y las nueve de la noche son las 21']],
+                ['clave' => 'b', 'texto' => ['es' => 'Sí: «aperto» significa que abre a las 20']],
+                ['clave' => 'c', 'texto' => ['es' => 'Sí: está abierto hasta las 7 de la mañana']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.2', 'lengua' => 'it', 'seq' => 20,
+            'consigna' => ['es' => 'Completa con el partitivo: « A colazione bevo ___ latte. »  (En el desayuno bebo [un poco de] leche — «latte» es masculino.)'],
+            'aceptadas' => ['del'],
+        ],
+        [
+            'tipo' => 'pares', 'descriptor' => 'A1.PO.2', 'lengua' => 'it', 'seq' => 21,
+            'consigna' => ['es' => 'Empareja cada comida con su artículo indeterminado.'],
+            'elementos' => [
+                ['clave' => 'i1', 'col' => 'a', 'texto' => ['it' => 'panino']],
+                ['clave' => 'i2', 'col' => 'a', 'texto' => ['it' => 'pizza']],
+                ['clave' => 'i3', 'col' => 'a', 'texto' => ['it' => 'spuntino']],
+                ['clave' => 'i4', 'col' => 'a', 'texto' => ['it' => 'aranciata']],
+                ['clave' => 'e1', 'col' => 'b', 'texto' => ['it' => 'un']],
+                ['clave' => 'e2', 'col' => 'b', 'texto' => ['it' => 'una']],
+                ['clave' => 'e3', 'col' => 'b', 'texto' => ['it' => 'uno']],
+                ['clave' => 'e4', 'col' => 'b', 'texto' => ['it' => 'un\'']],
+            ],
+            'parejas' => [['i1', 'e1'], ['i2', 'e2'], ['i3', 'e3'], ['i4', 'e4']],
+        ],
+
+        // ---- U7 ----
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.IO.2', 'lengua' => 'it', 'seq' => 24,
+            'consigna' => ['es' => 'Completa la pregunta: « ___ costa questa maglietta? »  (¿CUÁNTO cuesta esta camiseta?)'],
+            'aceptadas' => ['Quanto'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.2', 'lengua' => 'it', 'seq' => 25,
+            'consigna' => ['es' => 'Una chaqueta cuesta 200 €. Te parece demasiado. ¿Qué dices?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['it' => 'È troppo cara!']],
+                ['clave' => 'b', 'texto' => ['it' => 'È molto economica!']],
+                ['clave' => 'c', 'texto' => ['it' => 'È troppo caro!']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.1', 'lengua' => 'it', 'seq' => 16,
+            'consigna' => ['es' => 'Completa con «nero» en la forma correcta: « Una giacca ___. »  (Una chaqueta NEGRA.)'],
+            'aceptadas' => ['nera'],
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.1', 'lengua' => 'it', 'seq' => 17,
+            'consigna' => ['es' => 'Completa: « Oggi ___ caldo. »  (Hoy HACE calor.)'],
+            'aceptadas' => ['fa'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.3', 'lengua' => 'it', 'seq' => 7,
+            'consigna' => ['es' => 'En la tienda hay un cartel: «Taglie: S · M · L · XL — camerino a destra». Quieres probarte una camiseta. ¿A dónde vas?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'Al probador, que está a la derecha']],
+                ['clave' => 'b', 'texto' => ['es' => 'A la caja, que está a la derecha']],
+                ['clave' => 'c', 'texto' => ['es' => 'A la salida: no hay tallas']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.3', 'lengua' => 'it', 'seq' => 8,
+            'consigna' => ['es' => 'En el escaparate pone «SALDI −50 %». Una camiseta marcaba 20 €. ¿Cuánto pagas?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => '10 €: «saldi» son rebajas']],
+                ['clave' => 'b', 'texto' => ['es' => '20 €: «saldi» es el nombre de la tienda']],
+                ['clave' => 'c', 'texto' => ['es' => '30 €: «saldi» significa recargo']],
+            ],
+            'correcta' => 'a',
+        ],
+
+        // ---- U8 ----
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.2', 'lengua' => 'it', 'seq' => 22,
+            'consigna' => ['es' => 'Completa con el participio de «mangiare»: « Ieri abbiamo ___ la pizza. »  (Ayer comimos pizza.)'],
+            'aceptadas' => ['mangiato'],
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.2', 'lengua' => 'it', 'seq' => 23,
+            'consigna' => ['es' => 'Completa con el participio irregular de «fare»: « Ho ___ i compiti. »  (Hice los deberes.)'],
+            'aceptadas' => ['fatto'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.PO.2', 'lengua' => 'it', 'seq' => 24,
+            'consigna' => ['es' => '¿Dónde va el «non» en el pasado? Elige la frase correcta para «No estudié».'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['it' => 'Non ho studiato.']],
+                ['clave' => 'b', 'texto' => ['it' => 'Ho non studiato.']],
+                ['clave' => 'c', 'texto' => ['it' => 'Ho studiato non.']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.EE.1', 'lengua' => 'it', 'seq' => 6,
+            'consigna' => ['es' => 'Escribes a Anna. Completa: « Ieri ___ visto un film italiano. Bellissimo! »  (Ayer VI una película — el auxiliar.)'],
+            'aceptadas' => ['ho'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.EE.1', 'lengua' => 'it', 'seq' => 7,
+            'consigna' => ['es' => 'Quieres contar tu día en orden. ¿Cuál de estas notas está bien ordenada con «prima», «poi» y «dopo»?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['it' => 'Prima ho fatto colazione, poi ho studiato e dopo ho guardato la TV.']],
+                ['clave' => 'b', 'texto' => ['it' => 'Dopo ho fatto colazione, prima ho studiato e poi ho guardato la TV.']],
+                ['clave' => 'c', 'texto' => ['it' => 'Poi ho fatto colazione, dopo ho studiato e prima ho guardato la TV.']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.2', 'lengua' => 'it', 'seq' => 26,
+            'consigna' => ['es' => 'Te preguntan «Hai fatto i compiti?». Sí, los hiciste. ¿Qué contestas?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['it' => 'Sì, ho fatto i compiti.']],
+                ['clave' => 'b', 'texto' => ['it' => 'Sì, faccio i compiti.']],
+                ['clave' => 'c', 'texto' => ['it' => 'Sì, ho fare i compiti.']],
+            ],
+            'correcta' => 'a',
+        ],
+
+        // ---- U9 ----
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.IO.1', 'lengua' => 'it', 'seq' => 4,
+            'consigna' => ['es' => 'Completa: « Scusi, può ___, per favore? »  (Perdone, ¿puede REPETIR, por favor?)'],
+            'aceptadas' => ['ripetere'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.1', 'lengua' => 'it', 'seq' => 5,
+            'consigna' => ['es' => 'Oyes la palabra «zaino» y no sabes qué es. ¿Qué preguntas?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['it' => 'Cosa significa «zaino»?']],
+                ['clave' => 'b', 'texto' => ['it' => 'Come si dice «zaino»?']],
+                ['clave' => 'c', 'texto' => ['it' => 'Può ripetere «zaino»?']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.1', 'lengua' => 'it', 'seq' => 6,
+            'consigna' => ['es' => 'No has entendido a tu profesora. ¿Cuál es la forma correcta de decírselo a ELLA (de usted)?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['it' => 'Scusi, non ho capito.']],
+                ['clave' => 'b', 'texto' => ['it' => 'Scusa, non ho capito.']],
+                ['clave' => 'c', 'texto' => ['it' => 'Ehi, non ho capito.']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.PO.2', 'lengua' => 'it', 'seq' => 25,
+            'consigna' => ['es' => 'Para tu proyecto final quieres decir «Me llamo Sofía, tengo quince años y me gusta la música». ¿Cuál es correcta?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['it' => 'Mi chiamo Sofía, ho quindici anni e mi piace la musica.']],
+                ['clave' => 'b', 'texto' => ['it' => 'Mi chiamo Sofía, sono quindici anni e mi piacciono la musica.']],
+                ['clave' => 'c', 'texto' => ['it' => 'Chiamo Sofía, ho quindici anni e io piace la musica.']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'orden', 'descriptor' => 'A1.PO.2', 'lengua' => 'it', 'seq' => 26,
+            'consigna' => ['es' => 'Ordena las palabras para decir «Ayer jugué al fútbol con Marco». Hay dos órdenes correctos. La mayúscula y el punto ya están puestos.'],
+            'palabras' => [
+                ['clave' => 'w1', 'texto' => ['it' => 'ieri']],
+                ['clave' => 'w2', 'texto' => ['it' => 'ho giocato']],
+                ['clave' => 'w3', 'texto' => ['it' => 'a calcio']],
+                ['clave' => 'w4', 'texto' => ['it' => 'con marco']],
+            ],
+            'secuencias' => [
+                ['w1', 'w2', 'w3', 'w4'],
+                ['w2', 'w3', 'w4', 'w1'],
+            ],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.3', 'lengua' => 'it', 'seq' => 9,
+            'consigna' => ['es' => 'En una verja del parque lees «INGRESSO VIETATO». ¿Qué haces?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'No entrar: la entrada está prohibida']],
+                ['clave' => 'b', 'texto' => ['es' => 'Entrar: es la entrada']],
+                ['clave' => 'c', 'texto' => ['es' => 'Pagar: la entrada es de pago']],
+            ],
+            'correcta' => 'a',
+        ],
+
+
+        // ================================================================
+        // ============ FRANCÉS · AMPLIACIÓN U1–U9 (59 ítems) =============
+        // ================================================================
+
+        // ---- U1 ----
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.IO.3', 'lengua' => 'fr', 'seq' => 7,
+            'consigna' => ['es' => 'Completa la pregunta (de tú): « Comment tu t\'___ ? »  (¿Cómo te LLAMAS?)'],
+            'aceptadas' => ['appelles'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.3', 'lengua' => 'fr', 'seq' => 8,
+            'consigna' => ['es' => 'Te preguntan «Tu es d\'où ?». Eres de Guayaquil. ¿Qué contestas?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['fr' => 'Je suis de Guayaquil.']],
+                ['clave' => 'b', 'texto' => ['fr' => 'Suis de Guayaquil.']],
+                ['clave' => 'c', 'texto' => ['fr' => 'J\'ai Guayaquil.']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'pares', 'descriptor' => 'A1.IO.3', 'lengua' => 'fr', 'seq' => 9,
+            'consigna' => ['es' => 'Empareja cada persona con su forma de «être» (ser).'],
+            'elementos' => [
+                ['clave' => 'i1', 'col' => 'a', 'texto' => ['fr' => 'je']],
+                ['clave' => 'i2', 'col' => 'a', 'texto' => ['fr' => 'tu']],
+                ['clave' => 'i3', 'col' => 'a', 'texto' => ['fr' => 'elle']],
+                ['clave' => 'i4', 'col' => 'a', 'texto' => ['fr' => 'vous']],
+                ['clave' => 'e1', 'col' => 'b', 'texto' => ['fr' => 'suis']],
+                ['clave' => 'e2', 'col' => 'b', 'texto' => ['fr' => 'es']],
+                ['clave' => 'e3', 'col' => 'b', 'texto' => ['fr' => 'est']],
+                ['clave' => 'e4', 'col' => 'b', 'texto' => ['fr' => 'êtes']],
+            ],
+            'parejas' => [['i1', 'e1'], ['i2', 'e2'], ['i3', 'e3'], ['i4', 'e4']],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.1', 'lengua' => 'fr', 'seq' => 6,
+            'consigna' => ['es' => 'Sobre una puerta del museo pone «ENTRÉE». ¿Qué es?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'La entrada']],
+                ['clave' => 'b', 'texto' => ['es' => 'La salida']],
+                ['clave' => 'c', 'texto' => ['es' => 'Los baños']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.1', 'lengua' => 'fr', 'seq' => 7,
+            'consigna' => ['es' => 'En la puerta de la tienda pone «POUSSEZ». ¿Qué haces?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'Empujar']],
+                ['clave' => 'b', 'texto' => ['es' => 'Tirar']],
+                ['clave' => 'c', 'texto' => ['es' => 'Esperar: está cerrada']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.EE.2', 'lengua' => 'fr', 'seq' => 3,
+            'consigna' => ['es' => 'Rellena tu ficha en letras.  Nom : Sofía · Âge : ______ ans  (quince: escribe el número en francés)'],
+            'aceptadas' => ['quinze'],
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.EE.2', 'lengua' => 'fr', 'seq' => 4,
+            'consigna' => ['es' => 'Sigue la ficha.  Ville : Quito · Pays : ______  (el nombre del país en francés, con su acento)'],
+            'aceptadas' => ['Équateur', 'Equateur'],
+        ],
+
+        // ---- U2 ----
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.1', 'lengua' => 'fr', 'seq' => 10,
+            'consigna' => ['es' => 'Completa: « Mon père s\'___ Luis. »  (Mi padre se LLAMA Luis.)'],
+            'aceptadas' => ['appelle'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.PO.1', 'lengua' => 'fr', 'seq' => 11,
+            'consigna' => ['es' => 'Tienes dos hermanos. ¿Cuál es la forma correcta?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['fr' => 'J\'ai deux frères.']],
+                ['clave' => 'b', 'texto' => ['fr' => 'J\'ai deux frère.']],
+                ['clave' => 'c', 'texto' => ['fr' => 'Je suis deux frères.']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'orden', 'descriptor' => 'A1.PO.1', 'lengua' => 'fr', 'seq' => 12,
+            'consigna' => ['es' => 'Ordena las palabras para decir «Tengo una hermana y un hermano». Hay dos órdenes correctos. La mayúscula y el punto ya están puestos.'],
+            'palabras' => [
+                ['clave' => 'w1', 'texto' => ['fr' => 'j\'ai']],
+                ['clave' => 'w2', 'texto' => ['fr' => 'une']],
+                ['clave' => 'w3', 'texto' => ['fr' => 'sœur']],
+                ['clave' => 'w4', 'texto' => ['fr' => 'et']],
+                ['clave' => 'w5', 'texto' => ['fr' => 'un']],
+                ['clave' => 'w6', 'texto' => ['fr' => 'frère']],
+            ],
+            'secuencias' => [
+                ['w1', 'w2', 'w3', 'w4', 'w5', 'w6'],
+                ['w1', 'w5', 'w6', 'w4', 'w2', 'w3'],
+            ],
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.1', 'lengua' => 'fr', 'seq' => 13,
+            'consigna' => ['es' => 'Completa con el posesivo: « ___ mère s\'appelle Rosa. »  (MI madre — «mère» es femenino.)'],
+            'aceptadas' => ['Ma'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.2', 'lengua' => 'fr', 'seq' => 6,
+            'consigna' => ['es' => 'Lee el mensaje de Marc: «Salut ! Dimanche je déjeune chez mes grands-parents. Mon grand-père a soixante-dix ans !». ¿Qué hace Marc el domingo?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'Almuerza en casa de sus abuelos']],
+                ['clave' => 'b', 'texto' => ['es' => 'Cumple setenta años']],
+                ['clave' => 'c', 'texto' => ['es' => 'Cena con sus padres']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.2', 'lengua' => 'fr', 'seq' => 7,
+            'consigna' => ['es' => 'Anna escribe: «J\'ai un chien et deux chats. Le chien s\'appelle Bruno.» ¿Cuántos animales tiene y cómo se llama el perro?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'Tres: un perro llamado Bruno y dos gatos']],
+                ['clave' => 'b', 'texto' => ['es' => 'Dos: un perro y un gato llamado Bruno']],
+                ['clave' => 'c', 'texto' => ['es' => 'Tres: dos perros y un gato llamado Bruno']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.3', 'lengua' => 'fr', 'seq' => 10,
+            'consigna' => ['es' => 'Marc señala a una señora y pregunta «C\'est qui ?». Es tu madre. ¿Qué dices?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['fr' => 'C\'est ma mère.']],
+                ['clave' => 'b', 'texto' => ['fr' => 'C\'est mon mère.']],
+                ['clave' => 'c', 'texto' => ['fr' => 'Est ma mère.']],
+            ],
+            'correcta' => 'a',
+        ],
+
+        // ---- U3 ----
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.2', 'lengua' => 'fr', 'seq' => 14,
+            'consigna' => ['es' => 'Completa con «parler»: « Nous ___ espagnol à la maison. »  (Nosotros HABLAMOS español en casa.)'],
+            'aceptadas' => ['parlons'],
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.2', 'lengua' => 'fr', 'seq' => 15,
+            'consigna' => ['es' => 'Completa con «étudier»: « Mes amis ___ le soir. »  (Mis amigos ESTUDIAN por la noche — la terminación no se oye, pero se escribe.)'],
+            'aceptadas' => ['étudient'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.PO.2', 'lengua' => 'fr', 'seq' => 16,
+            'consigna' => ['es' => '¿Cuál es la frase correcta para «Voy al colegio a las ocho»?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['fr' => 'Je vais à l\'école à huit heures.']],
+                ['clave' => 'b', 'texto' => ['fr' => 'Je vais à école à huit heures.']],
+                ['clave' => 'c', 'texto' => ['fr' => 'Vais à l\'école à huit.']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.IO.2', 'lengua' => 'fr', 'seq' => 14,
+            'consigna' => ['es' => 'Completa: « Il est trois heures et ___. »  (Son las tres y MEDIA.)'],
+            'aceptadas' => ['demie'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.2', 'lengua' => 'fr', 'seq' => 15,
+            'consigna' => ['es' => 'Son las 9:45. ¿Cómo se dice en francés?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['fr' => 'Il est dix heures moins le quart.']],
+                ['clave' => 'b', 'texto' => ['fr' => 'Il est neuf heures et quart moins.']],
+                ['clave' => 'c', 'texto' => ['fr' => 'Sont neuf heures quarante-cinq.']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.2', 'lengua' => 'fr', 'seq' => 16,
+            'consigna' => ['es' => 'Te preguntan «Tu te lèves à quelle heure ?». Te levantas a las siete. ¿Qué contestas?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['fr' => 'Je me lève à sept heures.']],
+                ['clave' => 'b', 'texto' => ['fr' => 'Je lève à sept heures.']],
+                ['clave' => 'c', 'texto' => ['fr' => 'Me lève sept heures.']],
+            ],
+            'correcta' => 'a',
+        ],
+
+        // ---- U4 ----
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.2', 'lengua' => 'fr', 'seq' => 17,
+            'consigna' => ['es' => 'Completa la negación entera: « Je ___ aime pas le café. »  (NO me gusta el café — la primera pieza, con apóstrofo.)'],
+            'aceptadas' => ["n'", 'n’'],
+        ],
+        [
+            'tipo' => 'orden', 'descriptor' => 'A1.PO.2', 'lengua' => 'fr', 'seq' => 18,
+            'consigna' => ['es' => 'Ordena las palabras para decir «Me gustan las películas francesas». La mayúscula y el punto ya están puestos.'],
+            'palabras' => [
+                ['clave' => 'w1', 'texto' => ['fr' => 'j\'aime']],
+                ['clave' => 'w2', 'texto' => ['fr' => 'les']],
+                ['clave' => 'w3', 'texto' => ['fr' => 'films']],
+                ['clave' => 'w4', 'texto' => ['fr' => 'français']],
+            ],
+            'secuencias' => [
+                ['w1', 'w2', 'w3', 'w4'],
+            ],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.PO.2', 'lengua' => 'fr', 'seq' => 19,
+            'consigna' => ['es' => '«Vous» (usted / vosotros) y «vu» (visto). ¿Cuál lleva la u francesa (boca de u, lengua de i)?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => '«vu»: la u sola es la francesa; «ou» es la española']],
+                ['clave' => 'b', 'texto' => ['es' => '«vous»: la ou es la francesa']],
+                ['clave' => 'c', 'texto' => ['es' => 'Las dos suenan igual']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.2', 'lengua' => 'fr', 'seq' => 17,
+            'consigna' => ['es' => 'Marc dice «J\'aime la glace». A ti también. ¿Qué dices?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['fr' => 'Moi aussi !']],
+                ['clave' => 'b', 'texto' => ['fr' => 'Je aussi !']],
+                ['clave' => 'c', 'texto' => ['fr' => 'Aussi moi aime !']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.IO.2', 'lengua' => 'fr', 'seq' => 18,
+            'consigna' => ['es' => 'Completa: « J\'aime la musique. Et ___ ? »  (¿Y TÚ? — el pronombre fuerte, no «tu».)'],
+            'aceptadas' => ['toi'],
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.EE.1', 'lengua' => 'fr', 'seq' => 4,
+            'consigna' => ['es' => 'Escribes una nota a Anna. Completa: « Salut Anna ! Tu ___ la glace ? On y va demain ? »  (¿Te GUSTA el helado? — forma de «tu».)'],
+            'aceptadas' => ['aimes'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.EE.1', 'lengua' => 'fr', 'seq' => 5,
+            'consigna' => ['es' => 'Empiezas una nota a tu amiga Anna. ¿Cuál es el saludo correcto?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['fr' => 'Chère Anna,']],
+                ['clave' => 'b', 'texto' => ['fr' => 'Cher Anna,']],
+                ['clave' => 'c', 'texto' => ['fr' => 'Madame Anna,']],
+            ],
+            'correcta' => 'a',
+        ],
+
+        // ---- U5 ----
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.3', 'lengua' => 'fr', 'seq' => 4,
+            'consigna' => ['es' => 'Lees: «Le supermarché est en face de l\'école, entre la banque et la pharmacie.» ¿Dónde está el supermercado?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'Enfrente de la escuela, entre el banco y la farmacia']],
+                ['clave' => 'b', 'texto' => ['es' => 'Detrás de la escuela, al lado del banco']],
+                ['clave' => 'c', 'texto' => ['es' => 'Dentro de la escuela']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.CE.3', 'lengua' => 'fr', 'seq' => 5,
+            'consigna' => ['es' => 'Completa la indicación: « Tournez à ___, puis tout droit. »  (Gire a la IZQUIERDA, luego recto.)'],
+            'aceptadas' => ['gauche'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.3', 'lengua' => 'fr', 'seq' => 6,
+            'consigna' => ['es' => 'Preguntas por el museo y te escriben: «Ce n\'est pas loin : cinq minutes à pied, toujours tout droit». ¿Qué haces?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'Ir andando recto: está a cinco minutos']],
+                ['clave' => 'b', 'texto' => ['es' => 'Tomar un taxi: está lejos']],
+                ['clave' => 'c', 'texto' => ['es' => 'Girar a la derecha en cinco minutos']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.IO.2', 'lengua' => 'fr', 'seq' => 19,
+            'consigna' => ['es' => 'Completa la pregunta: « Pardon, il y ___ une banque près d\'ici ? »  (Perdone, ¿HAY un banco cerca de aquí?)'],
+            'aceptadas' => ['a'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.2', 'lengua' => 'fr', 'seq' => 20,
+            'consigna' => ['es' => 'Un señor te ha indicado el camino y le dices «Merci beaucoup !». ¿Qué te contesta?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['fr' => 'De rien !']],
+                ['clave' => 'b', 'texto' => ['fr' => 'S\'il vous plaît !']],
+                ['clave' => 'c', 'texto' => ['fr' => 'Pardon !']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.1', 'lengua' => 'fr', 'seq' => 14,
+            'consigna' => ['es' => 'Completa: « Dans ma ville, il y ___ un musée très beau. »  (En mi ciudad HAY un museo muy bonito.)'],
+            'aceptadas' => ['a'],
+        ],
+        [
+            'tipo' => 'orden', 'descriptor' => 'A1.PO.1', 'lengua' => 'fr', 'seq' => 15,
+            'consigna' => ['es' => 'Ordena las palabras para decir «La escuela está cerca de la estación». La mayúscula y el punto ya están puestos.'],
+            'palabras' => [
+                ['clave' => 'w1', 'texto' => ['fr' => 'l\'école']],
+                ['clave' => 'w2', 'texto' => ['fr' => 'est']],
+                ['clave' => 'w3', 'texto' => ['fr' => 'près']],
+                ['clave' => 'w4', 'texto' => ['fr' => 'de la gare']],
+            ],
+            'secuencias' => [
+                ['w1', 'w2', 'w3', 'w4'],
+            ],
+        ],
+
+        // ---- U6 ----
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.IO.2', 'lengua' => 'fr', 'seq' => 21,
+            'consigna' => ['es' => 'Has terminado de comer. Completa: « L\'___, s\'il vous plaît. »  (La CUENTA, por favor.)'],
+            'aceptadas' => ['addition'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.2', 'lengua' => 'fr', 'seq' => 22,
+            'consigna' => ['es' => 'Quieres saber cuánto es en total. ¿Qué preguntas?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['fr' => 'Ça fait combien ?']],
+                ['clave' => 'b', 'texto' => ['fr' => 'Quel âge ?']],
+                ['clave' => 'c', 'texto' => ['fr' => 'Quelle heure est-il ?']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.2', 'lengua' => 'fr', 'seq' => 23,
+            'consigna' => ['es' => 'Pides un vaso de agua. ¿Cuál es correcta?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['fr' => 'Un verre d\'eau, s\'il vous plaît.']],
+                ['clave' => 'b', 'texto' => ['fr' => 'Un verre de eau, s\'il vous plaît.']],
+                ['clave' => 'c', 'texto' => ['fr' => 'Un verre eau, s\'il vous plaît.']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.1', 'lengua' => 'fr', 'seq' => 8,
+            'consigna' => ['es' => 'En la carta hay tres secciones: «ENTRÉES», «PLATS», «DESSERTS». Quieres el plato principal. ¿Dónde lo buscas?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'En «Plats»: son los platos principales']],
+                ['clave' => 'b', 'texto' => ['es' => 'En «Entrées»: son los platos principales']],
+                ['clave' => 'c', 'texto' => ['es' => 'En «Desserts»: son los platos de carne']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.1', 'lengua' => 'fr', 'seq' => 9,
+            'consigna' => ['es' => 'En la puerta del café pone «OUVERT 7h–20h». ¿Puedes entrar a las nueve de la noche?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'No: está abierto de 7 a 20, y las nueve de la noche son las 21']],
+                ['clave' => 'b', 'texto' => ['es' => 'Sí: «ouvert» significa que abre a las 20']],
+                ['clave' => 'c', 'texto' => ['es' => 'Sí: está abierto hasta las 7 de la mañana']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.2', 'lengua' => 'fr', 'seq' => 20,
+            'consigna' => ['es' => 'Completa con el partitivo: « Au petit-déjeuner, je bois ___ lait. »  (Bebo [un poco de] leche — «lait» es masculino.)'],
+            'aceptadas' => ['du'],
+        ],
+        [
+            'tipo' => 'pares', 'descriptor' => 'A1.PO.2', 'lengua' => 'fr', 'seq' => 21,
+            'consigna' => ['es' => 'Empareja cada comida con su partitivo.'],
+            'elementos' => [
+                ['clave' => 'i1', 'col' => 'a', 'texto' => ['fr' => 'pain']],
+                ['clave' => 'i2', 'col' => 'a', 'texto' => ['fr' => 'salade']],
+                ['clave' => 'i3', 'col' => 'a', 'texto' => ['fr' => 'eau']],
+                ['clave' => 'i4', 'col' => 'a', 'texto' => ['fr' => 'frites']],
+                ['clave' => 'e1', 'col' => 'b', 'texto' => ['fr' => 'du']],
+                ['clave' => 'e2', 'col' => 'b', 'texto' => ['fr' => 'de la']],
+                ['clave' => 'e3', 'col' => 'b', 'texto' => ['fr' => 'de l\'']],
+                ['clave' => 'e4', 'col' => 'b', 'texto' => ['fr' => 'des']],
+            ],
+            'parejas' => [['i1', 'e1'], ['i2', 'e2'], ['i3', 'e3'], ['i4', 'e4']],
+        ],
+
+        // ---- U7 ----
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.IO.2', 'lengua' => 'fr', 'seq' => 24,
+            'consigna' => ['es' => 'Completa la pregunta: « Ça coûte ___ ? »  (¿CUÁNTO cuesta?)'],
+            'aceptadas' => ['combien'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.2', 'lengua' => 'fr', 'seq' => 25,
+            'consigna' => ['es' => 'Una chaqueta cuesta 200 €. Te parece demasiado. ¿Qué dices?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['fr' => 'C\'est trop cher !']],
+                ['clave' => 'b', 'texto' => ['fr' => 'C\'est très bon marché !']],
+                ['clave' => 'c', 'texto' => ['fr' => 'C\'est trop chère !']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.1', 'lengua' => 'fr', 'seq' => 16,
+            'consigna' => ['es' => 'Completa con «noir» en la forma correcta: « Une veste ___. »  (Una chaqueta NEGRA.)'],
+            'aceptadas' => ['noire'],
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.1', 'lengua' => 'fr', 'seq' => 17,
+            'consigna' => ['es' => 'Completa: « Aujourd\'hui il ___ chaud. »  (Hoy HACE calor.)'],
+            'aceptadas' => ['fait'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.3', 'lengua' => 'fr', 'seq' => 7,
+            'consigna' => ['es' => 'En la tienda hay un cartel: «Tailles : S · M · L · XL — cabines à droite». Quieres probarte una camiseta. ¿A dónde vas?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'A los probadores, que están a la derecha']],
+                ['clave' => 'b', 'texto' => ['es' => 'A la caja, que está a la derecha']],
+                ['clave' => 'c', 'texto' => ['es' => 'A la salida: no hay tallas']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.3', 'lengua' => 'fr', 'seq' => 8,
+            'consigna' => ['es' => 'En el escaparate pone «SOLDES −50 %». Una camiseta marcaba 20 €. ¿Cuánto pagas?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => '10 €: «soldes» son rebajas']],
+                ['clave' => 'b', 'texto' => ['es' => '20 €: «soldes» es el nombre de la tienda']],
+                ['clave' => 'c', 'texto' => ['es' => '30 €: «soldes» significa recargo']],
+            ],
+            'correcta' => 'a',
+        ],
+
+        // ---- U8 ----
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.2', 'lengua' => 'fr', 'seq' => 22,
+            'consigna' => ['es' => 'Completa con el participio de «manger»: « Hier, nous avons ___ une pizza. »  (Ayer comimos pizza.)'],
+            'aceptadas' => ['mangé'],
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.2', 'lengua' => 'fr', 'seq' => 23,
+            'consigna' => ['es' => 'Completa con el participio irregular de «faire»: « J\'ai ___ mes devoirs. »  (Hice mis deberes.)'],
+            'aceptadas' => ['fait'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.PO.2', 'lengua' => 'fr', 'seq' => 24,
+            'consigna' => ['es' => '¿Dónde van «ne» y «pas» en el pasado? Elige la frase correcta para «No estudié».'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['fr' => 'Je n\'ai pas étudié.']],
+                ['clave' => 'b', 'texto' => ['fr' => 'Je n\'ai étudié pas.']],
+                ['clave' => 'c', 'texto' => ['fr' => 'Je ne pas ai étudié.']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.EE.1', 'lengua' => 'fr', 'seq' => 6,
+            'consigna' => ['es' => 'Escribes a Anna. Completa con el auxiliar, pronombre incluido: « Hier, ___ vu un film français. Génial ! »  (Ayer VI una película.)'],
+            'aceptadas' => ["j'ai", 'j’ai'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.EE.1', 'lengua' => 'fr', 'seq' => 7,
+            'consigna' => ['es' => 'Quieres contar tu día en orden. ¿Cuál de estas notas está bien ordenada con «d\'abord», «puis» y «après»?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['fr' => 'D\'abord j\'ai pris le petit-déjeuner, puis j\'ai étudié et après j\'ai regardé la télé.']],
+                ['clave' => 'b', 'texto' => ['fr' => 'Après j\'ai pris le petit-déjeuner, d\'abord j\'ai étudié et puis j\'ai regardé la télé.']],
+                ['clave' => 'c', 'texto' => ['fr' => 'Puis j\'ai pris le petit-déjeuner, après j\'ai étudié et d\'abord j\'ai regardé la télé.']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.2', 'lengua' => 'fr', 'seq' => 26,
+            'consigna' => ['es' => 'Te preguntan «Tu as fait tes devoirs ?». Sí, los hiciste. ¿Qué contestas?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['fr' => 'Oui, j\'ai fait mes devoirs.']],
+                ['clave' => 'b', 'texto' => ['fr' => 'Oui, je fais mes devoirs.']],
+                ['clave' => 'c', 'texto' => ['fr' => 'Oui, j\'ai faire mes devoirs.']],
+            ],
+            'correcta' => 'a',
+        ],
+
+        // ---- U9 ----
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.IO.1', 'lengua' => 'fr', 'seq' => 4,
+            'consigna' => ['es' => 'Completa: « Pardon, vous pouvez ___, s\'il vous plaît ? »  (Perdone, ¿puede REPETIR, por favor?)'],
+            'aceptadas' => ['répéter'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.1', 'lengua' => 'fr', 'seq' => 5,
+            'consigna' => ['es' => 'Oyes la palabra «cartable» y no sabes qué es. ¿Qué preguntas?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['fr' => 'Qu\'est-ce que ça veut dire, « cartable » ?']],
+                ['clave' => 'b', 'texto' => ['fr' => 'Comment on dit « cartable » ?']],
+                ['clave' => 'c', 'texto' => ['fr' => 'Vous pouvez répéter « cartable » ?']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.1', 'lengua' => 'fr', 'seq' => 6,
+            'consigna' => ['es' => 'No has entendido a tu profesora. ¿Cuál es la forma correcta de decírselo a ELLA (de usted)?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['fr' => 'Pardon madame, je n\'ai pas compris.']],
+                ['clave' => 'b', 'texto' => ['fr' => 'Quoi ? J\'ai pas compris.']],
+                ['clave' => 'c', 'texto' => ['fr' => 'Hé, tu peux répéter ?']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.PO.2', 'lengua' => 'fr', 'seq' => 25,
+            'consigna' => ['es' => 'Para tu proyecto final quieres decir «Me llamo Sofía, tengo quince años y me gusta la música». ¿Cuál es correcta?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['fr' => 'Je m\'appelle Sofía, j\'ai quinze ans et j\'aime la musique.']],
+                ['clave' => 'b', 'texto' => ['fr' => 'Je m\'appelle Sofía, je suis quinze ans et j\'aime musique.']],
+                ['clave' => 'c', 'texto' => ['fr' => 'M\'appelle Sofía, j\'ai quinze ans et je aime la musique.']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'orden', 'descriptor' => 'A1.PO.2', 'lengua' => 'fr', 'seq' => 26,
+            'consigna' => ['es' => 'Ordena las palabras para decir «Ayer jugué al fútbol con Marc». Hay dos órdenes correctos. La mayúscula y el punto ya están puestos.'],
+            'palabras' => [
+                ['clave' => 'w1', 'texto' => ['fr' => 'hier']],
+                ['clave' => 'w2', 'texto' => ['fr' => 'j\'ai joué']],
+                ['clave' => 'w3', 'texto' => ['fr' => 'au foot']],
+                ['clave' => 'w4', 'texto' => ['fr' => 'avec marc']],
+            ],
+            'secuencias' => [
+                ['w1', 'w2', 'w3', 'w4'],
+                ['w2', 'w3', 'w4', 'w1'],
+            ],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.3', 'lengua' => 'fr', 'seq' => 9,
+            'consigna' => ['es' => 'En una verja del parque lees «ENTRÉE INTERDITE». ¿Qué haces?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'No entrar: la entrada está prohibida']],
+                ['clave' => 'b', 'texto' => ['es' => 'Entrar: es la entrada']],
+                ['clave' => 'c', 'texto' => ['es' => 'Pagar: la entrada es de pago']],
+            ],
+            'correcta' => 'a',
+        ],
+
+
+        // ================================================================
+        // ============= ALEMÁN · AMPLIACIÓN U1–U9 (59 ítems) =============
+        // ================================================================
+
+        // ---- U1 ----
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.IO.3', 'lengua' => 'de', 'seq' => 7,
+            'consigna' => ['es' => 'Completa la pregunta (de tú): « Wie ___ du? »  (¿Cómo te LLAMAS?)'],
+            'aceptadas' => ['heißt', 'heisst'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.3', 'lengua' => 'de', 'seq' => 8,
+            'consigna' => ['es' => 'Te preguntan «Woher kommst du?». Eres de Guayaquil. ¿Qué contestas?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['de' => 'Ich komme aus Guayaquil.']],
+                ['clave' => 'b', 'texto' => ['de' => 'Ich bin von Guayaquil.']],
+                ['clave' => 'c', 'texto' => ['de' => 'Ich komme in Guayaquil.']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'pares', 'descriptor' => 'A1.IO.3', 'lengua' => 'de', 'seq' => 9,
+            'consigna' => ['es' => 'Empareja cada persona con su forma de «sein» (ser).'],
+            'elementos' => [
+                ['clave' => 'i1', 'col' => 'a', 'texto' => ['de' => 'ich']],
+                ['clave' => 'i2', 'col' => 'a', 'texto' => ['de' => 'du']],
+                ['clave' => 'i3', 'col' => 'a', 'texto' => ['de' => 'sie (ella)']],
+                ['clave' => 'i4', 'col' => 'a', 'texto' => ['de' => 'Sie (usted)']],
+                ['clave' => 'e1', 'col' => 'b', 'texto' => ['de' => 'bin']],
+                ['clave' => 'e2', 'col' => 'b', 'texto' => ['de' => 'bist']],
+                ['clave' => 'e3', 'col' => 'b', 'texto' => ['de' => 'ist']],
+                ['clave' => 'e4', 'col' => 'b', 'texto' => ['de' => 'sind']],
+            ],
+            'parejas' => [['i1', 'e1'], ['i2', 'e2'], ['i3', 'e3'], ['i4', 'e4']],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.1', 'lengua' => 'de', 'seq' => 6,
+            'consigna' => ['es' => 'Sobre una puerta del museo pone «EINGANG». ¿Qué es?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'La entrada']],
+                ['clave' => 'b', 'texto' => ['es' => 'La salida']],
+                ['clave' => 'c', 'texto' => ['es' => 'Los baños']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.1', 'lengua' => 'de', 'seq' => 7,
+            'consigna' => ['es' => 'En la puerta de la tienda pone «DRÜCKEN». ¿Qué haces?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'Empujar']],
+                ['clave' => 'b', 'texto' => ['es' => 'Tirar']],
+                ['clave' => 'c', 'texto' => ['es' => 'Esperar: está cerrada']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.EE.2', 'lengua' => 'de', 'seq' => 3,
+            'consigna' => ['es' => 'Rellena tu ficha en letras.  Name: Sofía · Alter: ______  (quince: escribe el número en alemán)'],
+            'aceptadas' => ['fünfzehn', 'fuenfzehn'],
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.EE.2', 'lengua' => 'de', 'seq' => 4,
+            'consigna' => ['es' => 'Sigue la ficha.  Stadt: Quito · Land: ______  (el nombre del país en alemán)'],
+            'aceptadas' => ['Ecuador'],
+        ],
+
+        // ---- U2 ----
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.1', 'lengua' => 'de', 'seq' => 10,
+            'consigna' => ['es' => 'Completa: « Mein Vater ___ Luis. »  (Mi padre se LLAMA Luis.)'],
+            'aceptadas' => ['heißt', 'heisst'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.PO.1', 'lengua' => 'de', 'seq' => 11,
+            'consigna' => ['es' => 'Tienes dos hermanas. ¿Cuál es la forma correcta?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['de' => 'Ich habe zwei Schwestern.']],
+                ['clave' => 'b', 'texto' => ['de' => 'Ich habe zwei Schwester.']],
+                ['clave' => 'c', 'texto' => ['de' => 'Ich bin zwei Schwestern.']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'orden', 'descriptor' => 'A1.PO.1', 'lengua' => 'de', 'seq' => 12,
+            'consigna' => ['es' => 'Ordena las palabras para decir «Tengo una hermana y un hermano». Hay dos órdenes correctos. La mayúscula y el punto ya están puestos.'],
+            'palabras' => [
+                ['clave' => 'w1', 'texto' => ['de' => 'ich habe']],
+                ['clave' => 'w2', 'texto' => ['de' => 'eine schwester']],
+                ['clave' => 'w3', 'texto' => ['de' => 'und']],
+                ['clave' => 'w4', 'texto' => ['de' => 'einen bruder']],
+            ],
+            'secuencias' => [
+                ['w1', 'w2', 'w3', 'w4'],
+                ['w1', 'w4', 'w3', 'w2'],
+            ],
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.1', 'lengua' => 'de', 'seq' => 13,
+            'consigna' => ['es' => 'Completa con el posesivo: « ___ Mutter heißt Rosa. »  (MI madre — «die Mutter» es femenino.)'],
+            'aceptadas' => ['Meine'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.2', 'lengua' => 'de', 'seq' => 6,
+            'consigna' => ['es' => 'Lee el mensaje de Marco: «Hallo! Am Sonntag esse ich bei meinen Großeltern. Mein Opa ist siebzig!». ¿Qué hace Marco el domingo?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'Come en casa de sus abuelos']],
+                ['clave' => 'b', 'texto' => ['es' => 'Cumple setenta años']],
+                ['clave' => 'c', 'texto' => ['es' => 'Cena con sus padres']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.2', 'lengua' => 'de', 'seq' => 7,
+            'consigna' => ['es' => 'Anna escribe: «Ich habe einen Hund und zwei Katzen. Der Hund heißt Bruno.» ¿Cuántos animales tiene y cómo se llama el perro?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'Tres: un perro llamado Bruno y dos gatos']],
+                ['clave' => 'b', 'texto' => ['es' => 'Dos: un perro y un gato llamado Bruno']],
+                ['clave' => 'c', 'texto' => ['es' => 'Tres: dos perros y un gato llamado Bruno']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.3', 'lengua' => 'de', 'seq' => 10,
+            'consigna' => ['es' => 'Marco señala a una señora y pregunta «Wer ist das?». Es tu madre. ¿Qué dices?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['de' => 'Das ist meine Mutter.']],
+                ['clave' => 'b', 'texto' => ['de' => 'Das ist mein Mutter.']],
+                ['clave' => 'c', 'texto' => ['de' => 'Das hat meine Mutter.']],
+            ],
+            'correcta' => 'a',
+        ],
+
+        // ---- U3 ----
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.2', 'lengua' => 'de', 'seq' => 14,
+            'consigna' => ['es' => 'Completa con «sprechen»: « Wir ___ zu Hause Spanisch. »  (Nosotros HABLAMOS español en casa.)'],
+            'aceptadas' => ['sprechen'],
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.2', 'lengua' => 'de', 'seq' => 15,
+            'consigna' => ['es' => 'Completa con «lernen»: « Meine Freunde ___ am Abend. »  (Mis amigos APRENDEN por la noche.)'],
+            'aceptadas' => ['lernen'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.PO.2', 'lengua' => 'de', 'seq' => 16,
+            'consigna' => ['es' => '¿Cuál es la frase correcta para «A las ocho voy al colegio»? Empieza por la hora.'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['de' => 'Um acht Uhr gehe ich zur Schule.']],
+                ['clave' => 'b', 'texto' => ['de' => 'Um acht Uhr ich gehe zur Schule.']],
+                ['clave' => 'c', 'texto' => ['de' => 'Um acht Uhr ich zur Schule gehe.']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.IO.2', 'lengua' => 'de', 'seq' => 14,
+            'consigna' => ['es' => 'Son las tres y media. Completa: « Es ist ___ vier. »  (Recuerda: «halb» mira a la hora siguiente.)'],
+            'aceptadas' => ['halb'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.2', 'lengua' => 'de', 'seq' => 15,
+            'consigna' => ['es' => 'Son las 9:45. ¿Cómo se dice en alemán?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['de' => 'Es ist Viertel vor zehn.']],
+                ['clave' => 'b', 'texto' => ['de' => 'Es ist Viertel nach neun.']],
+                ['clave' => 'c', 'texto' => ['de' => 'Es ist halb zehn.']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.2', 'lengua' => 'de', 'seq' => 16,
+            'consigna' => ['es' => 'Te preguntan «Wann stehst du auf?». Te levantas a las siete. ¿Qué contestas?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['de' => 'Ich stehe um sieben Uhr auf.']],
+                ['clave' => 'b', 'texto' => ['de' => 'Ich aufstehe um sieben Uhr.']],
+                ['clave' => 'c', 'texto' => ['de' => 'Ich stehe auf um sieben Uhr.']],
+            ],
+            'correcta' => 'a',
+        ],
+
+        // ---- U4 ----
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.2', 'lengua' => 'de', 'seq' => 17,
+            'consigna' => ['es' => 'Completa la negación: « Ich mag Kaffee ___. »  (NO me gusta el café — la palabra de negación, al final.)'],
+            'aceptadas' => ['nicht'],
+        ],
+        [
+            'tipo' => 'orden', 'descriptor' => 'A1.PO.2', 'lengua' => 'de', 'seq' => 18,
+            'consigna' => ['es' => 'Ordena las palabras para decir «Veo películas alemanas con gusto» (me gusta ver…). «Gern» va detrás del verbo. La mayúscula y el punto ya están puestos.'],
+            'palabras' => [
+                ['clave' => 'w1', 'texto' => ['de' => 'ich']],
+                ['clave' => 'w2', 'texto' => ['de' => 'sehe']],
+                ['clave' => 'w3', 'texto' => ['de' => 'gern']],
+                ['clave' => 'w4', 'texto' => ['de' => 'deutsche filme']],
+            ],
+            'secuencias' => [
+                ['w1', 'w2', 'w3', 'w4'],
+            ],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.PO.2', 'lengua' => 'de', 'seq' => 19,
+            'consigna' => ['es' => '«Schon» (ya) y «schön» (bonito). ¿Cuál es la diferencia al pronunciarlas?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => '«schön» lleva la ö: boca de o, lengua de e; «schon» lleva la o normal']],
+                ['clave' => 'b', 'texto' => ['es' => 'Suenan igual; solo cambia la escritura']],
+                ['clave' => 'c', 'texto' => ['es' => '«schön» se pronuncia «schen»']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.2', 'lengua' => 'de', 'seq' => 17,
+            'consigna' => ['es' => 'Marco dice «Ich mag Eis». A ti también. ¿Qué dices?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['de' => 'Ich auch!']],
+                ['clave' => 'b', 'texto' => ['de' => 'Mich auch!']],
+                ['clave' => 'c', 'texto' => ['de' => 'Auch ich mag!']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.IO.2', 'lengua' => 'de', 'seq' => 18,
+            'consigna' => ['es' => 'Completa: « Ich mag Musik. Und ___? »  (¿Y TÚ?)'],
+            'aceptadas' => ['du'],
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.EE.1', 'lengua' => 'de', 'seq' => 4,
+            'consigna' => ['es' => 'Escribes una nota a Anna. Completa con «mögen»: « Hallo Anna! ___ du Eis? Gehen wir morgen? »  (¿Te GUSTA el helado? — pregunta de sí/no: el verbo primero.)'],
+            'aceptadas' => ['Magst'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.EE.1', 'lengua' => 'de', 'seq' => 5,
+            'consigna' => ['es' => 'Empiezas una nota a tu amiga Anna. ¿Cuál es el saludo correcto?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['de' => 'Liebe Anna,']],
+                ['clave' => 'b', 'texto' => ['de' => 'Lieber Anna,']],
+                ['clave' => 'c', 'texto' => ['de' => 'Sehr geehrte Anna,']],
+            ],
+            'correcta' => 'a',
+        ],
+
+        // ---- U5 ----
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.3', 'lengua' => 'de', 'seq' => 4,
+            'consigna' => ['es' => 'Lees: «Der Supermarkt ist gegenüber der Schule, zwischen der Bank und der Apotheke.» ¿Dónde está el supermercado?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'Enfrente de la escuela, entre el banco y la farmacia']],
+                ['clave' => 'b', 'texto' => ['es' => 'Detrás de la escuela, al lado del banco']],
+                ['clave' => 'c', 'texto' => ['es' => 'Dentro de la escuela']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.CE.3', 'lengua' => 'de', 'seq' => 5,
+            'consigna' => ['es' => 'Completa la indicación: « ___ und dann geradeaus. »  (A la IZQUIERDA y luego recto.)'],
+            'aceptadas' => ['Links'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.3', 'lengua' => 'de', 'seq' => 6,
+            'consigna' => ['es' => 'Preguntas por el museo y te escriben: «Es ist nicht weit: fünf Minuten zu Fuß, immer geradeaus». ¿Qué haces?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'Ir andando recto: está a cinco minutos']],
+                ['clave' => 'b', 'texto' => ['es' => 'Tomar un taxi: está lejos']],
+                ['clave' => 'c', 'texto' => ['es' => 'Girar a la derecha en cinco minutos']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.IO.2', 'lengua' => 'de', 'seq' => 19,
+            'consigna' => ['es' => 'Completa la pregunta: « Entschuldigung, gibt es ___ Bank hier in der Nähe? »  (¿Hay UN banco cerca? — «die Bank» es femenino.)'],
+            'aceptadas' => ['eine'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.2', 'lengua' => 'de', 'seq' => 20,
+            'consigna' => ['es' => 'Un señor te ha indicado el camino y le dices «Vielen Dank!». ¿Qué te contesta?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['de' => 'Bitte!']],
+                ['clave' => 'b', 'texto' => ['de' => 'Danke!']],
+                ['clave' => 'c', 'texto' => ['de' => 'Entschuldigung!']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.1', 'lengua' => 'de', 'seq' => 14,
+            'consigna' => ['es' => 'Completa: « In meiner Stadt gibt es ___ Museum. »  (En mi ciudad hay UN museo — «das Museum» es neutro.)'],
+            'aceptadas' => ['ein'],
+        ],
+        [
+            'tipo' => 'orden', 'descriptor' => 'A1.PO.1', 'lengua' => 'de', 'seq' => 15,
+            'consigna' => ['es' => 'Ordena las palabras para decir «La escuela está cerca de la estación». La mayúscula y el punto ya están puestos.'],
+            'palabras' => [
+                ['clave' => 'w1', 'texto' => ['de' => 'die schule']],
+                ['clave' => 'w2', 'texto' => ['de' => 'ist']],
+                ['clave' => 'w3', 'texto' => ['de' => 'in der nähe']],
+                ['clave' => 'w4', 'texto' => ['de' => 'vom bahnhof']],
+            ],
+            'secuencias' => [
+                ['w1', 'w2', 'w3', 'w4'],
+            ],
+        ],
+
+        // ---- U6 ----
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.IO.2', 'lengua' => 'de', 'seq' => 21,
+            'consigna' => ['es' => 'Has terminado de comer. Completa: « Die ___, bitte. »  (La CUENTA, por favor.)'],
+            'aceptadas' => ['Rechnung'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.2', 'lengua' => 'de', 'seq' => 22,
+            'consigna' => ['es' => 'Quieres saber cuánto es en total. ¿Qué preguntas?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['de' => 'Was macht das?']],
+                ['clave' => 'b', 'texto' => ['de' => 'Wie alt ist das?']],
+                ['clave' => 'c', 'texto' => ['de' => 'Wie spät ist es?']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.2', 'lengua' => 'de', 'seq' => 23,
+            'consigna' => ['es' => 'Pides un vaso de agua. ¿Cuál es correcta?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['de' => 'Ein Glas Wasser, bitte.']],
+                ['clave' => 'b', 'texto' => ['de' => 'Ein Glas von Wasser, bitte.']],
+                ['clave' => 'c', 'texto' => ['de' => 'Einen Glas Wasser, bitte.']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.1', 'lengua' => 'de', 'seq' => 8,
+            'consigna' => ['es' => 'En la carta hay tres secciones: «VORSPEISEN», «HAUPTGERICHTE», «NACHSPEISEN». Quieres el plato principal. ¿Dónde lo buscas?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'En «Hauptgerichte»: son los platos principales']],
+                ['clave' => 'b', 'texto' => ['es' => 'En «Vorspeisen»: son los platos principales']],
+                ['clave' => 'c', 'texto' => ['es' => 'En «Nachspeisen»: son los platos de carne']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.1', 'lengua' => 'de', 'seq' => 9,
+            'consigna' => ['es' => 'En la puerta del café pone «GEÖFFNET 7–20 Uhr». ¿Puedes entrar a las nueve de la noche?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'No: está abierto de 7 a 20, y las nueve de la noche son las 21']],
+                ['clave' => 'b', 'texto' => ['es' => 'Sí: «geöffnet» significa que abre a las 20']],
+                ['clave' => 'c', 'texto' => ['es' => 'Sí: está abierto hasta las 7 de la mañana']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.2', 'lengua' => 'de', 'seq' => 20,
+            'consigna' => ['es' => 'Completa con el acusativo: « Ich möchte ___ Apfel. »  (Quiero UNA manzana — «der Apfel» es masculino, y lo que quieres va en acusativo.)'],
+            'aceptadas' => ['einen'],
+        ],
+        [
+            'tipo' => 'pares', 'descriptor' => 'A1.PO.2', 'lengua' => 'de', 'seq' => 21,
+            'consigna' => ['es' => 'Empareja cada comida con su artículo en ACUSATIVO (lo que pides después de «Ich möchte…»).'],
+            'elementos' => [
+                ['clave' => 'i1', 'col' => 'a', 'texto' => ['de' => 'Kaffee (der)']],
+                ['clave' => 'i2', 'col' => 'a', 'texto' => ['de' => 'Suppe (die)']],
+                ['clave' => 'i3', 'col' => 'a', 'texto' => ['de' => 'Brot (das)']],
+                ['clave' => 'e1', 'col' => 'b', 'texto' => ['de' => 'einen']],
+                ['clave' => 'e2', 'col' => 'b', 'texto' => ['de' => 'eine']],
+                ['clave' => 'e3', 'col' => 'b', 'texto' => ['de' => 'ein']],
+            ],
+            'parejas' => [['i1', 'e1'], ['i2', 'e2'], ['i3', 'e3']],
+        ],
+
+        // ---- U7 ----
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.IO.2', 'lengua' => 'de', 'seq' => 24,
+            'consigna' => ['es' => 'Completa la pregunta: « Was ___ das T-Shirt? »  (¿Cuánto CUESTA la camiseta?)'],
+            'aceptadas' => ['kostet'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.2', 'lengua' => 'de', 'seq' => 25,
+            'consigna' => ['es' => 'Una chaqueta cuesta 200 €. Te parece demasiado. ¿Qué dices?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['de' => 'Das ist zu teuer!']],
+                ['clave' => 'b', 'texto' => ['de' => 'Das ist sehr billig!']],
+                ['clave' => 'c', 'texto' => ['de' => 'Das ist zu teure!']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.1', 'lengua' => 'de', 'seq' => 16,
+            'consigna' => ['es' => 'Completa con «schwarz»: « Die Jacke ist ___. »  (La chaqueta es NEGRA — detrás de «sein» el adjetivo no cambia.)'],
+            'aceptadas' => ['schwarz'],
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.1', 'lengua' => 'de', 'seq' => 17,
+            'consigna' => ['es' => 'Completa: « Heute ___ es warm. »  (Hoy HACE calor — recuerda el verbo del tiempo en alemán, y que va segundo.)'],
+            'aceptadas' => ['ist'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.3', 'lengua' => 'de', 'seq' => 7,
+            'consigna' => ['es' => 'En la tienda hay un cartel: «Größen: S · M · L · XL — Umkleidekabinen rechts». Quieres probarte una camiseta. ¿A dónde vas?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'A los probadores, que están a la derecha']],
+                ['clave' => 'b', 'texto' => ['es' => 'A la caja, que está a la derecha']],
+                ['clave' => 'c', 'texto' => ['es' => 'A la salida: no hay tallas']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.3', 'lengua' => 'de', 'seq' => 8,
+            'consigna' => ['es' => 'En el escaparate pone «SALE −50 %» y debajo «Alles reduziert». Una camiseta marcaba 20 €. ¿Cuánto pagas?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => '10 €: todo está rebajado a la mitad']],
+                ['clave' => 'b', 'texto' => ['es' => '20 €: «reduziert» es el nombre de la marca']],
+                ['clave' => 'c', 'texto' => ['es' => '30 €: «reduziert» significa recargo']],
+            ],
+            'correcta' => 'a',
+        ],
+
+        // ---- U8 ----
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.2', 'lengua' => 'de', 'seq' => 22,
+            'consigna' => ['es' => 'Completa con el participio de «lernen»: « Gestern haben wir Deutsch ___. »  (Ayer aprendimos alemán.)'],
+            'aceptadas' => ['gelernt'],
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.2', 'lengua' => 'de', 'seq' => 23,
+            'consigna' => ['es' => 'Completa con el participio irregular de «sehen»: « Ich habe einen Film ___. »  (Vi una película.)'],
+            'aceptadas' => ['gesehen'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.PO.2', 'lengua' => 'de', 'seq' => 24,
+            'consigna' => ['es' => '¿Dónde va «nicht» en el Perfekt? Elige la frase correcta para «No estudié».'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['de' => 'Ich habe nicht gelernt.']],
+                ['clave' => 'b', 'texto' => ['de' => 'Ich habe gelernt nicht.']],
+                ['clave' => 'c', 'texto' => ['de' => 'Ich nicht habe gelernt.']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.EE.1', 'lengua' => 'de', 'seq' => 6,
+            'consigna' => ['es' => 'Escribes a Anna. Completa con el auxiliar: « Gestern ___ ich einen deutschen Film gesehen. Super! »  (Ayer VI una película — el verbo va segundo.)'],
+            'aceptadas' => ['habe'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.EE.1', 'lengua' => 'de', 'seq' => 7,
+            'consigna' => ['es' => 'Quieres contar tu día en orden. ¿Cuál de estas notas está bien ordenada con «zuerst», «dann» y «danach»?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['de' => 'Zuerst habe ich gefrühstückt, dann habe ich gelernt und danach habe ich ferngesehen.']],
+                ['clave' => 'b', 'texto' => ['de' => 'Danach habe ich gefrühstückt, zuerst habe ich gelernt und dann habe ich ferngesehen.']],
+                ['clave' => 'c', 'texto' => ['de' => 'Dann habe ich gefrühstückt, danach habe ich gelernt und zuerst habe ich ferngesehen.']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.2', 'lengua' => 'de', 'seq' => 26,
+            'consigna' => ['es' => 'Te preguntan «Hast du die Hausaufgaben gemacht?». Sí, las hiciste. ¿Qué contestas?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['de' => 'Ja, ich habe die Hausaufgaben gemacht.']],
+                ['clave' => 'b', 'texto' => ['de' => 'Ja, ich mache die Hausaufgaben.']],
+                ['clave' => 'c', 'texto' => ['de' => 'Ja, ich habe gemacht die Hausaufgaben.']],
+            ],
+            'correcta' => 'a',
+        ],
+
+        // ---- U9 ----
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.IO.1', 'lengua' => 'de', 'seq' => 4,
+            'consigna' => ['es' => 'Completa: « Können Sie das bitte ___? »  (¿Puede REPETIR eso, por favor? — el infinitivo al final.)'],
+            'aceptadas' => ['wiederholen'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.1', 'lengua' => 'de', 'seq' => 5,
+            'consigna' => ['es' => 'Oyes la palabra «Rucksack» y no sabes qué es. ¿Qué preguntas?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['de' => 'Was bedeutet «Rucksack»?']],
+                ['clave' => 'b', 'texto' => ['de' => 'Wie sagt man «Rucksack»?']],
+                ['clave' => 'c', 'texto' => ['de' => 'Können Sie «Rucksack» wiederholen?']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.1', 'lengua' => 'de', 'seq' => 6,
+            'consigna' => ['es' => 'No has entendido a tu profesora. ¿Cuál es la forma correcta de decírselo a ELLA (de Sie)?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['de' => 'Entschuldigung, ich verstehe nicht. Können Sie das wiederholen?']],
+                ['clave' => 'b', 'texto' => ['de' => 'Wie bitte? Kannst du das wiederholen?']],
+                ['clave' => 'c', 'texto' => ['de' => 'Hey, was?']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.PO.2', 'lengua' => 'de', 'seq' => 25,
+            'consigna' => ['es' => 'Para tu proyecto final quieres decir «Me llamo Sofía, tengo quince años y me gusta la música». ¿Cuál es correcta?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['de' => 'Ich heiße Sofía, ich bin fünfzehn und ich mag Musik.']],
+                ['clave' => 'b', 'texto' => ['de' => 'Ich heiße Sofía, ich habe fünfzehn und ich mag Musik.']],
+                ['clave' => 'c', 'texto' => ['de' => 'Heiße Sofía, bin fünfzehn und Musik mag.']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'orden', 'descriptor' => 'A1.PO.2', 'lengua' => 'de', 'seq' => 26,
+            'consigna' => ['es' => 'Ordena las palabras para decir «Ayer jugué al fútbol con Marco». Hay dos órdenes correctos: el verbo segundo, el participio al final. La mayúscula y el punto ya están puestos.'],
+            'palabras' => [
+                ['clave' => 'w1', 'texto' => ['de' => 'gestern']],
+                ['clave' => 'w2', 'texto' => ['de' => 'habe']],
+                ['clave' => 'w3', 'texto' => ['de' => 'ich']],
+                ['clave' => 'w4', 'texto' => ['de' => 'mit marco fußball']],
+                ['clave' => 'w5', 'texto' => ['de' => 'gespielt']],
+            ],
+            'secuencias' => [
+                ['w1', 'w2', 'w3', 'w4', 'w5'],
+                ['w3', 'w2', 'w1', 'w4', 'w5'],
+            ],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.3', 'lengua' => 'de', 'seq' => 9,
+            'consigna' => ['es' => 'En una verja del parque lees «EINTRITT VERBOTEN». ¿Qué haces?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'No entrar: la entrada está prohibida']],
+                ['clave' => 'b', 'texto' => ['es' => 'Entrar: es la entrada']],
+                ['clave' => 'c', 'texto' => ['es' => 'Pagar: la entrada es de pago']],
+            ],
+            'correcta' => 'a',
+        ],
+
+
+        // ================================================================
+        // ============== CHINO · AMPLIACIÓN U1–U9 (59 ítems) =============
+        // ================================================================
+
+        // ---- U1 ----
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.IO.3', 'lengua' => 'zh', 'seq' => 7,
+            'consigna' => ['es' => 'Completa en pinyin la pregunta: « Nǐ jiào ___ míngzi? »  (¿Cómo te llamas? — la palabra «QUÉ», dos sílabas, la segunda neutra.)'],
+            'aceptadas' => ['shénme', 'shén me', 'shen2me', 'shen2 me', '什么'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.3', 'lengua' => 'zh', 'seq' => 8,
+            'consigna' => ['es' => 'Te preguntan «你是哪国人？». Eres de Ecuador. ¿Qué contestas?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['zh' => '我是厄瓜多尔人。 Wǒ shì Èguāduō’ěr rén.']],
+                ['clave' => 'b', 'texto' => ['zh' => '我是厄瓜多尔。 Wǒ shì Èguāduō’ěr.']],
+                ['clave' => 'c', 'texto' => ['zh' => '我在厄瓜多尔人。 Wǒ zài Èguāduō’ěr rén.']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'pares', 'descriptor' => 'A1.IO.3', 'lengua' => 'zh', 'seq' => 9,
+            'consigna' => ['es' => 'Une cada pronombre con su pinyin y con su significado.'],
+            'elementos' => [
+                ['clave' => 'c1', 'col' => 'a', 'texto' => ['zh' => '他']],
+                ['clave' => 'c2', 'col' => 'a', 'texto' => ['zh' => '您']],
+                ['clave' => 'c3', 'col' => 'a', 'texto' => ['zh' => '我们']],
+                ['clave' => 'p1', 'col' => 'b', 'texto' => ['zh' => 'tā']],
+                ['clave' => 'p2', 'col' => 'b', 'texto' => ['zh' => 'nín']],
+                ['clave' => 'p3', 'col' => 'b', 'texto' => ['zh' => 'wǒmen']],
+                ['clave' => 's1', 'col' => 'c', 'texto' => ['es' => 'él']],
+                ['clave' => 's2', 'col' => 'c', 'texto' => ['es' => 'usted']],
+                ['clave' => 's3', 'col' => 'c', 'texto' => ['es' => 'nosotros']],
+            ],
+            'parejas' => [['c1', 'p1', 's1'], ['c2', 'p2', 's2'], ['c3', 'p3', 's3']],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.1', 'lengua' => 'zh', 'seq' => 6,
+            'consigna' => ['es' => 'Una tarjeta dice «王老师 · 北京». ¿Quién es y de dónde?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'La profesora Wáng, de Pekín']],
+                ['clave' => 'b', 'texto' => ['es' => 'Un estudiante llamado Běijīng']],
+                ['clave' => 'c', 'texto' => ['es' => 'La profesora Běijīng, de Wáng']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.1', 'lengua' => 'zh', 'seq' => 7,
+            'consigna' => ['es' => 'En un cartel de la clase pone «再见！». ¿Cuándo lo lees?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'Al salir: es «adiós»']],
+                ['clave' => 'b', 'texto' => ['es' => 'Al entrar: es «hola»']],
+                ['clave' => 'c', 'texto' => ['es' => 'Al recibir algo: es «gracias»']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.EE.2', 'lengua' => 'zh', 'seq' => 3,
+            'consigna' => ['es' => 'Rellena tu ficha en pinyin.  名字: Sofía · 岁: ______  (quince: el número en pinyin, «diez-cinco»)'],
+            'aceptadas' => ['shíwǔ', 'shí wǔ', 'shi2wu3', 'shi2 wu3', '十五'],
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.EE.2', 'lengua' => 'zh', 'seq' => 4,
+            'consigna' => ['es' => 'Sigue la ficha.  城市 (ciudad): Quito · 国 (país): ______  (China se dice «país del centro»: el nombre en pinyin)'],
+            'aceptadas' => ['zhōngguó', 'zhōng guó', 'zhong1guo2', 'zhong1 guo2', '中国'],
+        ],
+
+        // ---- U2 ----
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.1', 'lengua' => 'zh', 'seq' => 10,
+            'consigna' => ['es' => 'Completa en pinyin: « Wǒ bàba ___ Luis. »  (Mi padre se LLAMA Luis.)'],
+            'aceptadas' => ['jiào', 'jiao4', '叫'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.PO.1', 'lengua' => 'zh', 'seq' => 11,
+            'consigna' => ['es' => 'Tienes dos hermanos mayores. ¿Cuál es la forma correcta?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['zh' => '我有两个哥哥。 Wǒ yǒu liǎng gè gēge.']],
+                ['clave' => 'b', 'texto' => ['zh' => '我有二个哥哥。 Wǒ yǒu èr gè gēge.']],
+                ['clave' => 'c', 'texto' => ['zh' => '我有两哥哥。 Wǒ yǒu liǎng gēge.']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'orden', 'descriptor' => 'A1.PO.1', 'lengua' => 'zh', 'seq' => 12,
+            'consigna' => ['es' => 'Ordena las fichas para decir «Tengo una hermana mayor y un hermano menor». El punto ya está puesto.'],
+            'palabras' => [
+                ['clave' => 'w1', 'texto' => ['zh' => 'wǒ']],
+                ['clave' => 'w2', 'texto' => ['zh' => 'yǒu']],
+                ['clave' => 'w3', 'texto' => ['zh' => 'yí gè jiějie']],
+                ['clave' => 'w4', 'texto' => ['zh' => 'hé']],
+                ['clave' => 'w5', 'texto' => ['zh' => 'yí gè dìdi']],
+            ],
+            'secuencias' => [
+                ['w1', 'w2', 'w3', 'w4', 'w5'],
+                ['w1', 'w2', 'w5', 'w4', 'w3'],
+            ],
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.1', 'lengua' => 'zh', 'seq' => 13,
+            'consigna' => ['es' => 'Completa en pinyin la pregunta a un niño pequeño: « Nǐ mèimei ___ suì? »  (¿CUÁNTOS años tiene tu hermana pequeña? — el «cuántos» de hasta diez.)'],
+            'aceptadas' => ['jǐ', 'ji3', '几'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.2', 'lengua' => 'zh', 'seq' => 6,
+            'consigna' => ['es' => 'Lee el mensaje de Lǐ Míng: «我爸爸是老师，我妈妈是医生。» ¿Qué son sus padres?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'Su padre es profesor y su madre es médica (医生 yīshēng)']],
+                ['clave' => 'b', 'texto' => ['es' => 'Su padre es médico y su madre es profesora']],
+                ['clave' => 'c', 'texto' => ['es' => 'Los dos son estudiantes']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.2', 'lengua' => 'zh', 'seq' => 7,
+            'consigna' => ['es' => 'Ānnà escribe: «我有一个狗和两个猫。狗叫小黑。» ¿Cuántos animales tiene y cómo se llama el perro?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'Tres: un perro llamado Xiǎo Hēi («Negrito») y dos gatos']],
+                ['clave' => 'b', 'texto' => ['es' => 'Dos: un perro y un gato llamado Xiǎo Hēi']],
+                ['clave' => 'c', 'texto' => ['es' => 'Tres: dos perros y un gato llamado Xiǎo Hēi']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.3', 'lengua' => 'zh', 'seq' => 10,
+            'consigna' => ['es' => 'Lǐ Míng señala a una señora y pregunta «她是谁？». Es tu madre. ¿Qué dices?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['zh' => '她是我妈妈。 Tā shì wǒ māma.']],
+                ['clave' => 'b', 'texto' => ['zh' => '她有我妈妈。 Tā yǒu wǒ māma.']],
+                ['clave' => 'c', 'texto' => ['zh' => '她在我妈妈。 Tā zài wǒ māma.']],
+            ],
+            'correcta' => 'a',
+        ],
+
+        // ---- U3 ----
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.2', 'lengua' => 'zh', 'seq' => 14,
+            'consigna' => ['es' => 'Completa en pinyin: « Wǒ wǎnshang shí diǎn ___. »  (Por la noche me ACUESTO a las diez — «dormir», dos sílabas.)'],
+            'aceptadas' => ['shuìjiào', 'shuì jiào', 'shui4jiao4', 'shui4 jiao4', '睡觉'],
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.2', 'lengua' => 'zh', 'seq' => 15,
+            'consigna' => ['es' => 'Completa en pinyin: « Wǒ ___ liù diǎn qǐchuáng. »  (CADA DÍA me levanto a las seis — dos sílabas.)'],
+            'aceptadas' => ['měitiān', 'měi tiān', 'mei3tian1', 'mei3 tian1', '每天'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.PO.2', 'lengua' => 'zh', 'seq' => 16,
+            'consigna' => ['es' => '¿Cuál es el orden correcto para «Por la tarde vuelvo a casa a las tres»?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['zh' => '我下午三点回家。 Wǒ xiàwǔ sān diǎn huí jiā.']],
+                ['clave' => 'b', 'texto' => ['zh' => '我回家下午三点。 Wǒ huí jiā xiàwǔ sān diǎn.']],
+                ['clave' => 'c', 'texto' => ['zh' => '我三点下午回家。 Wǒ sān diǎn xiàwǔ huí jiā.']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.IO.2', 'lengua' => 'zh', 'seq' => 14,
+            'consigna' => ['es' => 'Completa en pinyin: « Xiànzài ___ diǎn. »  (Son las DOS — el «dos» que va delante de 点.)'],
+            'aceptadas' => ['liǎng', 'liang3', '两'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.2', 'lengua' => 'zh', 'seq' => 15,
+            'consigna' => ['es' => 'Son las 8 de la noche. ¿Cómo se dice?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['zh' => '晚上八点 wǎnshang bā diǎn']],
+                ['clave' => 'b', 'texto' => ['zh' => '二十点 èrshí diǎn']],
+                ['clave' => 'c', 'texto' => ['zh' => '八点晚上 bā diǎn wǎnshang']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.2', 'lengua' => 'zh', 'seq' => 16,
+            'consigna' => ['es' => 'Te preguntan «你几点吃午饭？». Almuerzas a las doce y media. ¿Qué contestas?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['zh' => '我十二点半吃午饭。 Wǒ shí’èr diǎn bàn chī wǔfàn.']],
+                ['clave' => 'b', 'texto' => ['zh' => '我吃午饭十二点半。 Wǒ chī wǔfàn shí’èr diǎn bàn.']],
+                ['clave' => 'c', 'texto' => ['zh' => '我半十二点吃午饭。 Wǒ bàn shí’èr diǎn chī wǔfàn.']],
+            ],
+            'correcta' => 'a',
+        ],
+
+        // ---- U4 ----
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.2', 'lengua' => 'zh', 'seq' => 17,
+            'consigna' => ['es' => 'Completa en pinyin: « Wǒ ___ xǐhuan kāfēi. »  (NO me gusta el café — la negación de 喜欢.)'],
+            'aceptadas' => ['bù', 'bu4', '不'],
+        ],
+        [
+            'tipo' => 'orden', 'descriptor' => 'A1.PO.2', 'lengua' => 'zh', 'seq' => 18,
+            'consigna' => ['es' => 'Ordena las fichas para decir «Me gusta mucho ver películas». El punto ya está puesto.'],
+            'palabras' => [
+                ['clave' => 'w1', 'texto' => ['zh' => 'wǒ']],
+                ['clave' => 'w2', 'texto' => ['zh' => 'hěn']],
+                ['clave' => 'w3', 'texto' => ['zh' => 'xǐhuan']],
+                ['clave' => 'w4', 'texto' => ['zh' => 'kàn diànyǐng']],
+            ],
+            'secuencias' => [
+                ['w1', 'w2', 'w3', 'w4'],
+            ],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.PO.2', 'lengua' => 'zh', 'seq' => 19,
+            'consigna' => ['es' => '«sì» (四, cuatro) y «shì» (是, ser). ¿Cuál se dice con la lengua curvada hacia atrás?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => '«shì»: sh es retrofleja; s es con la lengua plana']],
+                ['clave' => 'b', 'texto' => ['es' => '«sì»: s es retrofleja']],
+                ['clave' => 'c', 'texto' => ['es' => 'Las dos suenan igual']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.2', 'lengua' => 'zh', 'seq' => 17,
+            'consigna' => ['es' => 'Lǐ Míng dice «我喜欢足球». A ti también. ¿Qué dices?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['zh' => '我也喜欢足球。 Wǒ yě xǐhuan zúqiú.']],
+                ['clave' => 'b', 'texto' => ['zh' => '也我喜欢足球。 Yě wǒ xǐhuan zúqiú.']],
+                ['clave' => 'c', 'texto' => ['zh' => '我喜欢也足球。 Wǒ xǐhuan yě zúqiú.']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.IO.2', 'lengua' => 'zh', 'seq' => 18,
+            'consigna' => ['es' => 'Completa en pinyin: « Wǒ xǐhuan yīnyuè. Nǐ ___? »  (¿Y tú? — la partícula de «¿y…?».)'],
+            'aceptadas' => ['ne', 'ne5', 'ne0', '呢'],
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.EE.1', 'lengua' => 'zh', 'seq' => 4,
+            'consigna' => ['es' => 'Escribes una nota a Ānnà. Completa en pinyin: « Ānnà: Nǐ ___ chá ma? Míngtiān lái wǒ jiā! »  (¿Te GUSTA el té?)'],
+            'aceptadas' => ['xǐhuan', 'xǐ huan', 'xǐhuān', 'xi3huan', 'xi3 huan', 'xi3huan1', '喜欢'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.EE.1', 'lengua' => 'zh', 'seq' => 5,
+            'consigna' => ['es' => 'Empiezas una nota a tu amiga Ānnà. ¿Cuál es la forma correcta de dirigirte a ella en chino?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['zh' => '安娜：你好！ Ānnà: Nǐ hǎo!']],
+                ['clave' => 'b', 'texto' => ['zh' => '安娜老师：您好！ Ānnà lǎoshī: Nín hǎo!']],
+                ['clave' => 'c', 'texto' => ['zh' => '你好安娜。 Nǐ hǎo Ānnà.']],
+            ],
+            'correcta' => 'a',
+        ],
+
+        // ---- U5 ----
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.3', 'lengua' => 'zh', 'seq' => 4,
+            'consigna' => ['es' => 'Lees: «商店在学校前面，医院在学校后面。» ¿Dónde está la tienda y dónde el hospital?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'La tienda delante de la escuela; el hospital detrás']],
+                ['clave' => 'b', 'texto' => ['es' => 'La tienda detrás de la escuela; el hospital delante']],
+                ['clave' => 'c', 'texto' => ['es' => 'Los dos al lado de la escuela']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.CE.3', 'lengua' => 'zh', 'seq' => 5,
+            'consigna' => ['es' => 'Completa en pinyin: « Yínháng zài shāngdiàn ___. »  (El banco está AL LADO de la tienda — dos sílabas.)'],
+            'aceptadas' => ['pángbiān', 'páng biān', 'pang2bian1', 'pang2 bian1', '旁边'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.3', 'lengua' => 'zh', 'seq' => 6,
+            'consigna' => ['es' => 'Preguntas por el parque y te escriben: «不远，走五分钟。» ¿Qué haces?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'Ir andando: no está lejos, son cinco minutos']],
+                ['clave' => 'b', 'texto' => ['es' => 'Tomar un taxi: está lejos']],
+                ['clave' => 'c', 'texto' => ['es' => 'Esperar cinco minutos: está cerrado']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.IO.2', 'lengua' => 'zh', 'seq' => 19,
+            'consigna' => ['es' => 'Completa en pinyin: « Zhèr ___ yínháng ma? »  (¿HAY un banco por aquí?)'],
+            'aceptadas' => ['yǒu', 'you3', '有'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.2', 'lengua' => 'zh', 'seq' => 20,
+            'consigna' => ['es' => 'Una señora te ha indicado el camino y le dices «谢谢您！». ¿Qué te contesta?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['zh' => '不客气。 Bú kèqi.']],
+                ['clave' => 'b', 'texto' => ['zh' => '没关系。 Méi guānxi.']],
+                ['clave' => 'c', 'texto' => ['zh' => '对不起。 Duìbuqǐ.']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.1', 'lengua' => 'zh', 'seq' => 14,
+            'consigna' => ['es' => 'Completa en pinyin: « Wǒ de chéngshì ___ dà, dànshì hěn piàoliang. »  (Mi ciudad NO es grande, pero es muy bonita — ojo al tono delante de dà.)'],
+            'aceptadas' => ['bú', 'bu2', 'bù', 'bu4', '不'],
+        ],
+        [
+            'tipo' => 'orden', 'descriptor' => 'A1.PO.1', 'lengua' => 'zh', 'seq' => 15,
+            'consigna' => ['es' => 'Ordena las fichas para decir «La escuela está al lado de la estación de tren». El punto ya está puesto.'],
+            'palabras' => [
+                ['clave' => 'w1', 'texto' => ['zh' => 'xuéxiào']],
+                ['clave' => 'w2', 'texto' => ['zh' => 'zài']],
+                ['clave' => 'w3', 'texto' => ['zh' => 'huǒchēzhàn']],
+                ['clave' => 'w4', 'texto' => ['zh' => 'pángbiān']],
+            ],
+            'secuencias' => [
+                ['w1', 'w2', 'w3', 'w4'],
+            ],
+        ],
+
+        // ---- U6 ----
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.IO.2', 'lengua' => 'zh', 'seq' => 21,
+            'consigna' => ['es' => 'Has terminado de comer. Completa en pinyin: « Fúwùyuán, ___! »  (¡La CUENTA! — dos sílabas.)'],
+            'aceptadas' => ['mǎidān', 'mǎi dān', 'mai3dan1', 'mai3 dan1', '买单'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.2', 'lengua' => 'zh', 'seq' => 22,
+            'consigna' => ['es' => 'Quieres beber algo. ¿Cómo pides un vaso de agua?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['zh' => '我要一杯水。 Wǒ yào yì bēi shuǐ.']],
+                ['clave' => 'b', 'texto' => ['zh' => '我要一碗水。 Wǒ yào yì wǎn shuǐ.']],
+                ['clave' => 'c', 'texto' => ['zh' => '我要一个水。 Wǒ yào yí gè shuǐ.']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.2', 'lengua' => 'zh', 'seq' => 23,
+            'consigna' => ['es' => 'El camarero pregunta «你要什么？». Quieres pollo y arroz. ¿Qué dices?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['zh' => '我要鸡和米饭。 Wǒ yào jī hé mǐfàn.']],
+                ['clave' => 'b', 'texto' => ['zh' => '我喜欢鸡和米饭。 Wǒ xǐhuan jī hé mǐfàn.']],
+                ['clave' => 'c', 'texto' => ['zh' => '我是鸡和米饭。 Wǒ shì jī hé mǐfàn.']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.1', 'lengua' => 'zh', 'seq' => 8,
+            'consigna' => ['es' => 'En la carta lees: «米饭 5元 · 面条 12元 · 茶 5元». Pides fideos y un té. ¿Cuánto pagas?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => '17 yuanes']],
+                ['clave' => 'b', 'texto' => ['es' => '10 yuanes']],
+                ['clave' => 'c', 'texto' => ['es' => '22 yuanes']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.1', 'lengua' => 'zh', 'seq' => 9,
+            'consigna' => ['es' => 'En la puerta de una tienda cuelga un cartel con «关». ¿Qué haces?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'Buscar otra: está cerrada']],
+                ['clave' => 'b', 'texto' => ['es' => 'Entrar: está abierta']],
+                ['clave' => 'c', 'texto' => ['es' => 'Empujar: significa «empujar»']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.2', 'lengua' => 'zh', 'seq' => 20,
+            'consigna' => ['es' => 'Completa en pinyin con el medidor: « Wǒ zǎoshang hē yì ___ kāfēi. »  (Por la mañana bebo una TAZA de café.)'],
+            'aceptadas' => ['bēi', 'bei1', '杯'],
+        ],
+        [
+            'tipo' => 'pares', 'descriptor' => 'A1.PO.2', 'lengua' => 'zh', 'seq' => 21,
+            'consigna' => ['es' => 'Une cada cosa con su medidor y con la traducción de la expresión.'],
+            'elementos' => [
+                ['clave' => 'c1', 'col' => 'a', 'texto' => ['zh' => '米饭']],
+                ['clave' => 'c2', 'col' => 'a', 'texto' => ['zh' => '茶']],
+                ['clave' => 'c3', 'col' => 'a', 'texto' => ['zh' => '人']],
+                ['clave' => 'p1', 'col' => 'b', 'texto' => ['zh' => '一碗 yì wǎn']],
+                ['clave' => 'p2', 'col' => 'b', 'texto' => ['zh' => '一杯 yì bēi']],
+                ['clave' => 'p3', 'col' => 'b', 'texto' => ['zh' => '一个 yí gè']],
+                ['clave' => 's1', 'col' => 'c', 'texto' => ['es' => 'un cuenco de arroz']],
+                ['clave' => 's2', 'col' => 'c', 'texto' => ['es' => 'una taza de té']],
+                ['clave' => 's3', 'col' => 'c', 'texto' => ['es' => 'una persona']],
+            ],
+            'parejas' => [['c1', 'p1', 's1'], ['c2', 'p2', 's2'], ['c3', 'p3', 's3']],
+        ],
+
+        // ---- U7 ----
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.IO.2', 'lengua' => 'zh', 'seq' => 24,
+            'consigna' => ['es' => 'Completa en pinyin: « Nàge ___ qián? »  (¿CUÁNTO cuesta ese? — el «cuánto» sin límite, dos sílabas.)'],
+            'aceptadas' => ['duōshao', 'duō shao', 'duōshǎo', 'duo1shao', 'duo1 shao', 'duo1shao3', '多少'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.2', 'lengua' => 'zh', 'seq' => 25,
+            'consigna' => ['es' => 'La prenda es barata y te gusta. ¿Qué dices para comprarla?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['zh' => '很便宜，我买这件。 Hěn piányi, wǒ mǎi zhè jiàn.']],
+                ['clave' => 'b', 'texto' => ['zh' => '很便宜，我卖这件。 Hěn piányi, wǒ mài zhè jiàn.']],
+                ['clave' => 'c', 'texto' => ['zh' => '是便宜，我买这个件。 Shì piányi, wǒ mǎi zhège jiàn.']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.1', 'lengua' => 'zh', 'seq' => 16,
+            'consigna' => ['es' => 'Completa en pinyin: « Zhè jiàn yīfu tài ___ le! »  (¡Esta prenda es demasiado CARA!)'],
+            'aceptadas' => ['guì', 'gui4', '贵'],
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.1', 'lengua' => 'zh', 'seq' => 17,
+            'consigna' => ['es' => 'Completa en pinyin: « Jīntiān hěn ___. »  (Hoy hace CALOR — una sílaba, cuarto tono.)'],
+            'aceptadas' => ['rè', 're4', '热'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.3', 'lengua' => 'zh', 'seq' => 7,
+            'consigna' => ['es' => 'En la tienda hay un cartel: «大 · 中 · 小». Buscas la talla pequeña. ¿Cuál es?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => '小: pequeño']],
+                ['clave' => 'b', 'texto' => ['es' => '大: pequeño']],
+                ['clave' => 'c', 'texto' => ['es' => '中: pequeño']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.3', 'lengua' => 'zh', 'seq' => 8,
+            'consigna' => ['es' => 'En el escaparate pone «衣服 100元 → 50元». ¿Qué ha pasado con el precio?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'Ha bajado de 100 a 50 yuanes: está rebajada']],
+                ['clave' => 'b', 'texto' => ['es' => 'Ha subido de 50 a 100 yuanes']],
+                ['clave' => 'c', 'texto' => ['es' => 'Cuesta 150 yuanes']],
+            ],
+            'correcta' => 'a',
+        ],
+
+        // ---- U8 ----
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.2', 'lengua' => 'zh', 'seq' => 22,
+            'consigna' => ['es' => 'Completa en pinyin: « Zuótiān wǒ chī ___ miàntiáo. »  (Ayer COMÍ fideos — la partícula de acción terminada.)'],
+            'aceptadas' => ['le', 'le5', 'le0', '了'],
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.PO.2', 'lengua' => 'zh', 'seq' => 23,
+            'consigna' => ['es' => 'Completa en pinyin: « Wǒ ___ qù xuéxiào. »  (NO fui a la escuela — la negación del pasado.)'],
+            'aceptadas' => ['méi', 'mei2', '没'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.PO.2', 'lengua' => 'zh', 'seq' => 24,
+            'consigna' => ['es' => '«Ayer estaba muy cansada». ¿Lleva 了?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['zh' => '昨天我很累。 Zuótiān wǒ hěn lèi. — sin 了: estar cansado no es una acción terminada']],
+                ['clave' => 'b', 'texto' => ['zh' => '昨天我很累了。 Zuótiān wǒ hěn lèi le. — con 了 porque es pasado']],
+                ['clave' => 'c', 'texto' => ['zh' => '昨天我了很累。 Zuótiān wǒ le hěn lèi.']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.EE.1', 'lengua' => 'zh', 'seq' => 6,
+            'consigna' => ['es' => 'Escribes a Ānnà. Completa en pinyin: « ___ wǒ qù le shāngdiàn. »  (AYER fui a la tienda — dos sílabas.)'],
+            'aceptadas' => ['zuótiān', 'zuó tiān', 'zuo2tian1', 'zuo2 tian1', '昨天'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.EE.1', 'lengua' => 'zh', 'seq' => 7,
+            'consigna' => ['es' => 'Quieres contar tu día en orden. ¿Cuál de estas notas está bien ordenada (上午 mañana → 下午 tarde → 晚上 noche)?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['zh' => '上午我上课，下午我去了公园，晚上我看了电影。']],
+                ['clave' => 'b', 'texto' => ['zh' => '晚上我上课，上午我去了公园，下午我看了电影。']],
+                ['clave' => 'c', 'texto' => ['zh' => '下午我上课，晚上我去了公园，上午我看了电影。']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.2', 'lengua' => 'zh', 'seq' => 26,
+            'consigna' => ['es' => 'Te preguntan «你做了作业吗？». Sí, los hiciste. ¿Qué contestas?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['zh' => '做了。 Zuò le.']],
+                ['clave' => 'b', 'texto' => ['zh' => '是。 Shì.']],
+                ['clave' => 'c', 'texto' => ['zh' => '做。 Zuò.']],
+            ],
+            'correcta' => 'a',
+        ],
+
+        // ---- U9 ----
+        [
+            'tipo' => 'hueco', 'descriptor' => 'A1.IO.1', 'lengua' => 'zh', 'seq' => 4,
+            'consigna' => ['es' => 'Completa en pinyin: « Qǐng zài shuō yí ___. »  (Repita, por favor — «una VEZ», la última sílaba.)'],
+            'aceptadas' => ['biàn', 'bian4', '遍'],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.1', 'lengua' => 'zh', 'seq' => 5,
+            'consigna' => ['es' => 'Oyes la palabra «书包» (shūbāo) y no sabes qué es. ¿Qué preguntas?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['zh' => '«书包»是什么意思？ «Shūbāo» shì shénme yìsi?']],
+                ['clave' => 'b', 'texto' => ['zh' => '«书包»用中文怎么说？ «Shūbāo» yòng Zhōngwén zěnme shuō?']],
+                ['clave' => 'c', 'texto' => ['zh' => '请再说«书包»。 Qǐng zài shuō «shūbāo».']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.IO.1', 'lengua' => 'zh', 'seq' => 6,
+            'consigna' => ['es' => 'No entiendes lo que LEES en la pizarra (un carácter nuevo). ¿Qué dices?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['zh' => '老师，我看不懂。 Lǎoshī, wǒ kàn bu dǒng.']],
+                ['clave' => 'b', 'texto' => ['zh' => '老师，我听不懂。 Lǎoshī, wǒ tīng bu dǒng.']],
+                ['clave' => 'c', 'texto' => ['zh' => '老师，请说慢一点儿。 Lǎoshī, qǐng shuō màn yìdiǎnr.']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.PO.2', 'lengua' => 'zh', 'seq' => 25,
+            'consigna' => ['es' => 'Para tu proyecto final quieres decir «Me llamo Sofía, tengo quince años y me gusta la música». ¿Cuál es correcta?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['zh' => '我叫 Sofía，我十五岁，我喜欢音乐。 Wǒ jiào Sofía, wǒ shíwǔ suì, wǒ xǐhuan yīnyuè.']],
+                ['clave' => 'b', 'texto' => ['zh' => '我叫 Sofía，我是十五岁，我是喜欢音乐。 Wǒ jiào Sofía, wǒ shì shíwǔ suì, wǒ shì xǐhuan yīnyuè.']],
+                ['clave' => 'c', 'texto' => ['zh' => '叫 Sofía，有十五岁，喜欢音乐我。 Jiào Sofía, yǒu shíwǔ suì, xǐhuan yīnyuè wǒ.']],
+            ],
+            'correcta' => 'a',
+        ],
+        [
+            'tipo' => 'orden', 'descriptor' => 'A1.PO.2', 'lengua' => 'zh', 'seq' => 26,
+            'consigna' => ['es' => 'Ordena las fichas para decir «Ayer jugué al fútbol con Lǐ Míng» (踢足球 tī zúqiú). Hay dos órdenes correctos según dónde vaya «ayer». El punto ya está puesto.'],
+            'palabras' => [
+                ['clave' => 'w1', 'texto' => ['zh' => '昨天']],
+                ['clave' => 'w2', 'texto' => ['zh' => '我']],
+                ['clave' => 'w3', 'texto' => ['zh' => '和李明']],
+                ['clave' => 'w4', 'texto' => ['zh' => '踢了']],
+                ['clave' => 'w5', 'texto' => ['zh' => '足球']],
+            ],
+            'secuencias' => [
+                ['w1', 'w2', 'w3', 'w4', 'w5'],
+                ['w2', 'w1', 'w3', 'w4', 'w5'],
+            ],
+        ],
+        [
+            'tipo' => 'choice', 'descriptor' => 'A1.CE.3', 'lengua' => 'zh', 'seq' => 9,
+            'consigna' => ['es' => 'En una verja del parque lees «请勿入内». ¿Qué haces?'],
+            'opciones' => [
+                ['clave' => 'a', 'texto' => ['es' => 'No entrar: 请勿 es «prohibido» y 入 es «entrar»']],
+                ['clave' => 'b', 'texto' => ['es' => 'Entrar: es la entrada']],
+                ['clave' => 'c', 'texto' => ['es' => 'Pagar: la entrada es de pago']],
             ],
             'correcta' => 'a',
         ],
