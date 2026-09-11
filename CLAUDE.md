@@ -653,6 +653,55 @@ que existan A2/B1/B2/C1. Además: 0058/0861/0500 son inglés como PRIMERA lengua
 el MCER mide segundas — ahí la banda no es desconocida, es que **no aplica**, y
 el nodo lo dice (`mcer: SIN MAPEAR`).
 
+## La prueba de unidad (PR 8) — y las dos piezas que la hicieron posible
+
+Khan tiene «practice» y «unit test». `/corso/{lengua}/u{n}/prueba` es lo
+segundo: **diez ítems de corrido, sin pista ni veredicto hasta entregar**, nota
+con desglose por descriptor, **≥ 8/10 aprueba** y la unidad queda «completada»
+(la otra vía sigue siendo dominar todos sus descriptores). Suspendida se repite
+sin límite y la siguiente trae otra semilla. No bloquea la unidad siguiente,
+no tiene tiempo límite, no tiene nota en letras.
+
+**La regla que no se negocia: la prueba NO tiene camino propio de corrección.**
+Cada una de sus diez respuestas ES un intento de práctica —mismo billete
+firmado por ítem, misma `Tipo::corregir`, mismo intento persistido con su
+dominio, su AGS y su repaso—. Para que eso fuera literalmente cierto y no una
+copia bien hecha, salieron dos piezas del sitio donde estaban:
+
+- **`App\Services\Practice\RegistroDeIntento`**: qué pasa cuando un alumno
+  responde (reglas del tipo con la exclusión mutua derivada, abrir el billete,
+  corregir por encima de la bifurcación y persistir debajo). Vivía dentro de
+  `submitAttempt`; ahora `submitAttempt` y `PruebaController::entregar` llaman a
+  las MISMAS tres funciones y solo deciden la forma HTTP (200/201/409).
+- **`resources/js/components/Ejercicio.jsx`**: cómo se pinta y se responde cada
+  kind (`forma`, `Ejercicio`, `Veredicto`, `cuerpoDeRespuesta`). Vivía dentro de
+  `Practicar.jsx` (860 líneas); ahora `Practicar.jsx` y `prueba.jsx` lo
+  importan. `Practicar` pasó de 16 KB a 9 y la prueba cuesta 5,8.
+
+Lo que la prueba decide (`App\Services\Prueba\PruebaDeUnidad`):
+
+- **Justa**: semilla por (lengua, unidad, quién, intento) con la misma técnica
+  que `shuffleOptions` (hash como peso, desempate por id — `shuffle()` está tan
+  prohibido como `rand()`). Misma semilla, misma prueba; otra, otra.
+- **Repartida**: round-robin entre los descriptores de la unidad con ítems
+  firmados de ESA lengua, sin reposición. Ningún descriptor pasa de la mitad
+  mientras otro tenga ítems; con uno solo, se la lleva entera.
+- **Se corrige lo que se sirvió**: `entregar` RECOMPONE con la misma semilla y
+  rechaza (422) un ítem que no estaba, una respuesta que falta y un intento ya
+  entregado. Dos pasadas: primero se valida todo sin tocar nada; después se
+  registra dentro de una transacción — una séptima respuesta mal formada no
+  deja seis intentos guardados y una prueba a medias.
+- **El invitado la hace entera, ve la nota y no escribe nada** (200, no 201;
+  `se_guarda: false`). Su número de intento lo lleva él, como en práctica.
+- Con menos de diez ítems en el banco, el listón es la misma proporción
+  (`ceil(total × 8 / 10)`): aprobar no depende de cuántos ítems haya.
+
+Una trampa de Laravel que costó cinco tests rojos: `$request->validate()`
+devuelve SOLO las claves con regla. Los campos de respuesta (`answer`,
+`answer_key`, `respuesta`) los valida cada TIPO en una segunda pasada, así que
+la primera pasada los borraba y llegaban vacíos. Se lee `$request->input()` para
+la pasada por ítem.
+
 ## La frontera del contenido abierto (modelo Khan)
 
 Se **navega** y se **practica** sin sesión; se **guarda** y se **califica** solo con
@@ -660,7 +709,8 @@ sesión LTI. Abiertas: `/catalogo`, `/catalogo/{node}`, `/destreza/{objective}`,
 `/buscar`, `/practicar/{objective}`, `/recurso/{resource}`, el cascarón del curso
 (`/corso/{lengua}` para las CINCO lenguas —`fr it de zh en`—, `/corso/{lengua}/u{n}`,
 `/corso/{lengua}/u{n}/producir` — se
-VE la tarea, no se envía —, `/corso/{lengua}/u{n}/hablar`), los cinco endpoints de
+VE la tarea, no se envía —, `/corso/{lengua}/u{n}/hablar`, `/corso/{lengua}/u{n}/prueba`
+y `GET/POST /api/v1/pruebas/{lengua}/u{n}`), los cinco endpoints de
 `/api/v1/practice/*` y `POST /api/v1/dialogos/{id}/completado` (el invitado juega
 y no escribe). Cerradas: `/inicio`, `/progreso`, `/docente/*` y **toda producción**
 (crear, borrar y servir la voz: `/api/v1/producciones*` — contenido de un menor).

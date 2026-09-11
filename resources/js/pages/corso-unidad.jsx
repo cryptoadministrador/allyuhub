@@ -7,7 +7,7 @@ import Anillo from '../components/Anillo';
  * del currículo—: es lo que hace que el MCER sirva para algo dentro de la
  * cabeza de un chico de 15 años. Cada objetivo lleva a leer y a practicar.
  */
-export default function CorsoUnidad({ lengua, nombre, unidad, estado, dominio, puedo, siguiente, tiene_dialogo: tieneDialogo }) {
+export default function CorsoUnidad({ lengua, nombre, unidad, estado, dominio, puedo, siguiente, tiene_dialogo: tieneDialogo, tiene_prueba: tienePrueba = false, prueba_aprobada: pruebaAprobada = false }) {
     // La tarea de producción existe si la unidad tiene una destreza productiva
     // (Expresión Escrita o Producción Oral). El servidor manda: son los mismos
     // códigos que ofrece /corso/{lengua}/u{n}/producir.
@@ -96,6 +96,23 @@ export default function CorsoUnidad({ lengua, nombre, unidad, estado, dominio, p
                         >
                             <p className="font-medium text-slate-900">Escribe o graba lo que ya sabes decir</p>
                             <p className="mt-1 text-sm text-slate-700">Tu profe lo corregirá y te dará una devolución.</p>
+                        </Link>
+                    </section>
+                )}
+
+                {tienePrueba && (
+                    <section aria-labelledby="prueba" className="mb-8">
+                        <h2 id="prueba" className="mb-3 text-lg font-semibold tracking-tight text-slate-900">
+                            Prueba de la unidad
+                        </h2>
+                        <Link
+                            href={`/corso/${lengua}/u${unidad.n}/prueba`}
+                            className="block rounded-lg border border-marca-200 bg-marca-50 p-4 transition-shadow hover:shadow-md focus:outline-2 focus:outline-offset-2 focus:outline-marca-600"
+                        >
+                            <p className="font-medium text-slate-900">
+                                {pruebaAprobada ? '✅ Prueba aprobada · hazla otra vez si quieres' : 'Diez ejercicios de corrido, sin pistas'}
+                            </p>
+                            <p className="mt-1 text-sm text-slate-700">Con 8 o más, la unidad queda completada.</p>
                         </Link>
                     </section>
                 )}
