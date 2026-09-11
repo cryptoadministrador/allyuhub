@@ -380,9 +380,11 @@ props — React solo pinta, y así el cascarón cuesta ~6 KB de JS, no ~40.
   para las cuatro lenguas (el MCER así lo escribe), con los descriptores de
   cada unidad. Una unidad sin ítems/lecciones FIRMADOS de esa lengua se pinta
   «próximamente», nunca vacía.
-- **La racha** (`RachaDeAlumno`) se rompe con TRES días naturales sin
-  actividad, no con uno: un fin de semana no castiga. Ojo con `diffInDays` de
-  Carbon nuevo — devuelve con signo y float, hay que `abs`+`int`.
+- **La racha** (`RachaDeAlumno`): días naturales SEGUIDOS con actividad, en
+  hora de ECUADOR. **Se rompe con UN día sin repaso ni práctica** (regla del
+  PR 9, que SUSTITUYE a la de la misión 1 —tres días de gracia—: ver «El
+  repaso diario» abajo). Ojo con `diffInDays` de Carbon nuevo — devuelve con
+  signo y float, hay que `abs`+`int`.
 - **La lengua es cerrada**: `/corso/klingon` es 404. Y el cabo suelto de #28
   quedó cerrado — `/destreza?lengua=` filtra RECURSOS por lengua en las dos
   direcciones (pedir italiano sirve solo lecciones italianas; sin lengua, solo
@@ -702,6 +704,47 @@ devuelve SOLO las claves con regla. Los campos de respuesta (`answer`,
 la primera pasada los borraba y llegaban vacíos. Se lee `$request->input()` para
 la pasada por ítem.
 
+## El repaso diario y la racha (PR 9)
+
+Khan le da al alumno un sitio al que volver cada día. Aquí es
+`/corso/{lengua}/repaso` («tu repaso de hoy»): **hasta diez ítems que elige el
+servidor por prioridad** (`App\Services\Practice\RepasoDiario`) y se juegan
+COMO LA PRÁCTICA —cada respuesta va a `POST practice/items/{item}/attempts` con
+el billete que vino con el ítem; no hay ruta nueva de corrección—. Al final,
+«Repaso hecho: N/10» y la racha, número y nada más: **sin fuego, sin confeti**
+(también en la portada del curso).
+
+- **Tres prioridades, en este orden**: (1) descriptores VENCIDOS del repaso
+  espaciado —los que `RepasoService::vencidos()` ya calcula por `repaso_en`,
+  el más atrasado primero; se sirve OTRO ítem del descriptor, el que el alumno
+  tocó hace más tiempo o nunca—; (2) descriptores cuyo ÚLTIMO intento fue un
+  fallo —se sirve el ítem fallado, un fallo antiguo ya corregido NO es
+  reciente—; (3) relleno con ítems NO vistos de las unidades del curso. Las
+  dos primeras van con `repaso: true` FIRMADO en el billete (dominio sí, AGS
+  no —regla del PR 2—); la tercera son ítems nuevos y cuentan. `vencidos()`
+  salió de `cola()` para que las dos colas —la del PR 2 y la de hoy— sean UNA
+  consulta, no dos que divergen.
+- **Es el repaso de HOY**: semilla (lengua, quién, fecha de Ecuador). Volver a
+  abrirlo el mismo día trae el mismo; mañana, otro. Otro alumno, otro orden.
+- **El billete lleva el intento REAL** del alumno para ese ítem (el mismo que
+  daría `next`): un vencido servido con un ítem ya tocado es el intento 2, no
+  un 409 por «intento 1 repetido». Esto lo cazó una mutación.
+- **La racha** (`RachaDeAlumno`, arriba) sale de `practice_attempts` —repaso,
+  práctica y prueba por igual, porque las tres son intentos— y se cuenta en
+  `America/Guayaquil` (decidido: un alumno que repasa a las diez de la noche de
+  Quito repasa HOY aunque en UTC ya sea mañana; `created_at` viaja en UTC y se
+  convierte al contar; `activo_hoy` también). **REGLA NUEVA: se rompe con UN día
+  natural sin actividad**, como Khan. Contradice la del PR 1 (tres días de
+  gracia) a propósito: aquella se escribió cuando no había nada que hacer cada
+  día en diez minutos; ahora lo hay, y la racha estricta deja de castigar y
+  empieza a empujar. `GET /api/v1/practice/racha` la devuelve con `activo_hoy`.
+- **Regla de oro**: el invitado juega el repaso GENÉRICO (solo prioridad 3: sin
+  historia no hay vencidos ni fallos), ve la corrección, no tiene racha y no
+  escribe nada. `GET /api/v1/practice/repaso-diario?lengua=` es abierta; la
+  lengua es de lista cerrada (422 fuera).
+- **Lo que no entra**, mutación mediante: ítems de otra lengua, ítems sin
+  firmar, ítems ya vistos como relleno, descriptores con cita futura.
+
 ## La frontera del contenido abierto (modelo Khan)
 
 Se **navega** y se **practica** sin sesión; se **guarda** y se **califica** solo con
@@ -709,9 +752,9 @@ sesión LTI. Abiertas: `/catalogo`, `/catalogo/{node}`, `/destreza/{objective}`,
 `/buscar`, `/practicar/{objective}`, `/recurso/{resource}`, el cascarón del curso
 (`/corso/{lengua}` para las CINCO lenguas —`fr it de zh en`—, `/corso/{lengua}/u{n}`,
 `/corso/{lengua}/u{n}/producir` — se
-VE la tarea, no se envía —, `/corso/{lengua}/u{n}/hablar`, `/corso/{lengua}/u{n}/prueba`
-y `GET/POST /api/v1/pruebas/{lengua}/u{n}`), los cinco endpoints de
-`/api/v1/practice/*` y `POST /api/v1/dialogos/{id}/completado` (el invitado juega
+VE la tarea, no se envía —, `/corso/{lengua}/u{n}/hablar`, `/corso/{lengua}/u{n}/prueba`,
+`/corso/{lengua}/repaso` y `GET/POST /api/v1/pruebas/{lengua}/u{n}`), los endpoints de
+`/api/v1/practice/*` (`repaso-diario` y `racha` incluidos) y `POST /api/v1/dialogos/{id}/completado` (el invitado juega
 y no escribe). Cerradas: `/inicio`, `/progreso`, `/docente/*` y **toda producción**
 (crear, borrar y servir la voz: `/api/v1/producciones*` — contenido de un menor).
 `/docente/revisar*` y `/api/v1/revision/*` son cerradas con **403** (no

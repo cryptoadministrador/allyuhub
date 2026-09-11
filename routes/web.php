@@ -49,6 +49,9 @@ Route::get('/corso/{lengua}/u{n}', [\App\Http\Controllers\App\CursoController::c
 // La tarea de producción de la unidad: se VE sin sesión (enviarla, no).
 Route::get('/corso/{lengua}/u{n}/producir', [\App\Http\Controllers\App\CursoController::class, 'producir'])
     ->where('n', '[0-9]+')->name('corso.producir');
+// «Tu repaso de hoy»: abierto, el invitado juega el repaso genérico.
+Route::get('/corso/{lengua}/repaso', [\App\Http\Controllers\App\CursoController::class, 'repaso'])
+    ->name('corso.repaso');
 // La prueba de la unidad: abierta, el invitado la hace entera y ve su nota.
 Route::get('/corso/{lengua}/u{n}/prueba', [\App\Http\Controllers\App\CursoController::class, 'prueba'])
     ->where('n', '[0-9]+')->name('corso.prueba');
@@ -174,6 +177,8 @@ Route::prefix('api/v1')->middleware('throttle:practica')->group(function () {
     Route::get('practice/mastery', [PracticeController::class, 'mastery']);
     Route::get('practice/progress', [PracticeController::class, 'progress']);
     Route::get('practice/repasos', [PracticeController::class, 'repasos']);
+    Route::get('practice/repaso-diario', [PracticeController::class, 'repasoDiario']);
+    Route::get('practice/racha', [PracticeController::class, 'racha']);
     // Completar el interlocutor: abierto (el invitado lo hace y no escribe nada).
     Route::post('dialogos/{dialogo}/completado', [DialogoController::class, 'completado'])
         ->whereUuid('dialogo');

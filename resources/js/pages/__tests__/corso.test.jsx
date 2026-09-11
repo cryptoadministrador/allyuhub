@@ -82,15 +82,21 @@ describe('corso — la portada del curso', () => {
         expect(screen.getByText(/tu avance no se guarda/i)).toBeInTheDocument();
     });
 
-    it('la tarjeta de repaso aparece solo con repasos pendientes y lleva a practicarlos', () => {
+    it('la tarjeta «tu repaso de hoy» lleva al repaso diario y cuenta los vencidos', () => {
         render(<Corso {...PORTADA} repasos={{ pendientes: 3, siguiente: { url: '/practicar/d1?lengua=it&repaso=1' } }} />);
         const tarjeta = screen.getByRole('link', { name: /te tocan 3 repasos/i });
-        expect(tarjeta).toHaveAttribute('href', '/practicar/d1?lengua=it&repaso=1');
+        expect(tarjeta).toHaveAttribute('href', '/corso/it/repaso');
     });
 
-    it('sin repasos pendientes, ninguna tarjeta de repaso', () => {
+    it('sin repasos vencidos la tarjeta sigue: siempre hay repaso de hoy', () => {
         render(<Corso {...PORTADA} />);
         expect(screen.queryByText(/te tocan/i)).not.toBeInTheDocument();
+        expect(screen.getByRole('link', { name: /tu repaso de hoy/i })).toHaveAttribute('href', '/corso/it/repaso');
+    });
+
+    it('la racha se dice con el número y nada más: sin fuego', () => {
+        render(<Corso {...PORTADA} />);
+        expect(screen.getByText(/días seguidos practicando/i).textContent).not.toMatch(/🔥/);
     });
 
     it.each([

@@ -31,9 +31,10 @@ export default function Corso({ lengua, nombre, unidades, siguiente, racha, repa
                     <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">
                         {nombre}
                     </h1>
+                    {/* La racha: el número y nada más — sin fuego, sin confeti. */}
                     {racha.viva && racha.dias > 0 && (
                         <p className="mt-2 text-sm text-slate-700">
-                            🔥 Llevas <strong>{racha.dias}</strong>{' '}
+                            Llevas <strong>{racha.dias}</strong>{' '}
                             {racha.dias === 1 ? 'día' : 'días'} seguidos practicando.
                         </p>
                     )}
@@ -53,15 +54,19 @@ export default function Corso({ lengua, nombre, unidades, siguiente, racha, repa
                     </Link>
                 )}
 
-                {repasos && repasos.pendientes > 0 && repasos.siguiente && (
+                {/* «Tu repaso de hoy»: el sitio al que se vuelve cada día. Con
+                    repasos vencidos lo dice; sin ellos, sigue habiendo repaso
+                    (fallos recientes y ejercicios nuevos). */}
+                {siguiente && (
                     <Link
-                        href={repasos.siguiente.url}
+                        href={`/corso/${lengua}/repaso`}
                         className="mb-6 block rounded-lg border border-amber-300 bg-amber-50 p-4 transition-shadow hover:shadow-md focus:outline-2 focus:outline-offset-2 focus:outline-marca-600"
                     >
-                        <p className="text-sm font-medium text-amber-800">Repaso</p>
+                        <p className="text-sm font-medium text-amber-800">Tu repaso de hoy</p>
                         <p className="mt-1 text-base font-semibold text-slate-900">
-                            Te tocan {repasos.pendientes}{' '}
-                            {repasos.pendientes === 1 ? 'repaso' : 'repasos'} para no olvidar lo aprendido.
+                            {repasos && repasos.pendientes > 0
+                                ? `Te tocan ${repasos.pendientes} ${repasos.pendientes === 1 ? 'repaso' : 'repasos'} para no olvidar lo aprendido.`
+                                : 'Diez minutos: lo que fallaste y algo nuevo.'}
                         </p>
                     </Link>
                 )}

@@ -12,6 +12,8 @@ use App\Services\Practice\AdaptiveSelector;
 use App\Services\Practice\AttemptTicket;
 use App\Services\Practice\MasteryTracker;
 use App\Services\Practice\PracticeEngine;
+use App\Services\Practice\RachaDeAlumno;
+use App\Services\Practice\RepasoDiario;
 use App\Services\Practice\RegistroDeIntento;
 use App\Services\Practice\Practitioner;
 use App\Services\Practice\RepasoService;
@@ -208,6 +210,69 @@ class PracticeController extends Controller
 
         return response()->json([
             ...$this->repaso->cola($quien->userId(), $data['lengua']),
+            'se_guarda' => ! $quien->isGuest(),
+        ]);
+    }
+
+    /**
+     * GET /api/v1/practice/repaso-diario?lengua=it — «tu repaso de hoy».
+     *
+     * Hasta diez ítems por prioridad (vencidos del repaso espaciado, fallos
+     * recientes, relleno), cada uno con su billete firmado — con `repaso: true`
+     * en los dos primeros grupos para que cuenten para el dominio y no para la
+     * nota. Se juega COMO LA PRÁCTICA: cada respuesta va al endpoint de
+     * intentos de siempre. Abierto: el invitado recibe solo relleno.
+     */
+    public function repasoDiario(Request $request, RepasoDiario $diario, RachaDeAlumno $racha)
+    {
+        $data = $request->validate([
+            'user_id' => 'prohibited',
+            'lengua' => ['required', 'string', Rule::in(\App\Services\Practice\Lenguas::LISTA)],
+        ]);
+        $quien = Practitioner::fromRequest($request);
+        $lengua = $data['lengua'];
+
+        $items = $diario->componer($quien->userId(), $lengua)->map(function (array $e) use ($quien) {
+            $item = $e['item'];
+            // El mismo número de intento que calcularía `next`: el siguiente al
+            // último del alumno para ESE ítem. El invitado no tiene historial.
+            $attemptNo = $quien->isGuest() ? 1 : PracticeAttempt::query()
+                ->where('item_id', $item->id)->where('user_id', $quien->userId())->count() + 1;
+            $seed = $this->engine->seedFor($item->id, $quien->seedKey(), $attemptNo);
+
+            return [
+                'item_id' => $item->id,
+                'kind' => $item->kind,
+                'objective_id' => $item->objective_id,
+                'objective_code' => $item->objective?->native_code,
+                'objective_statement' => $item->objective?->statement['es'] ?? null,
+                'attempt_no' => $attemptNo,
+                'prioridad' => $e['prioridad'],
+                'repaso' => $e['repaso'],
+                'billete' => AttemptTicket::emitir($item->id, $quien->seedKey(), $attemptNo, $seed, $e['repaso']),
+                ...Registro::de($item->kind)->payload($item, $this->engine, $seed),
+            ];
+        })->values();
+
+        return response()->json([
+            'lengua' => $lengua,
+            'fecha' => now(RachaDeAlumno::ZONA)->toDateString(),
+            'total' => $items->count(),
+            'items' => $items,
+            'racha' => [...$racha->calcular($quien->userId()), 'activo_hoy' => $racha->activoHoy($quien->userId())],
+            'se_guarda' => ! $quien->isGuest(),
+        ]);
+    }
+
+    /** GET /api/v1/practice/racha — la racha del alumno de la sesión (el invitado: cero). */
+    public function racha(Request $request, RachaDeAlumno $racha)
+    {
+        $request->validate(['user_id' => 'prohibited']);
+        $quien = Practitioner::fromRequest($request);
+
+        return response()->json([
+            ...$racha->calcular($quien->userId()),
+            'activo_hoy' => $racha->activoHoy($quien->userId()),
             'se_guarda' => ! $quien->isGuest(),
         ]);
     }

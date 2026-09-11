@@ -39,6 +39,27 @@ class CursoController extends Controller
         ]);
     }
 
+    /**
+     * GET /corso/{lengua}/repaso — «tu repaso de hoy» (PR 9).
+     *
+     * ABIERTA. La página pide los ítems del día a la API y los juega como la
+     * práctica (corrección ítem a ítem). El invitado juega el repaso genérico y
+     * no escribe nada; con sesión, el primer repaso del día sube la racha.
+     */
+    public function repaso(Request $request, string $lengua)
+    {
+        abort_unless(in_array($lengua, Lenguas::LISTA, true), 404);
+
+        $userId = $request->user()?->id;
+
+        return Inertia::render('repaso', [
+            'lengua' => $lengua,
+            'nombre' => $this->curso->nombre($lengua),
+            'racha' => $this->racha->calcular($userId),
+            'se_guarda' => $userId !== null,
+        ]);
+    }
+
     public function unidad(Request $request, string $lengua, int $n)
     {
         abort_unless(in_array($lengua, Lenguas::LISTA, true), 404);
