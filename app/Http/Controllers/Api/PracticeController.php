@@ -3,9 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Jobs\PushLtiScore;
 use App\Models\LearningObjective;
-use App\Models\LtiResourceLink;
 use App\Models\ObjectiveMastery;
 use App\Models\PracticeAttempt;
 use App\Models\PracticeItem;
@@ -14,6 +12,7 @@ use App\Services\Practice\AdaptiveSelector;
 use App\Services\Practice\AttemptTicket;
 use App\Services\Practice\MasteryTracker;
 use App\Services\Practice\PracticeEngine;
+use App\Services\Practice\RegistroDeIntento;
 use App\Services\Practice\Practitioner;
 use App\Services\Practice\RepasoService;
 use App\Services\Practice\Tipos\Registro;
@@ -22,7 +21,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
-use InvalidArgumentException;
 
 /**
  * Motor de práctica: instanciación determinista y verificación en servidor.
@@ -45,6 +43,7 @@ class PracticeController extends Controller
         private readonly MasteryTracker $tracker,
         private readonly AdaptiveSelector $selector,
         private readonly RepasoService $repaso,
+        private readonly RegistroDeIntento $registro,
     ) {}
 
     /**
@@ -147,21 +146,12 @@ class PracticeController extends Controller
      */
     public function submitAttempt(PracticeItem $item, Request $request)
     {
-        // Cada tipo exige LO SUYO y prohíbe lo de los demás — y la exclusión
-        // mutua NO se escribe por tipo: se deriva. El tipo declara qué campos
-        // usa y el motor prohíbe todos los demás, así que el tipo que llegue
-        // mañana no puede olvidarse de prohibir nada.
-        $tipo = Registro::de($item->kind);
-        $reglas = $tipo->reglas($item);
-        foreach (['answer', 'answer_key', 'respuesta'] as $campo) {
-            if (! in_array($campo, $tipo->camposDeRespuesta(), true)) {
-                $reglas[$campo] = 'prohibited';
-            }
-        }
-
+        // Lo que el tipo exige y lo que prohíbe, el billete y qué pasa al
+        // responder viven en `RegistroDeIntento`: son las MISMAS piezas que usa
+        // la prueba de unidad. Aquí solo queda la forma HTTP.
         $data = $request->validate([
             'user_id' => 'prohibited',
-            ...$reglas,
+            ...$this->registro->reglasDe($item),
             'time_ms' => 'nullable|integer|min:0',
             // El número de intento viene firmado dentro del billete. Dos
             // fuentes para el mismo dato es la forma exacta en que empezó el
@@ -170,97 +160,38 @@ class PracticeController extends Controller
             'billete' => 'required|string',
         ]);
         $quien = Practitioner::fromRequest($request);
+        $ticket = $this->registro->abrirBillete($data['billete'], $item, $quien);
 
-        // El billete es de ESTE ítem y de ESTE practicante, o no vale. Un 422
-        // —no un «incorrecto»— porque el alumno no ha fallado nada: lo que pasa
-        // es que su cliente está mandando algo que el servidor no emitió.
         try {
-            $ticket = AttemptTicket::abrir($data['billete'], $item->id, $quien->seedKey());
-        } catch (InvalidArgumentException $e) {
-            throw ValidationException::withMessages(['billete' => $e->getMessage()]);
-        }
-
-        $attemptNo = $ticket['attempt_no'];
-        $seed = $ticket['seed'];
-        $esRepaso = $ticket['repaso'];
-
-        // LA CORRECCIÓN ES LA MISMA para el invitado y para el alumno: la
-        // resuelve el TIPO, por encima de la bifurcación. Lo único que cambia
-        // más abajo es si el resultado se guarda y si califica. Lo que el
-        // veredicto revela (expected, expected_key, transcripción, esperado…)
-        // lo decide cada tipo, y siempre DESPUÉS de responder.
-        $veredicto = $tipo->corregir($item, $data, $this->engine, $seed);
-
-        if ($quien->isGuest()) {
-            // 200 y no 201: no se creó nada. Ni intento, ni dominio, ni AGS —
-            // la regla de oro del contenido abierto. `se_guarda` viaja para que
-            // la interfaz no tenga que adivinarlo por ausencia de sesión.
-            return response()->json([
-                'attempt_no' => $attemptNo,
-                ...$veredicto,
-                'se_guarda' => false,
-            ]);
-        }
-
-        $userId = $quien->userId();
-
-        // Intento + actualización de mastery en la MISMA transacción:
-        // o quedan los dos, o ninguno. Si dos peticiones simultáneas calcularon el
-        // mismo attempt_no (unique por ítem+usuario), la perdedora responde 409 y el
-        // cliente reintenta — nunca un 500.
-        try {
-            [$attempt, $itemsAcertados] = $this->persistAttempt(
-                $item, $userId, $attemptNo, $seed,
-                $tipo->columnas($item, $veredicto, $data, $this->engine, $seed),
-                $data, $veredicto,
-            );
+            ['veredicto' => $veredicto, 'attempt' => $attempt] = $this->registro->procesar($item, $data, $ticket, $quien);
         } catch (UniqueConstraintViolationException) {
             return response()->json([
                 'message' => 'Intento duplicado: otra petición registró este intento primero. Pide el siguiente ítem y reintenta.',
             ], 409);
         }
 
-        // Si el alumno llegó por LTI con AGS, se re-publica su mastery en el
-        // gradebook de Moodle (cola con backoff; una consulta fija por intento).
-        // $userId ES el usuario autenticado — el cinturón defensivo de la
-        // auditoría LTI sobra desde que la ruta exige auth.
-        //
-        // Con un solo ítem acertado la nota no sale: mismo listón que el
-        // dominio, porque una nota que se saca repitiendo la misma pregunta
-        // ocupa una casilla del cuaderno del profesor sin decir nada.
-        // El REPASO cuenta para el dominio (ya aplicado) pero NO para la
-        // nota: una nota que sube repasando lo sabido está inflada. El flag
-        // viene FIRMADO en el billete, así que no se puede forjar para inflar.
-        if (! $esRepaso && $this->tracker->califica($itemsAcertados)) {
-            $this->queueLtiScore($userId, $item->objective_id);
+        if ($attempt === null) {
+            // 200 y no 201: no se creó nada. Ni intento, ni dominio, ni AGS —
+            // la regla de oro del contenido abierto. `se_guarda` viaja para que
+            // la interfaz no tenga que adivinarlo por ausencia de sesión.
+            return response()->json([
+                'attempt_no' => $ticket['attempt_no'],
+                ...$veredicto,
+                'se_guarda' => false,
+            ]);
         }
-
-        // Se reprograma el repaso del descriptor SIEMPRE que practica un
-        // alumno (repaso o no): tocar una destreza reprograma su próxima cita.
-        $this->repaso->programar($userId, $item->objective_id, $veredicto['is_correct']);
 
         // La explicación —`expected` o `expected_key`— se revela solo DESPUÉS
         // de responder; el siguiente intento trae números nuevos (o una
         // barajada nueva), así que no regala nada.
         return response()->json([
             'id' => $attempt->id,
-            'attempt_no' => $attemptNo,
+            'attempt_no' => $ticket['attempt_no'],
             ...$veredicto,
             'se_guarda' => true,
         ], 201);
     }
 
-    /**
-     * Despacha el push AGS si el alumno tiene un resource link LTI para esta destreza.
-     *
-     * DECISIÓN DELIBERADA: mientras el selector desvía al alumno a un
-     * prerrequisito (o al escalón siguiente), el ítem pertenece a OTRA destreza
-     * y esa no tiene resource link, así que la nota del gradebook de Moodle se
-     * queda quieta. Es lo correcto —la nota de «coeficiente de rozamiento» no
-     * debe subir por practicar el plano inclinado— pero desde que existen las
-     * aristas intra-MINEDEC el docente lo va a ver: un alumno trabajando sin
-     * que se mueva la nota. Está documentado en docs/lti-moodle.md.
-     */
     /**
      * GET /api/v1/practice/repasos?lengua=it — la cola de repaso del alumno.
      *
@@ -279,57 +210,6 @@ class PracticeController extends Controller
             ...$this->repaso->cola($quien->userId(), $data['lengua']),
             'se_guarda' => ! $quien->isGuest(),
         ]);
-    }
-
-    private function queueLtiScore(int $userId, string $objectiveId): void
-    {
-        $linkId = LtiResourceLink::query()
-            ->where('user_id', $userId)
-            ->where('objective_id', $objectiveId)
-            ->orderByDesc('last_launched_at')
-            ->value('id');
-
-        if ($linkId !== null) {
-            PushLtiScore::dispatch($linkId);
-        }
-    }
-
-    /**
-     * @param  array<string, mixed>  $veredicto  Lo mismo que se le devuelve al
-     *                                           cliente: es también lo que se guarda, para que no puedan
-     *                                           divergir la respuesta y el registro.
-     * @return array{0: PracticeAttempt, 1: int} El intento y cuántos
-     *                                           ítems DISTINTOS de esa destreza lleva acertados el alumno.
-     */
-    private function persistAttempt($item, int $userId, int $attemptNo, string $seed, array $columnas, array $data, array $veredicto)
-    {
-        return DB::transaction(function () use ($item, $userId, $attemptNo, $seed, $columnas, $data, $veredicto) {
-            $attempt = $item->attempts()->create([
-                'user_id' => $userId,
-                'attempt_no' => $attemptNo,
-                'seed' => $seed,
-                // Qué columnas puebla el intento lo declara el TIPO, con la
-                // invariante de una vía por kind: numeric usa answer/expected,
-                // choice/escucha usan answer_key y los tipos de lengua usan
-                // `respuesta`. Nada de rellenar las otras con '' o 0.0 — eso
-                // escondería un bug de bifurcación.
-                ...$columnas,
-                'is_correct' => $veredicto['is_correct'],
-                'time_ms' => $data['time_ms'] ?? null,
-            ]);
-
-            // Se cuenta DESPUÉS de guardar el intento —para que el acierto que
-            // acaba de ocurrir cuente— y una sola vez: sirve para sellar el
-            // dominio y, más abajo, para decidir si la nota viaja al aula.
-            $itemsAcertados = $this->tracker->itemsAcertados($userId, $item->objective_id);
-
-            $this->tracker->apply(
-                $userId, $item->objective_id, $veredicto['is_correct'],
-                $itemsAcertados, $attempt->created_at,
-            );
-
-            return [$attempt, $itemsAcertados];
-        });
     }
 
     /**

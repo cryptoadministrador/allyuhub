@@ -57,6 +57,42 @@ class CursoController extends Controller
     }
 
     /**
+     * GET /corso/{lengua}/u{n}/prueba — la prueba de la unidad (PR 8).
+     *
+     * ABIERTA como la práctica: el invitado la hace entera y ve su nota, sin
+     * escribir nada. La página pide los diez ítems a la API de pruebas y los
+     * entrega de golpe; aquí solo viaja lo que necesita para arrancar.
+     */
+    public function prueba(Request $request, string $lengua, int $n)
+    {
+        abort_unless(in_array($lengua, Lenguas::LISTA, true), 404);
+        abort_unless($this->curso->existeUnidad($lengua, $n), 404);
+
+        $userId = $request->user()?->id;
+        $detalle = $this->curso->unidad($lengua, $n, $userId);
+        abort_unless($detalle['tiene_prueba'], 404, 'Esta unidad todavía no tiene ejercicios firmados.');
+
+        // Lo que el alumno ya hizo en esta unidad: su mejor nota y cuántas
+        // veces. El invitado no tiene historia.
+        $historial = $userId === null ? [] : \App\Models\PruebaUnidad::query()
+            ->where('user_id', $userId)->where('lengua', $lengua)->where('unidad', $n)
+            ->orderBy('intento')
+            ->get(['intento', 'nota', 'total', 'aprobada'])
+            ->map(fn ($p) => ['intento' => $p->intento, 'nota' => $p->nota, 'total' => $p->total, 'aprobada' => $p->aprobada])
+            ->all();
+
+        return Inertia::render('prueba', [
+            'lengua' => $lengua,
+            'nombre' => $this->curso->nombre($lengua),
+            'unidad' => ['n' => $n, 'titulo' => $detalle['unidad']['titulo']],
+            'historial' => $historial,
+            'aprobado' => \App\Models\PruebaUnidad::APROBADO,
+            'tamano' => \App\Models\PruebaUnidad::TAMANO,
+            'se_guarda' => $userId !== null,
+        ]);
+    }
+
+    /**
      * GET /corso/{lengua}/u{n}/hablar — el interlocutor guionizado de la unidad.
      *
      * ABIERTA como el resto del curso. Solo se sirve el diálogo FIRMADO; si no

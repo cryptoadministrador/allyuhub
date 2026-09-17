@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\DialogoController;
 use App\Http\Controllers\Api\PracticeController;
 use App\Http\Controllers\Api\ProduccionController;
+use App\Http\Controllers\Api\PruebaController;
 use App\Http\Controllers\Api\RevisionPracticaController;
 use App\Http\Controllers\App\BienvenidaController;
 use App\Http\Controllers\App\DocenteController;
@@ -48,6 +49,9 @@ Route::get('/corso/{lengua}/u{n}', [\App\Http\Controllers\App\CursoController::c
 // La tarea de producción de la unidad: se VE sin sesión (enviarla, no).
 Route::get('/corso/{lengua}/u{n}/producir', [\App\Http\Controllers\App\CursoController::class, 'producir'])
     ->where('n', '[0-9]+')->name('corso.producir');
+// La prueba de la unidad: abierta, el invitado la hace entera y ve su nota.
+Route::get('/corso/{lengua}/u{n}/prueba', [\App\Http\Controllers\App\CursoController::class, 'prueba'])
+    ->where('n', '[0-9]+')->name('corso.prueba');
 // El interlocutor guionizado de la unidad: abierto, se juega sin sesión.
 Route::get('/corso/{lengua}/u{n}/hablar', [\App\Http\Controllers\App\CursoController::class, 'hablar'])
     ->where('n', '[0-9]+')->name('corso.hablar');
@@ -173,6 +177,12 @@ Route::prefix('api/v1')->middleware('throttle:practica')->group(function () {
     // Completar el interlocutor: abierto (el invitado lo hace y no escribe nada).
     Route::post('dialogos/{dialogo}/completado', [DialogoController::class, 'completado'])
         ->whereUuid('dialogo');
+    // La prueba de unidad: abierta como la práctica. Servir los diez ítems con
+    // su billete, y entregarlos de golpe para ver la nota.
+    Route::get('pruebas/{lengua}/u{n}', [PruebaController::class, 'servir'])
+        ->where('n', '[0-9]+')->name('prueba.servir');
+    Route::post('pruebas/{lengua}/u{n}', [PruebaController::class, 'entregar'])
+        ->where('n', '[0-9]+')->name('prueba.entregar');
 });
 
 // Una URL que no casa con NINGUNA ruta la rechaza el router antes del grupo

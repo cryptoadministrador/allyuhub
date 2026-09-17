@@ -5,6 +5,7 @@ namespace App\Services\Curso;
 use App\Models\LearningObjective;
 use App\Models\ObjectiveMastery;
 use App\Models\PracticeItem;
+use App\Models\PruebaUnidad;
 use App\Models\Resource;
 use App\Services\Lesson\DestinosDeBloque;
 use Illuminate\Support\Collection;
@@ -206,6 +207,10 @@ class CursoDeLenguas
             'dominio' => $estado['dominio'],
             'puedo' => $puedo->all(),
             'siguiente' => $puedo->first(fn ($p) => $p['has_items'] && ! $p['dominado']),
+            // Hay prueba si algún descriptor tiene ítems firmados; la unidad
+            // enlaza a ella solo entonces (nunca un enlace a un 404).
+            'tiene_prueba' => $puedo->contains(fn ($p) => $p['has_items']),
+            'prueba_aprobada' => in_array($n, $ctx['unidadesAprobadas'], true),
         ];
     }
 
@@ -267,7 +272,20 @@ class CursoDeLenguas
                 ->keyBy('objective_id')
                 ->all();
 
-        return compact('descriptores', 'itemsPorDescriptor', 'leccionPorDescriptor', 'masteryPorDescriptor');
+        // Las unidades cuya PRUEBA aprobó el alumno: es la otra vía a
+        // «completada» (la primera es dominar todos los descriptores). El
+        // invitado no tiene pruebas guardadas — ni una consulta con user_id nulo.
+        $unidadesAprobadas = $userId === null
+            ? []
+            : PruebaUnidad::query()
+                ->where('user_id', $userId)
+                ->where('lengua', $lengua)
+                ->where('aprobada', true)
+                ->pluck('unidad')
+                ->unique()
+                ->all();
+
+        return compact('descriptores', 'itemsPorDescriptor', 'leccionPorDescriptor', 'masteryPorDescriptor', 'unidadesAprobadas');
     }
 
     /**
@@ -306,7 +324,11 @@ class CursoDeLenguas
         $dominados = $masteries->filter(fn ($m) => $m?->mastered_at !== null)->count();
         $tocados = $masteries->filter(fn ($m) => $m !== null)->count();
 
+        // «Completada» por DOS vías: todos los descriptores dominados, o la
+        // PRUEBA de la unidad aprobada (≥ 8/10, PR 8) — que es lo que en Khan
+        // cierra una unidad. Ninguna bloquea la siguiente.
         $estado = match (true) {
+            in_array($n, $ctx['unidadesAprobadas'], true) => 'completada',
             $dominados === $conContenido->count() => 'completada',
             $tocados > 0 => 'en-curso',
             default => 'disponible',
