@@ -317,7 +317,8 @@ bloque, no cotejados uno a uno con el enunciado oficial de cada destreza.
 La plataforma dicta cuatro idiomas de cero (FR/IT/DE/ZH, 1.º BGU, A1) y para eso
 el motor aprendió a OÍR:
 
-- **Bloque `audio` en las lecciones** (`Bloques`): `{src, texto, duracion_s?}`.
+- **Bloque `audio` en las lecciones** (`Bloques`): `{src, texto, duracion_s?}`
+  —o `{pendiente: true, clip?, texto}` si aún no está grabado (PR 11)—.
   La transcripción es OBLIGATORIA (accesibilidad + pedagogía A1) y el `src` solo
   puede ser del almacén propio. Sin red, el bloque degrada a su transcripción
   con aviso — la lección de texto sigue entera.
@@ -787,6 +788,36 @@ La unidad dice «Vocabulario: 12 / 17 palabras».
   (60 lecciones, 484 ítems, 36 guiones, 624 tarjetas) — un cable trampa a
   propósito: si Carlos añade contenido, se actualiza el número; si un
   sembrador se salta una entrada con un aviso, nadie lo actualiza y cae.
+
+## Huecos declarados y «tono» (PR 11) — lo que falta se dice, no se esconde
+
+Los audios y vídeos del curso se generan al final (decisión de Carlos), así que
+las lecciones tienen que poder NACER sin ellos sin mentir.
+
+- **Un bloque `audio` con `pendiente => true`** entra SIN `src` (y con su
+  `clip`, la clave que lo enganchará) y `Recurso.jsx` lo pinta como lo que es:
+  «Audio pendiente: todavía no está grabado» + la transcripción, que es la
+  lección entera hasta que llegue el fichero. **Nunca un `<audio>` a un fichero
+  que no existe.** `pendiente` + `src` a la vez es contradicción y revienta.
+  **Re-sembrar con el fichero lo engancha** (`src` con hash, fuera `pendiente`)
+  sin tocar el banco. Sin `pendiente`, la regla de siempre: un clip que falta
+  revienta la siembra entera. Los huecos se listan al final de `lenguas:sembrar`.
+- **`video` existe SOLO como hueco** (`pendiente => true` obligatorio, sin
+  `src`): no hay almacén de vídeo, y el de audio es de audio con su vocabulario
+  cerrado — no se ensancha para meter mp4. El día que exista, aquí se admite
+  `src` y el banco no cambia.
+- **Los ítems `escucha`/`dictado` NO admiten huecos**: sin clip no hay
+  ejercicio, y `pendiente` en un ítem se ignora (mutación M14). La diferencia
+  es la misma que con los diálogos: la lección se lee entera sin el audio; la
+  pregunta de escucha no existe sin él.
+- **«Te falta el tono»**: en chino el `detalle: 'acento'` del motor (pinyin
+  con tonos, `nǐ` ≠ `ni`) se dice con su nombre. Vive en UN sitio
+  (`Veredicto` de `Ejercicio.jsx`, `item.lengua === 'zh'`), así que práctica,
+  prueba y repaso lo dicen igual. Para eso `TipoHueco::payload` (y `dictado`,
+  que hereda) lleva `lengua` — es pública, no es la solución, y el oráculo de
+  fuga por kind la declara a propósito. La caja del hueco en chino avisa:
+  «pinyin con tonos (nǐ hǎo) o con el número del tono (ni3 hao3)» — el
+  motor acepta las dos, el banco las lista.
 
 ## La frontera del contenido abierto (modelo Khan)
 
