@@ -19,6 +19,7 @@ const KINDS = {
     pares: 'Parejas',
     dictado: 'Dictado',
     numeric: 'Numérico',
+    vocabulario: 'Tarjeta',
 };
 
 export default function DocenteRevisar({ lengua, lenguas, estado, docente, unidades, total }) {

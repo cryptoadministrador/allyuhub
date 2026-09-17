@@ -745,6 +745,49 @@ el billete que vino con el ítem; no hay ruta nueva de corrección—. Al final,
 - **Lo que no entra**, mutación mediante: ítems de otra lengua, ítems sin
   firmar, ítems ya vistos como relleno, descriptores con cita futura.
 
+## El vocabulario por unidad (PR 10) — tarjetas, no un tipo de ítem
+
+Cada unidad tiene sus palabras (`database/data/vocabulario-lenguas.php`, escrito
+por Carlos: 624 tarjetas, ~17 por unidad y lengua) y `/corso/{lengua}/u{n}/vocabulario`
+las pinta como TARJETAS: anverso la palabra (en chino el carácter grande y el
+pinyin debajo; en alemán con su artículo, que ya viene dentro de `palabra`),
+reverso el significado y una frase de la lección. «La sé» la saca del mazo
+hasta MAÑANA (día de Ecuador); «Todavía no» la manda al final del mazo de hoy.
+La unidad dice «Vocabulario: 12 / 17 palabras».
+
+- **NO es un tipo de ítem y NO da dominio, a propósito.** Es material de apoyo:
+  ni `Tipos\Registro`, ni billete, ni `practice_attempts`, ni racha. Tabla
+  `vocabulario` (`App\Models\Tarjeta`, idempotente por (lengua, unidad,
+  clave)) y `vocab_estado` (una fila por (alumno, tarjeta), `conocida_at` nulo
+  = «todavía no»). Hacerlo ítem habría metido el vocabulario en la prueba y en
+  el repaso, que es justo lo que no se quiere: la prueba mide descriptores.
+- **Nace SIN firmar** y se firma **por lengua** con `vocabulario:firmar
+  --lengua=it [--unidad=3]` **o desde `/docente/revisar`**: `Revision\Pieza`
+  tiene un tercer tipo (`vocabulario`), `Firma` escribe la tercera columna del
+  rastro (`revisiones.tarjeta_id`) y las rutas de revisión leen los tipos de
+  `Pieza::TIPOS` — estaban escritos a mano (`['item', 'leccion']`) y la tercera
+  pieza daba 404. La tarjeta se abre en la pantalla TAL COMO LA VE EL ALUMNO
+  (`vocabulario.jsx` con un mazo de una y `revision` — no llama a la API).
+- **El clip se DECLARA sin fichero**, como en los diálogos: `ClipsDeclarados`
+  (extraído de `dialogos:sembrar`, que ahora lo usa también) conserva la CLAVE,
+  rellena la RUTA solo si el fichero está y lista las que faltan. Sin fichero
+  no hay reproductor —la tarjeta se usa leyendo—; nunca un `<audio>` a un clip
+  que no existe.
+- **El banco entra entero o no entra** (transacción): lengua fuera de lista,
+  unidad que el curso no tiene, clave repetida, chino sin pinyin, pinyin fuera
+  del chino o ejemplo sin traducción revientan nombrando la entrada.
+- **«Hoy» es el de Ecuador** (`MazoDeVocabulario`, misma zona que la racha).
+  Lo cazó una mutación: con el día de UTC, «la sé» a las ocho de la tarde de
+  Quito no volvía al mazo a la una de la madrugada siguiente.
+- **Regla de oro**: el invitado ve el mazo entero, lo que marque vive en la
+  memoria de la página, y `POST api/v1/vocabulario/{id}/estado` le responde
+  200 sin escribir (201 con sesión). Una tarjeta sin firmar es 404 ahí también.
+- **Oráculo del banco entero** (`BancoEnteroTest`): `lenguas:sembrar` +
+  `dialogos:sembrar` + `vocabulario:sembrar` con la cuenta EXACTA escrita
+  (60 lecciones, 484 ítems, 36 guiones, 624 tarjetas) — un cable trampa a
+  propósito: si Carlos añade contenido, se actualiza el número; si un
+  sembrador se salta una entrada con un aviso, nadie lo actualiza y cae.
+
 ## La frontera del contenido abierto (modelo Khan)
 
 Se **navega** y se **practica** sin sesión; se **guarda** y se **califica** solo con
@@ -753,7 +796,8 @@ sesión LTI. Abiertas: `/catalogo`, `/catalogo/{node}`, `/destreza/{objective}`,
 (`/corso/{lengua}` para las CINCO lenguas —`fr it de zh en`—, `/corso/{lengua}/u{n}`,
 `/corso/{lengua}/u{n}/producir` — se
 VE la tarea, no se envía —, `/corso/{lengua}/u{n}/hablar`, `/corso/{lengua}/u{n}/prueba`,
-`/corso/{lengua}/repaso` y `GET/POST /api/v1/pruebas/{lengua}/u{n}`), los endpoints de
+`/corso/{lengua}/repaso`, `/corso/{lengua}/u{n}/vocabulario`,
+`GET/POST /api/v1/pruebas/{lengua}/u{n}` y `POST /api/v1/vocabulario/{id}/estado`), los endpoints de
 `/api/v1/practice/*` (`repaso-diario` y `racha` incluidos) y `POST /api/v1/dialogos/{id}/completado` (el invitado juega
 y no escribe). Cerradas: `/inicio`, `/progreso`, `/docente/*` y **toda producción**
 (crear, borrar y servir la voz: `/api/v1/producciones*` — contenido de un menor).

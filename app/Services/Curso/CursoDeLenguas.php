@@ -211,6 +211,9 @@ class CursoDeLenguas
             // enlaza a ella solo entonces (nunca un enlace a un 404).
             'tiene_prueba' => $puedo->contains(fn ($p) => $p['has_items']),
             'prueba_aprobada' => in_array($n, $ctx['unidadesAprobadas'], true),
+            // «Vocabulario: 12 / 17 palabras» — solo tarjetas FIRMADAS; con
+            // total 0 la unidad no enlaza al mazo (nunca un enlace a un 404).
+            'vocabulario' => (new MazoDeVocabulario)->cuenta($lengua, $n, $userId),
         ];
     }
 

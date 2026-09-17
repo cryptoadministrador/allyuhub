@@ -11,9 +11,9 @@ use Illuminate\Support\Facades\DB;
  *
  * Antes vivía copiada en `practica:firmar` y `lecciones:firmar` (los dos
  * escribían `reviewed_at` + `reviewed_by` a mano) y la pantalla de revisión iba
- * a ser el tercero. Ahora los tres llaman aquí: `columnas()` dice QUÉ escribe
- * una firma, y los comandos lo usan en su `update()` masivo sin cambiar de
- * comportamiento ni de coste.
+ * a ser el tercero. Ahora todos llaman aquí (`vocabulario:firmar` incluido):
+ * `columnas()` dice QUÉ escribe una firma, y los comandos lo usan en su
+ * `update()` masivo sin cambiar de comportamiento ni de coste.
  *
  * La pantalla usa además `firmar()`/`devolver()`/`desfirmar()`, que hacen lo
  * mismo Y dejan rastro en `revisiones` con el docente real. La diferencia no es
@@ -84,6 +84,7 @@ final class Firma
         Revision::create([
             'practice_item_id' => $pieza->tipo === Pieza::ITEM ? $pieza->id() : null,
             'resource_version_id' => $pieza->tipo === Pieza::LECCION ? $pieza->id() : null,
+            'tarjeta_id' => $pieza->tipo === Pieza::VOCABULARIO ? $pieza->id() : null,
             'user_id' => $docente->id,
             'accion' => $accion,
             'nota' => $nota === null ? null : trim($nota),

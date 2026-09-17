@@ -2,16 +2,17 @@ import { Link, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import Practicar from './Practicar';
 import Recurso from './Recurso';
+import Vocabulario from './vocabulario';
 
 /**
  * UNA PIEZA EN REVISIÓN, tal como la ve el alumno.
  *
  * No hay visor de revisión: esta página RENDERIZA la página del alumno
- * (`Recurso.jsx` para una lección, `Practicar.jsx` para un ejercicio) y le pone
- * encima una barra de acciones. Un visor propio revisaría una cosa distinta de
+ * (`Recurso.jsx` para una lección, `Practicar.jsx` para un ejercicio,
+ * `vocabulario.jsx` para una tarjeta) y le pone encima una barra de acciones. Un visor propio revisaría una cosa distinta de
  * la que se publica — que es exactamente el fallo que esto evita.
  *
- * Las dos traen su propio AppLayout, así que aquí NO se envuelve nada: la barra
+ * Las tres traen su propio AppLayout, así que aquí NO se envuelve nada: la barra
  * va fija abajo, sobre la página del alumno.
  */
 
@@ -107,12 +108,17 @@ function Barra({ pieza }) {
     );
 }
 
-export default function DocenteRevisarPieza({ pieza, notas, recurso, destrezas, objective }) {
+function Alumno({ pieza, recurso, destrezas, objective, vocabulario }) {
+    if (vocabulario) return <Vocabulario {...vocabulario} revision />;
+    if (recurso) return <Recurso recurso={recurso} destrezas={destrezas} />;
+
+    return <Practicar objective={objective} mastery={null} revision={pieza.id} />;
+}
+
+export default function DocenteRevisarPieza({ pieza, notas, recurso, destrezas, objective, vocabulario = null }) {
     return (
         <>
-            {recurso
-                ? <Recurso recurso={recurso} destrezas={destrezas} />
-                : <Practicar objective={objective} mastery={null} revision={pieza.id} />}
+            <Alumno pieza={pieza} recurso={recurso} destrezas={destrezas} objective={objective} vocabulario={vocabulario} />
 
             {notas.length > 0 && (
                 <div className="mx-auto max-w-3xl px-4 pb-40">

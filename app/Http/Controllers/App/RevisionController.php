@@ -7,6 +7,7 @@ use App\Models\LearningObjective;
 use App\Models\PracticeItem;
 use App\Models\Resource;
 use App\Models\Revision;
+use App\Models\Tarjeta;
 use App\Models\User;
 use App\Services\Curso\CursoDeLenguas;
 use App\Services\Docente\Docencia;
@@ -74,22 +75,30 @@ class RevisionController extends Controller
 
         foreach ($piezas as $pieza) {
             $descriptor = $pieza->descriptor();
-            $code = $descriptor?->native_code ?? '—';
+            // Una tarjeta de vocabulario no cuelga de un descriptor: cuelga de
+            // la unidad, y se agrupa bajo un cajón «Vocabulario» de esa unidad.
+            $code = $pieza->tipo === Pieza::VOCABULARIO ? 'Vocabulario' : ($descriptor?->native_code ?? '—');
             // Una pieza cuyo descriptor no pertenece a ninguna unidad del curso
             // (contenido MINEDEC, o un descriptor nuevo) NO se esconde: cae en
             // el cajón 0, «Sin unidad». Esconderla sería perderla.
-            $n = $porDescriptor[$code] ?? 0;
+            $n = $pieza->unidad() ?? ($porDescriptor[$code] ?? 0);
 
             $unidades[$n]['n'] = $n;
             $unidades[$n]['titulo'] = $n === 0 ? 'Sin unidad' : ($this->curso->tituloDeUnidad($lengua, $n) ?? "Unidad {$n}");
             $unidades[$n]['descriptores'][$code]['code'] = $code;
-            $unidades[$n]['descriptores'][$code]['statement'] = $descriptor?->statement['es'] ?? '';
+            $unidades[$n]['descriptores'][$code]['statement'] = $pieza->tipo === Pieza::VOCABULARIO
+                ? 'Las palabras de la unidad'
+                : ($descriptor?->statement['es'] ?? '');
             $unidades[$n]['descriptores'][$code]['piezas'][] = [
                 'tipo' => $pieza->tipo,
                 'id' => $pieza->id(),
                 'titulo' => \Illuminate\Support\Str::limit($pieza->titulo(), 120),
                 'lengua' => $pieza->lengua(),
-                'kind' => $pieza->tipo === Pieza::ITEM ? $pieza->modelo->kind : 'reading',
+                'kind' => match ($pieza->tipo) {
+                    Pieza::ITEM => $pieza->modelo->kind,
+                    Pieza::VOCABULARIO => 'vocabulario',
+                    default => 'reading',
+                },
                 'url' => "/docente/revisar/{$pieza->tipo}/{$pieza->id()}",
                 'nota' => $notas["{$pieza->tipo}:{$pieza->id()}"] ?? null,
                 'vista' => in_array("{$pieza->tipo}:{$pieza->id()}", $vistas, true),
@@ -142,6 +151,26 @@ class RevisionController extends Controller
             ],
             'notas' => $this->historial($pieza),
         ];
+
+        if ($pieza->tipo === Pieza::VOCABULARIO) {
+            $t = $pieza->modelo;
+
+            return Inertia::render('docente-revisar-pieza', [
+                ...$comun,
+                'recurso' => null,
+                'objective' => null,
+                'destrezas' => [],
+                // MISMA forma que /corso/{lengua}/u{n}/vocabulario: se pinta con
+                // `vocabulario.jsx`, con un mazo de UNA tarjeta y sin guardar nada.
+                'vocabulario' => [
+                    'lengua' => $t->lengua,
+                    'nombre' => $this->curso->nombre($t->lengua),
+                    'unidad' => ['n' => $t->unidad, 'titulo' => $this->curso->tituloDeUnidad($t->lengua, $t->unidad) ?? "Unidad {$t->unidad}"],
+                    'tarjetas' => [\App\Services\Curso\MazoDeVocabulario::serializar($t, conocida: false, hoy: true)],
+                    'se_guarda' => false,
+                ],
+            ]);
+        }
 
         if ($pieza->tipo === Pieza::LECCION) {
             $recurso = $pieza->recurso();
@@ -245,7 +274,7 @@ class RevisionController extends Controller
             ->filter(function (Pieza $p) use ($porDescriptor, $data) {
                 $code = $p->descriptor()?->native_code ?? '—';
 
-                return ($porDescriptor[$code] ?? 0) === (int) $data['unidad'];
+                return ($p->unidad() ?? ($porDescriptor[$code] ?? 0)) === (int) $data['unidad'];
             });
 
         abort_if($delaUnidad->isEmpty(), 404, 'No hay nada pendiente en esa unidad.');
@@ -304,7 +333,15 @@ class RevisionController extends Controller
             ->filter(fn (Resource $r) => $r->currentVersion !== null)
             ->map(fn (Resource $r) => Pieza::deLeccion($r->currentVersion));
 
-        return $lecciones->concat($items)->values();
+        $tarjetas = Tarjeta::query()
+            ->when($firmadas, fn ($q) => $q->whereNotNull('reviewed_at'),
+                fn ($q) => $q->whereNull('reviewed_at'))
+            ->when($lengua !== null, fn ($q) => $q->where('lengua', $lengua))
+            ->orderBy('lengua')->orderBy('unidad')->orderBy('orden')->orderBy('id')
+            ->get()
+            ->map(fn (Tarjeta $t) => Pieza::deTarjeta($t));
+
+        return $lecciones->concat($items)->concat($tarjetas)->values();
     }
 
     private function localizar(string $tipo, string $id): Pieza
@@ -327,8 +364,9 @@ class RevisionController extends Controller
     {
         $itemIds = $piezas->where('tipo', Pieza::ITEM)->map(fn ($p) => $p->id())->all();
         $versionIds = $piezas->where('tipo', Pieza::LECCION)->map(fn ($p) => $p->id())->all();
+        $tarjetaIds = $piezas->where('tipo', Pieza::VOCABULARIO)->map(fn ($p) => $p->id())->all();
 
-        if ($itemIds === [] && $versionIds === []) {
+        if ($itemIds === [] && $versionIds === [] && $tarjetaIds === []) {
             return [];
         }
 
@@ -337,14 +375,17 @@ class RevisionController extends Controller
             ->where('accion', Revision::DEVOLVER)
             ->where(fn ($q) => $q
                 ->whereIn('practice_item_id', $itemIds)
-                ->orWhereIn('resource_version_id', $versionIds))
+                ->orWhereIn('resource_version_id', $versionIds)
+                ->orWhereIn('tarjeta_id', $tarjetaIds))
             ->with('docente:id,name')
             ->orderBy('created_at')   // la ÚLTIMA gana: se recorre en orden
             ->get()
             ->each(function (Revision $r) use (&$notas) {
-                $clave = $r->practice_item_id !== null
-                    ? Pieza::ITEM.':'.$r->practice_item_id
-                    : Pieza::LECCION.':'.$r->resource_version_id;
+                $clave = match (true) {
+                    $r->practice_item_id !== null => Pieza::ITEM.':'.$r->practice_item_id,
+                    $r->tarjeta_id !== null => Pieza::VOCABULARIO.':'.$r->tarjeta_id,
+                    default => Pieza::LECCION.':'.$r->resource_version_id,
+                };
                 $notas[$clave] = [
                     'nota' => $r->nota,
                     'docente' => $r->docente?->name,
@@ -358,10 +399,14 @@ class RevisionController extends Controller
     /** @return list<array{accion: string, nota: ?string, docente: ?string, cuando: string}> */
     private function historial(Pieza $pieza): array
     {
+        $columna = match ($pieza->tipo) {
+            Pieza::ITEM => 'practice_item_id',
+            Pieza::VOCABULARIO => 'tarjeta_id',
+            default => 'resource_version_id',
+        };
+
         return Revision::query()
-            ->when($pieza->tipo === Pieza::ITEM,
-                fn ($q) => $q->where('practice_item_id', $pieza->id()),
-                fn ($q) => $q->where('resource_version_id', $pieza->id()))
+            ->where($columna, $pieza->id())
             ->with('docente:id,name')
             ->orderByDesc('created_at')->orderBy('id')
             ->limit(20)
