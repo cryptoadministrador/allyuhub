@@ -1,6 +1,6 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Ejercicio, Veredicto, cuerpoDeRespuesta, estaIncompleta, valorInicial } from '../components/Ejercicio';
+import { Ejercicio, Veredicto, claseDeVeredicto, cuerpoDeRespuesta, estaIncompleta, valorInicial } from '../components/Ejercicio';
 import AppLayout from '../layouts/AppLayout';
 
 /**
@@ -163,7 +163,7 @@ export default function Repaso({ lengua, nombre, racha: rachaInicial, se_guarda:
                 <div aria-live="polite">
                     {estado === 'respondido' && resultado && item && (
                         <div ref={feedbackRef} tabIndex={-1}
-                            className={`mt-6 flex gap-4 rounded-lg border border-l-4 p-4 ${resultado.is_correct ? 'border-emerald-200 border-l-emerald-600 bg-emerald-50' : 'border-rose-200 border-l-rose-600 bg-rose-50'}`}>
+                            className={`mt-6 flex gap-4 rounded-lg border border-l-4 p-4 ${claseDeVeredicto(resultado.is_correct)}`}>
                             <span aria-hidden="true" className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xl font-bold text-white ${resultado.is_correct ? 'bg-emerald-600' : 'bg-rose-600'}`}>
                                 {resultado.is_correct ? '✓' : '✗'}
                             </span>

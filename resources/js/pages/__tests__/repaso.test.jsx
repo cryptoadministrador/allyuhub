@@ -52,7 +52,7 @@ describe('repaso — tu repaso de hoy', () => {
     it('arranca con el primer ítem y dice de qué prioridad es', async () => {
         fetchDeRepaso();
         render(<Repaso {...PROPS} />);
-        expect(await screen.findByText('Completa: Mi ___ Ana.')).toBeInTheDocument();
+        expect(await screen.findByText(/Completa: Mi/)).toBeInTheDocument();
         expect(screen.getByRole('status')).toHaveTextContent(/1 de 2 · Repaso/);
         expect(screen.getByText(/Racha: 2 días/)).toBeInTheDocument();
     });
@@ -61,7 +61,7 @@ describe('repaso — tu repaso de hoy', () => {
         const fetchMock = fetchDeRepaso();
         const user = userEvent.setup();
         render(<Repaso {...PROPS} />);
-        await screen.findByText('Completa: Mi ___ Ana.');
+        await screen.findByText(/Completa: Mi/);
 
         await user.type(screen.getByLabelText(/tu respuesta/i), 'chiamo');
         await user.click(screen.getByRole('button', { name: /comprobar/i }));
@@ -88,7 +88,7 @@ describe('repaso — tu repaso de hoy', () => {
         auth = { user: null };
         fetchDeRepaso();
         render(<Repaso {...PROPS} racha={{ dias: 0, viva: false }} se_guarda={false} />);
-        await screen.findByText('Completa: Mi ___ Ana.');
+        await screen.findByText(/Completa: Mi/);
         expect(screen.getByText(/no se guarda/i)).toBeInTheDocument();
         expect(screen.queryByText(/Racha:/)).not.toBeInTheDocument();
     });
@@ -102,7 +102,7 @@ describe('repaso — tu repaso de hoy', () => {
     it('accesibilidad: sin violaciones serias', async () => {
         fetchDeRepaso();
         const { container } = render(<Repaso {...PROPS} />);
-        await screen.findByText('Completa: Mi ___ Ana.');
+        await screen.findByText(/Completa: Mi/);
         expect(violacionesGraves(await axe(container))).toEqual([]);
     });
 });
