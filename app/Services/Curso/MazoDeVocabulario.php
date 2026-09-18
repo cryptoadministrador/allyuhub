@@ -68,6 +68,31 @@ final class MazoDeVocabulario
         return ['total' => $total, 'conocidas' => $conocidas];
     }
 
+    /**
+     * INTRUSAS para «¿Cuál sobra?» (PR 15): tarjetas FIRMADAS de OTRAS unidades
+     * de la misma lengua. El «campo» del juego es la unidad —sale del dato, no
+     * de una lista escrita a mano—, así que la intrusa es una palabra de otra
+     * unidad. Hasta `$cuantas`, en orden determinista por la semilla del día:
+     * el mismo juego todo el día, otro mañana.
+     *
+     * @return Collection<int, array{id: string, palabra: string, lectura: ?string, significado: string, unidad: int}>
+     */
+    public function intrusas(string $lengua, int $unidad, string $semilla, int $cuantas = 12): Collection
+    {
+        return Tarjeta::published()
+            ->where('lengua', $lengua)
+            ->where('unidad', '!=', $unidad)
+            ->orderBy('unidad')->orderBy('orden')->orderBy('id')
+            ->get()
+            ->sortBy(fn (Tarjeta $t) => [hash('sha256', "{$semilla}:intrusa:{$t->id}"), $t->id])
+            ->take($cuantas)
+            ->map(fn (Tarjeta $t) => [
+                'id' => $t->id, 'palabra' => $t->palabra, 'lectura' => $t->lectura,
+                'significado' => $t->significado, 'unidad' => $t->unidad,
+            ])
+            ->values();
+    }
+
     /** La MISMA forma para la página del alumno y para la revisión docente. */
     public static function serializar(Tarjeta $t, bool $conocida, bool $hoy): array
     {
