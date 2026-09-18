@@ -362,6 +362,57 @@ class OtraVezTest extends TestCase
         Queue::assertNothingPushed();
     }
 
+    // ================= ORÁCULO 1 · ninguna vía nueva filtra, por kind y en las cuatro lenguas =================
+
+    /**
+     * Mientras quede vuelta, ni el veredicto ni el andamiaje delatan la
+     * solución: se recorre `Registro::kinds()` en las CUATRO lenguas, como
+     * invitado (la corrección es la misma y no hay filas que limpiar), y se
+     * busca cada centinela en el CUERPO entero, no en un nombre de campo.
+     */
+    public function test_ni_el_veredicto_con_vuelta_ni_el_andamiaje_filtran_la_solucion_en_las_cuatro_lenguas(): void
+    {
+        foreach (['it', 'fr', 'de', 'zh'] as $lengua) {
+            foreach ($this->unoDeCadaKind($lengua) as $kind => $f) {
+                $item = $f['item'];
+                $r1 = $this->responder($item, $f['mala'], $this->billete($item->id))->assertOk();
+                $v1 = $r1->json();
+                $this->assertArrayHasKey('otra_vez', $v1, "{$lengua}/{$kind}: sin vuelta al primer fallo.");
+                $this->assertArrayNotHasKey('andamiaje', $v1, "{$lengua}/{$kind}: andamiaje al primer fallo.");
+
+                $r2 = $this->responder($item, $f['mala'], $v1['otra_vez']['billete'])->assertOk();
+                $v2 = $r2->json();
+                $this->assertArrayHasKey('andamiaje', $v2, "{$lengua}/{$kind}: sin andamiaje al segundo fallo.");
+
+                foreach ([$r1, $r2] as $i => $r) {
+                    $cuerpo = $r->getContent();
+                    foreach (Registro::de($kind)->revelan() as $clave) {
+                        $this->assertStringNotContainsString("\"{$clave}\"", $cuerpo, "{$lengua}/{$kind}: «{$clave}» viajó en el fallo ".($i + 1).'.');
+                    }
+                    foreach ($f['secretos'] as $centinela) {
+                        // `answer_key` y `parejas` son el ECO de lo que el alumno
+                        // mandó (su propia respuesta), no la solución: los
+                        // centinelas de nombre de campo son para `next`.
+                        if (in_array($centinela, ['answer_key', 'parejas'], true)) {
+                            continue;
+                        }
+                        // El hueco/dictado enseñan la buena DENTRO de las tres
+                        // opciones del andamiaje (segundo fallo): eso es el
+                        // andamiaje, no una fuga. El resto, jamás.
+                        $enAndamiaje = $i === 1 && in_array($kind, [PracticeItem::HUECO, PracticeItem::DICTADO], true)
+                            && in_array($centinela, ['CENTINELA-HUECO-SOL', 'CENTINELA-DICTADO-SOL'], true);
+                        if ($enAndamiaje) {
+                            continue;
+                        }
+                        $this->assertStringNotContainsString($centinela, $cuerpo, "{$lengua}/{$kind}: «{$centinela}» viajó en el fallo ".($i + 1).'.');
+                    }
+                }
+            }
+            // Cada lengua limpia: los ítems de una no son vecinos de la otra.
+            PracticeItem::query()->delete();
+        }
+    }
+
     // ================= la revisión docente vive el mismo bucle =================
 
     public function test_la_constante_del_bucle_es_dos_vueltas(): void
