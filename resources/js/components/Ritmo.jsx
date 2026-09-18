@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { guardarContrarreloj, leerContrarreloj, resumen } from '../lib/ritmo';
 
 /**
@@ -57,6 +57,11 @@ export function InterruptorContrarreloj({ activo, onChange }) {
  */
 export function Cronometro({ segundos, clave, onAgotado }) {
     const [restan, setRestan] = useState(segundos);
+    // El aviso llama SIEMPRE a la última versión del callback: el intervalo
+    // se crea una vez por ítem y, sin esto, se quedaba con el estado de
+    // arranque (una marca de «0 parejas» al acabar el reloj lo enseñó).
+    const alAgotar = useRef(onAgotado);
+    alAgotar.current = onAgotado;
 
     useEffect(() => {
         setRestan(segundos);
@@ -66,12 +71,11 @@ export function Cronometro({ segundos, clave, onAgotado }) {
             setRestan(quedan);
             if (quedan === 0) {
                 clearInterval(id);
-                onAgotado();
+                alAgotar.current();
             }
         }, 250);
 
         return () => clearInterval(id);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [clave, segundos]);
 
     const mm = Math.floor(restan / 60);

@@ -86,6 +86,40 @@ class CursoController extends Controller
         ]);
     }
 
+    /**
+     * GET /corso/{lengua}/u{n}/jugar — tres juegos sobre el vocabulario FIRMADO
+     * de la unidad (PR 15): memoria, emparejar contra el reloj y ¿cuál sobra?
+     *
+     * ABIERTA. Los juegos NO dan dominio ni AGS (no hay ítems, no hay intentos):
+     * marcan «la sé» en la tarjeta al acertar, por el endpoint del mazo, y el
+     * invitado juega entero sin escribir nada. Sin vocabulario firmado, 404
+     * (la unidad no enlaza).
+     */
+    public function jugar(Request $request, string $lengua, int $n, MazoDeVocabulario $mazo)
+    {
+        abort_unless(in_array($lengua, Lenguas::LISTA, true), 404);
+        abort_unless($this->curso->existeUnidad($lengua, $n), 404);
+
+        $userId = $request->user()?->id;
+        $tarjetas = $mazo->tarjetas($lengua, $n, $userId);
+        abort_if($tarjetas->isEmpty(), 404, 'Esta unidad todavía no tiene vocabulario firmado.');
+
+        // La semilla del día: el mismo tablero todo el día, otro mañana, y otro
+        // por alumno. Los juegos barajan con ella (nada de Math.random).
+        $fecha = now(\App\Services\Practice\RachaDeAlumno::ZONA)->toDateString();
+        $semilla = hash('sha256', "jugar:{$lengua}:{$n}:".($userId ?? \App\Services\Practice\Practitioner::CLAVE_INVITADO).":{$fecha}");
+
+        return Inertia::render('jugar', [
+            'lengua' => $lengua,
+            'nombre' => $this->curso->nombre($lengua),
+            'unidad' => ['n' => $n, 'titulo' => $this->curso->tituloDeUnidad($lengua, $n) ?? "Unidad {$n}"],
+            'tarjetas' => $tarjetas->all(),
+            'intrusas' => $mazo->intrusas($lengua, $n, $semilla)->all(),
+            'semilla' => $semilla,
+            'se_guarda' => $userId !== null,
+        ]);
+    }
+
     public function unidad(Request $request, string $lengua, int $n)
     {
         abort_unless(in_array($lengua, Lenguas::LISTA, true), 404);

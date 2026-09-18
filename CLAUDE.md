@@ -917,6 +917,34 @@ repaso (la prueba ya decía «Ejercicio 4 de 10» y no lleva racha: es una prueb
   no existe tabla ni columna de puntos. La racha de días sigue siendo un
   número, sin fuego y sin confeti.
 
+## Juegos sobre lo que ya está sembrado (misión 4, PR 15)
+
+624 tarjetas firmadas dan para jugar sin escribir un dato nuevo.
+`/corso/{lengua}/u{n}/jugar` (`jugar.jsx`, `lib/juegos.js` puro):
+
+- **Memoria**: parejas boca abajo, palabra ↔ significado; **en chino, tríos**
+  (carácter · pinyin · significado) y el grupo se gana con las tres. Hasta
+  seis grupos por tablero. **Emparejar contra el reloj**: 60 s, dos columnas;
+  exige el interruptor del contrarreloj (PR 14) —sin él, lo dice y lo ofrece—;
+  la marca es del alumno consigo mismo (`localStorage`, solo si mejora).
+  **¿Cuál sobra?**: tres de la unidad y UNA intrusa de OTRA unidad de la
+  misma lengua — el «campo» es la unidad, sale del dato, no de una lista
+  escrita a mano (`MazoDeVocabulario::intrusas`, solo firmadas). Un fallo deja
+  reintentar; al segundo se revela.
+- **Nada de `Math.random`**: `barajar()` es Fisher-Yates con semilla
+  (mulberry32 sobre FNV-1a), y la semilla la da el servidor por (lengua,
+  unidad, quién, día de Ecuador): el mismo tablero todo el día, otro mañana,
+  otro por alumno — y los tests saben qué carta es cuál.
+- **Los juegos NO dan dominio ni AGS**: no hay ítems ni intentos. Lo único que
+  escriben es «la sé» en la tarjeta al acertar (a la primera en ¿cuál sobra?),
+  por `POST vocabulario/{id}/estado`, una vez por tarjeta y sesión. El
+  invitado juega entero y no escribe nada (200). `JuegosTest`.
+- **Se juega con teclado**: cada carta es un `<button>` con `aria-pressed` y
+  nombre («Carta 3, boca abajo» / «Carta 3: ciao, hecha»). axe en los tres.
+- Una trampa que enseñó un test: `Cronometro` guardaba `onAgotado` del primer
+  render y al acabar el reloj veía «0 parejas». Ahora llama siempre al
+  callback vigente (ref).
+
 ## La frontera del contenido abierto (modelo Khan)
 
 Se **navega** y se **practica** sin sesión; se **guarda** y se **califica** solo con
@@ -925,7 +953,7 @@ sesión LTI. Abiertas: `/catalogo`, `/catalogo/{node}`, `/destreza/{objective}`,
 (`/corso/{lengua}` para las CINCO lenguas —`fr it de zh en`—, `/corso/{lengua}/u{n}`,
 `/corso/{lengua}/u{n}/producir` — se
 VE la tarea, no se envía —, `/corso/{lengua}/u{n}/hablar`, `/corso/{lengua}/u{n}/prueba`,
-`/corso/{lengua}/repaso`, `/corso/{lengua}/u{n}/vocabulario`,
+`/corso/{lengua}/repaso`, `/corso/{lengua}/u{n}/vocabulario`, `/corso/{lengua}/u{n}/jugar`,
 `GET/POST /api/v1/pruebas/{lengua}/u{n}` y `POST /api/v1/vocabulario/{id}/estado`), los endpoints de
 `/api/v1/practice/*` (`repaso-diario` y `racha` incluidos) y `POST /api/v1/dialogos/{id}/completado` (el invitado juega
 y no escribe). Cerradas: `/inicio`, `/progreso`, `/docente/*` y **toda producción**

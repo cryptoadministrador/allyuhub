@@ -60,6 +60,8 @@ Route::get('/corso/{lengua}/u{n}/hablar', [\App\Http\Controllers\App\CursoContro
     ->where('n', '[0-9]+')->name('corso.hablar');
 Route::get('/corso/{lengua}/u{n}/vocabulario', [\App\Http\Controllers\App\CursoController::class, 'vocabulario'])
     ->where('n', '[0-9]+')->name('corso.vocabulario');
+Route::get('/corso/{lengua}/u{n}/jugar', [\App\Http\Controllers\App\CursoController::class, 'jugar'])
+    ->where('n', '[0-9]+')->name('corso.jugar');
 Route::get('/buscar', [PageController::class, 'buscar'])->name('buscar');
 Route::get('/practicar/{objective}', [PageController::class, 'practicar'])->name('practicar');
 Route::get('/recurso/{resource}', [PageController::class, 'recurso'])->name('recurso');
