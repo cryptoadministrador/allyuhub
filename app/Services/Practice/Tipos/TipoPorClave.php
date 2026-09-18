@@ -65,6 +65,28 @@ class TipoPorClave extends Tipo
         ];
     }
 
+    public function revelan(): array
+    {
+        return ['expected_key'];
+    }
+
+    /**
+     * Andamiaje: se DESCARTA una opción que no es la buena ni la que el alumno
+     * eligió (quedan menos entre las que elegir). Con dos opciones no hay qué
+     * descartar. Determinista por la semilla, como el barajado.
+     */
+    public function andamiaje(PracticeItem $item, array $veredicto, PracticeEngine $engine, string $seed): ?array
+    {
+        $candidatas = collect($item->options ?? [])
+            ->pluck('key')
+            ->map(strval(...))
+            ->reject(fn ($k) => $k === (string) $item->answer_key || $k === (string) ($veredicto['answer_key'] ?? ''))
+            ->sortBy(fn ($k) => hash('sha256', "{$seed}:descartar:{$k}"))
+            ->values();
+
+        return $candidatas->isEmpty() ? null : ['descartar' => [$candidatas->first()]];
+    }
+
     public function desdeBanco(array $entrada): array
     {
         return [

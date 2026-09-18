@@ -82,6 +82,17 @@ class TipoOrden extends Tipo
         ];
     }
 
+    public function revelan(): array
+    {
+        return ['secuencia_correcta'];
+    }
+
+    /** Andamiaje: se marca cuál va PRIMERO (y solo eso). */
+    public function andamiaje(PracticeItem $item, array $veredicto, PracticeEngine $engine, string $seed): ?array
+    {
+        return ['primero' => (string) $item->solucion['secuencias'][0][0]];
+    }
+
     public function desdeBanco(array $entrada): array
     {
         return [

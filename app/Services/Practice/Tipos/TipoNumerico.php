@@ -37,6 +37,11 @@ class TipoNumerico extends Tipo
         ];
     }
 
+    public function revelan(): array
+    {
+        return ['expected'];
+    }
+
     public function corregir(PracticeItem $item, array $data, PracticeEngine $engine, string $seed): array
     {
         $params = $engine->sampleParams($item->params, $seed);

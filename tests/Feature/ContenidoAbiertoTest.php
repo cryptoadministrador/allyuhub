@@ -144,12 +144,26 @@ class ContenidoAbiertoTest extends TestCase
             ->assertJsonPath('is_correct', true)
             ->assertJsonPath('expected', 5);
 
-        // Respuesta MALA: veredicto incorrecto, y llega la explicación (expected).
-        $this->postJson("/api/v1/practice/items/{$siguiente['item_id']}/attempts", [
+        // Respuesta MALA: veredicto incorrecto. La explicación (expected) llega
+        // al tercer fallo (PR 13); antes viaja el billete de «otra vez», y el
+        // invitado lo usa igual que el alumno — 200 y sin escribir nada.
+        $v = $this->postJson("/api/v1/practice/items/{$siguiente['item_id']}/attempts", [
             'answer' => 99, 'billete' => $siguiente['billete'],
         ])
             ->assertOk()
             ->assertJsonPath('is_correct', false)
+            ->assertJsonMissingPath('expected')
+            ->assertJsonPath('se_guarda', false)
+            ->json();
+        $v = $this->postJson("/api/v1/practice/items/{$siguiente['item_id']}/attempts", [
+            'answer' => 98, 'billete' => $v['otra_vez']['billete'],
+        ])->assertOk()->assertJsonMissingPath('expected')->json();
+        $this->postJson("/api/v1/practice/items/{$siguiente['item_id']}/attempts", [
+            'answer' => 97, 'billete' => $v['otra_vez']['billete'],
+        ])
+            ->assertOk()
+            ->assertJsonPath('is_correct', false)
+            ->assertJsonPath('reintento', 2)
             ->assertJsonPath('expected', 5);
     }
 

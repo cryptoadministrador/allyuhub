@@ -126,6 +126,27 @@ class TipoPares extends Tipo
         ];
     }
 
+    public function revelan(): array
+    {
+        return ['parejas_esperadas'];
+    }
+
+    /**
+     * Andamiaje: se dejan en el tablero SOLO las que están mal — las parejas
+     * que el alumno clavó quedan formadas y fijas. No se revela ninguna otra.
+     *
+     * @return array{correctas: list<list<string>>}
+     */
+    public function andamiaje(PracticeItem $item, array $veredicto, PracticeEngine $engine, string $seed): ?array
+    {
+        $esperadas = $veredicto['parejas_esperadas'] ?? [];
+
+        return ['correctas' => array_values(array_filter(
+            $veredicto['parejas'] ?? [],
+            fn (array $t) => in_array($t, $esperadas, true),
+        ))];
+    }
+
     public function columnas(PracticeItem $item, array $veredicto, array $data, PracticeEngine $engine, string $seed): array
     {
         return [

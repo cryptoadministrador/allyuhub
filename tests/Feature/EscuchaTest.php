@@ -245,15 +245,27 @@ class EscuchaTest extends TestCase
         }
     }
 
-    /** Y DESPUÉS de responder, la transcripción llega: es pedagogía, no un secreto. */
+    /**
+     * Y DESPUÉS de responder, la transcripción llega: es pedagogía, no un
+     * secreto. Con el bucle de «otra vez» (PR 13), «después» es al acertar o al
+     * TERCER fallo: mientras quede vuelta, leerla sería regalar la escucha.
+     */
     public function test_responder_revela_la_transcripcion(): void
     {
         $servido = $this->getJson("/api/v1/objectives/{$this->objective->id}/practice/next")
             ->assertOk()->json();
 
+        $billete = $servido['billete'];
+        foreach ([1, 2] as $vuelta) {
+            $v = $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [
+                'answer_key' => 'b', 'billete' => $billete,
+            ])->assertOk()->assertJsonMissingPath('transcripcion')->assertJsonMissingPath('expected_key')->json();
+            $billete = $v['otra_vez']['billete'];
+        }
+
         $veredicto = $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [
-            'answer_key' => 'b',   // fallo a propósito: también al fallar se lee
-            'billete' => $servido['billete'],
+            'answer_key' => 'b',   // tercer fallo: ahora sí se lee
+            'billete' => $billete,
         ])->assertOk()->json();
 
         $this->assertFalse($veredicto['is_correct']);

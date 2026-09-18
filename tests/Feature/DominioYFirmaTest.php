@@ -107,8 +107,9 @@ class DominioYFirmaTest extends TestCase
     {
         $unico = $this->choice(0);
 
-        // Falla y le revelan la buena…
-        $this->responder($unico, 'a')->assertCreated()->assertJsonPath('expected_key', 'b');
+        // Falla (con el PR 13 la buena se revela al tercer fallo; aquí basta
+        // con que el escenario de repetir siga sin sellar)…
+        $this->responder($unico, 'a')->assertCreated()->assertJsonPath('is_correct', false);
 
         // …y ahora la repite todas las veces que quiera.
         foreach (range(1, 8) as $i) {

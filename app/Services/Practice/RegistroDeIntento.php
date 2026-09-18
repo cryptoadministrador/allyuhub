@@ -37,6 +37,9 @@ use InvalidArgumentException;
  */
 final class RegistroDeIntento
 {
+    /** Cuántas veces más se puede intentar el mismo ítem tras fallarlo (PR 13). */
+    public const MAX_REINTENTOS = 2;
+
     public function __construct(
         private readonly PracticeEngine $engine,
         private readonly MasteryTracker $tracker,
@@ -91,7 +94,7 @@ final class RegistroDeIntento
      * decide cada tipo, y siempre DESPUÉS de responder.
      *
      * @param  array<string, mixed>  $data  Ya validada con `reglasDe()`.
-     * @param  array{attempt_no: int, seed: string, repaso: bool}  $ticket
+     * @param  array{attempt_no: int, seed: string, repaso: bool, reintento?: int}  $ticket
      * @return array{veredicto: array<string, mixed>, attempt: PracticeAttempt|null}
      *
      * @throws \Illuminate\Database\UniqueConstraintViolationException si otra
@@ -111,12 +114,18 @@ final class RegistroDeIntento
         }
 
         $userId = $quien->userId();
+        // UN REINTENTO SE GUARDA (verdad histórica: el alumno respondió tres
+        // veces) y NO CUENTA: ni dominio, ni nota, ni repaso. Solo el primer
+        // intento alimenta `MasteryTracker` — un acierto a la tercera es un
+        // acierto para el alumno y una mentira para el dominio. El flag viene
+        // FIRMADO en el billete, así que no se puede forjar a 0 desde el cliente.
+        $reintento = (int) ($ticket['reintento'] ?? 0);
 
         // Intento + actualización de mastery en la MISMA transacción: o quedan
         // los dos, o ninguno. Si dos peticiones simultáneas calcularon el mismo
         // attempt_no (unique por ítem+usuario), la perdedora lanza y el
         // controlador responde 409 — nunca un 500.
-        [$attempt, $itemsAcertados] = DB::transaction(function () use ($item, $userId, $ticket, $seed, $tipo, $data, $veredicto) {
+        [$attempt, $itemsAcertados] = DB::transaction(function () use ($item, $userId, $ticket, $seed, $tipo, $data, $veredicto, $reintento) {
             $attempt = $item->attempts()->create([
                 'user_id' => $userId,
                 'attempt_no' => $ticket['attempt_no'],
@@ -127,7 +136,12 @@ final class RegistroDeIntento
                 ...$tipo->columnas($item, $veredicto, $data, $this->engine, $seed),
                 'is_correct' => $veredicto['is_correct'],
                 'time_ms' => $data['time_ms'] ?? null,
+                'reintento' => $reintento > 0 ? $reintento : null,
             ]);
+
+            if ($reintento > 0) {
+                return [$attempt, 0];
+            }
 
             // Se cuenta DESPUÉS de guardar el intento —para que el acierto que
             // acaba de ocurrir cuente— y una sola vez: sirve para sellar el
@@ -142,6 +156,10 @@ final class RegistroDeIntento
             return [$attempt, $itemsAcertados];
         });
 
+        if ($reintento > 0) {
+            return ['veredicto' => $veredicto, 'attempt' => $attempt];
+        }
+
         // Con un solo ítem acertado la nota no sale: mismo listón que el
         // dominio. El REPASO cuenta para el dominio (ya aplicado) pero NO para
         // la nota: una nota que sube repasando lo sabido está inflada. El flag
@@ -155,6 +173,49 @@ final class RegistroDeIntento
         $this->repaso->programar($userId, $item->objective_id, $veredicto['is_correct']);
 
         return ['veredicto' => $veredicto, 'attempt' => $attempt];
+    }
+
+    /**
+     * EL BUCLE DE «OTRA VEZ» (PR 13), decidido en el servidor.
+     *
+     * Devuelve el veredicto tal como va al cliente en PRÁCTICA (y repaso, y
+     * revisión — nunca en la prueba de unidad, que no reintenta):
+     *
+     *  - Siempre: `reintento`, qué vuelta fue esta.
+     *  - Si falló y le queda vuelta: SIN las claves que revelan la solución
+     *    (`revelan()` del tipo; la pista se queda), con `otra_vez` —el billete
+     *    FIRMADO del siguiente intento del MISMO ítem, misma semilla, número
+     *    de intento +1 y `reintento` +1— y, en el segundo fallo, el
+     *    `andamiaje` del tipo. Los distractores se calculan AQUÍ y viajan solo
+     *    entonces: nunca en `next`, nunca al primer fallo.
+     *  - Al tercer fallo, o al acertar, el veredicto entero de siempre.
+     *
+     * @param  array{attempt_no: int, seed: string, repaso: bool, reintento?: int}  $ticket
+     * @return array<string, mixed>
+     */
+    public function bucle(PracticeItem $item, array $veredicto, array $ticket, int|string $quien): array
+    {
+        $reintento = (int) ($ticket['reintento'] ?? 0);
+        $salida = [...$veredicto, 'reintento' => $reintento];
+
+        if ($veredicto['is_correct'] || $reintento >= self::MAX_REINTENTOS) {
+            return $salida;
+        }
+
+        $tipo = Registro::de($item->kind);
+        $salida = array_diff_key($salida, array_flip($tipo->revelan()));
+        $salida['otra_vez'] = [
+            'attempt_no' => $ticket['attempt_no'] + 1,
+            'reintento' => $reintento + 1,
+            'billete' => AttemptTicket::emitir(
+                $item->id, $quien, $ticket['attempt_no'] + 1, $ticket['seed'], $ticket['repaso'], $reintento + 1,
+            ),
+        ];
+        if ($reintento === 1) {
+            $salida['andamiaje'] = $tipo->andamiaje($item, $veredicto, $this->engine, $ticket['seed']);
+        }
+
+        return $salida;
     }
 
     /**
