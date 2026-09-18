@@ -34,7 +34,11 @@ class TipoHueco extends Tipo
 
     public function payload(PracticeItem $item, PracticeEngine $engine, string $seed): array
     {
-        return ['statement' => $item->statement];
+        // La LENGUA viaja con el ítem (no la solución): la interfaz la necesita
+        // para decir «te falta el tono» en chino donde en francés dice «revisa
+        // el acento», y para pedir el pinyin con tonos o con números. Es la
+        // lengua del ítem, que ya es pública (se pidió con ?lengua=).
+        return ['statement' => $item->statement, 'lengua' => (string) ($item->solucion['lengua'] ?? $item->lengua)];
     }
 
     public function corregir(PracticeItem $item, array $data, PracticeEngine $engine, string $seed): array

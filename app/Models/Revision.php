@@ -13,7 +13,8 @@ use RuntimeException;
  * está firmada o no) sigue viviendo en `reviewed_at` de la pieza.
  *
  * Dos invariantes, las dos impuestas al guardar y no solo documentadas:
- *  - UNA VÍA: o ítem o versión de lección, nunca las dos ni ninguna.
+ *  - UNA VÍA: ítem, versión de lección o tarjeta de vocabulario — exactamente
+ *    una, nunca dos ni ninguna.
  *  - DEVOLVER Y DESFIRMAR EXIGEN NOTA. Retirar algo que ya vio un alumno sin
  *    decir por qué es exactamente lo que no puede pasar.
  */
@@ -39,12 +40,13 @@ class Revision extends Model
     protected static function booted(): void
     {
         static::saving(function (Revision $r) {
-            $item = $r->practice_item_id !== null;
-            $version = $r->resource_version_id !== null;
+            $vias = ($r->practice_item_id !== null ? 1 : 0)
+                + ($r->resource_version_id !== null ? 1 : 0)
+                + ($r->tarjeta_id !== null ? 1 : 0);
 
-            if ($item === $version) {
+            if ($vias !== 1) {
                 throw new RuntimeException(
-                    'Una revisión es de un ítem O de una versión de lección, nunca de las dos ni de ninguna.',
+                    'Una revisión es de un ítem, O de una versión de lección, O de una tarjeta: exactamente una.',
                 );
             }
 
@@ -71,5 +73,10 @@ class Revision extends Model
     public function version(): BelongsTo
     {
         return $this->belongsTo(ResourceVersion::class, 'resource_version_id');
+    }
+
+    public function tarjeta(): BelongsTo
+    {
+        return $this->belongsTo(Tarjeta::class, 'tarjeta_id');
     }
 }

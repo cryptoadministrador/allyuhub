@@ -4,6 +4,7 @@ namespace App\Http\Controllers\App;
 
 use App\Http\Controllers\Controller;
 use App\Services\Curso\CursoDeLenguas;
+use App\Services\Curso\MazoDeVocabulario;
 use App\Services\Practice\Lenguas;
 use App\Services\Practice\RachaDeAlumno;
 use App\Services\Practice\RepasoService;
@@ -35,6 +36,52 @@ class CursoController extends Controller
             ...$this->curso->portada($lengua, $userId),
             'racha' => $this->racha->calcular($userId),
             'repasos' => $this->repaso->cola($userId, $lengua),
+            'se_guarda' => $userId !== null,
+        ]);
+    }
+
+    /**
+     * GET /corso/{lengua}/repaso — «tu repaso de hoy» (PR 9).
+     *
+     * ABIERTA. La página pide los ítems del día a la API y los juega como la
+     * práctica (corrección ítem a ítem). El invitado juega el repaso genérico y
+     * no escribe nada; con sesión, el primer repaso del día sube la racha.
+     */
+    public function repaso(Request $request, string $lengua)
+    {
+        abort_unless(in_array($lengua, Lenguas::LISTA, true), 404);
+
+        $userId = $request->user()?->id;
+
+        return Inertia::render('repaso', [
+            'lengua' => $lengua,
+            'nombre' => $this->curso->nombre($lengua),
+            'racha' => $this->racha->calcular($userId),
+            'se_guarda' => $userId !== null,
+        ]);
+    }
+
+    /**
+     * GET /corso/{lengua}/u{n}/vocabulario — las tarjetas de la unidad (PR 10).
+     *
+     * ABIERTA. Solo tarjetas FIRMADAS; sin ninguna, 404 (la unidad no enlaza).
+     * El invitado ve el mazo entero y lo que diga vive en memoria; con sesión,
+     * «la sé» / «todavía no» van a `POST api/v1/vocabulario/{tarjeta}/estado`.
+     */
+    public function vocabulario(Request $request, string $lengua, int $n, MazoDeVocabulario $mazo)
+    {
+        abort_unless(in_array($lengua, Lenguas::LISTA, true), 404);
+        abort_unless($this->curso->existeUnidad($lengua, $n), 404);
+
+        $userId = $request->user()?->id;
+        $tarjetas = $mazo->tarjetas($lengua, $n, $userId);
+        abort_if($tarjetas->isEmpty(), 404, 'Esta unidad todavía no tiene vocabulario firmado.');
+
+        return Inertia::render('vocabulario', [
+            'lengua' => $lengua,
+            'nombre' => $this->curso->nombre($lengua),
+            'unidad' => ['n' => $n, 'titulo' => $this->curso->tituloDeUnidad($lengua, $n) ?? "Unidad {$n}"],
+            'tarjetas' => $tarjetas->all(),
             'se_guarda' => $userId !== null,
         ]);
     }

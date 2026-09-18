@@ -46,8 +46,49 @@ const AVISOS = {
  * El que esconde la transcripción hasta responder es el ítem de escucha, que
  * es otro camino y ni siquiera la recibe del servidor.
  */
+function Transcripcion({ texto }) {
+    return (
+        <figcaption className="mt-2">
+            {Object.entries(texto).map(([lengua, t]) => (
+                <p
+                    key={lengua}
+                    lang={lengua === 'es' ? undefined : lengua}
+                    className={
+                        lengua === 'es'
+                            ? 'text-sm leading-relaxed text-slate-600'
+                            : 'text-base font-medium leading-relaxed text-slate-900'
+                    }
+                >
+                    {t}
+                </p>
+            ))}
+        </figcaption>
+    );
+}
+
+/**
+ * UN HUECO DECLARADO (PR 11): el audio o el vídeo todavía no está grabado. Se
+ * dice tal cual y se enseña la transcripción — que es la lección entera hasta
+ * que llegue el fichero. Nunca un reproductor apuntando a nada.
+ */
+function BloquePendiente({ bloque }) {
+    const video = bloque.tipo === 'video';
+
+    return (
+        <figure className="my-5 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4">
+            <p role="status" className="text-sm font-medium text-slate-700">
+                <span aria-hidden="true">{video ? '🎬' : '🎧'} </span>
+                {video ? 'Vídeo' : 'Audio'} pendiente: todavía no está grabado. Mientras tanto, lee lo que dice:
+            </p>
+            <Transcripcion texto={bloque.texto} />
+        </figure>
+    );
+}
+
 function BloqueAudio({ bloque }) {
     const [fallo, setFallo] = useState(false);
+
+    if (bloque.pendiente) return <BloquePendiente bloque={bloque} />;
 
     return (
         <figure className="my-5 rounded-lg border border-slate-200 bg-white p-4">
@@ -66,21 +107,7 @@ function BloqueAudio({ bloque }) {
                     className="w-full"
                 />
             )}
-            <figcaption className="mt-2">
-                {Object.entries(bloque.texto).map(([lengua, texto]) => (
-                    <p
-                        key={lengua}
-                        lang={lengua === 'es' ? undefined : lengua}
-                        className={
-                            lengua === 'es'
-                                ? 'text-sm leading-relaxed text-slate-600'
-                                : 'text-base font-medium leading-relaxed text-slate-900'
-                        }
-                    >
-                        {texto}
-                    </p>
-                ))}
-            </figcaption>
+            <Transcripcion texto={bloque.texto} />
         </figure>
     );
 }
@@ -161,6 +188,10 @@ function Bloque({ bloque }) {
 
         case 'audio':
             return <BloqueAudio bloque={bloque} />;
+
+        case 'video':
+            // Hoy solo existe como hueco declarado: no hay almacén de vídeo.
+            return <BloquePendiente bloque={bloque} />;
 
         case 'imagen':
             return (

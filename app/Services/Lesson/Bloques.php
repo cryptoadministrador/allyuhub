@@ -19,7 +19,7 @@ use InvalidArgumentException;
  */
 class Bloques
 {
-    public const TIPOS = ['parrafo', 'ejemplo', 'formula', 'lista', 'aviso', 'imagen', 'audio'];
+    public const TIPOS = ['parrafo', 'ejemplo', 'formula', 'lista', 'aviso', 'imagen', 'audio', 'video'];
 
     /** Variantes de `aviso`. La de error típico es la que convierte texto en enseñanza. */
     public const VARIANTES = ['error-tipico', 'ojo', 'truco'];
@@ -65,6 +65,7 @@ class Bloques
             'ejemplo' => $this->ejemplo($b, $donde),
             'imagen' => $this->imagen($b, $donde),
             'audio' => $this->audio($b, $donde),
+            'video' => $this->video($b, $donde),
         };
     }
 
@@ -185,24 +186,22 @@ class Bloques
     private function audio(array $b, string $donde): array
     {
         $src = (string) ($b['src'] ?? '');
+        $pendiente = $this->pendiente($b, $donde);
 
-        if (! \App\Services\Audio\AlmacenDeAudio::esRutaPublicada($src)) {
-            throw new InvalidArgumentException(
-                "{$donde}: «src» tiene que ser una ruta del almacén de audio ".
-                "(/audio/<hash>.<mp3|ogg|m4a>), no «{$src}».",
-            );
+        // UN HUECO DECLARADO (PR 11): `pendiente => true` es un audio que
+        // todavía no está grabado. Entra SIN `src` (y con su `clip`, la clave
+        // que lo enganchará el día que exista) y se pinta como lo que es —la
+        // transcripción y «audio pendiente»—, nunca como un reproductor a un
+        // fichero que no está. Con `src` Y `pendiente` a la vez es una
+        // contradicción: o está o no está.
+        if ($pendiente && $src !== '') {
+            throw new InvalidArgumentException("{$donde}: un audio «pendiente» no puede traer «src»: o está grabado o no.");
         }
 
-        // La transcripción va en el idioma del clip (fr, it, de, zh…), así que
-        // no se exige `es`: se exige AL MENOS una entrada con texto de verdad.
-        $texto = $b['texto'] ?? null;
-        $conTexto = is_array($texto)
-            ? array_filter($texto, fn ($v) => is_string($v) && trim($v) !== '')
-            : [];
-        if ($conTexto === []) {
+        if (! $pendiente && ! \App\Services\Audio\AlmacenDeAudio::esRutaPublicada($src)) {
             throw new InvalidArgumentException(
-                "{$donde}: un audio sin transcripción no existe para quien no puede ".
-                'oírlo, y un alumno de A1 necesita leer lo que oye.',
+                "{$donde}: «src» tiene que ser una ruta del almacén de audio ".
+                "(/audio/<hash>.<mp3|ogg|m4a>), no «{$src}». Si aún no está grabado, declara pendiente => true.",
             );
         }
 
@@ -213,10 +212,90 @@ class Bloques
 
         return array_filter([
             'tipo' => 'audio',
-            'src' => $src,
-            'texto' => array_map(fn ($v) => (string) $v, $conTexto),
+            'src' => $pendiente ? null : $src,
+            'texto' => $this->transcripcion($b, $donde, 'audio'),
             'duracion_s' => $duracion,
+            'pendiente' => $pendiente ? true : null,
+            'clip' => $pendiente ? $this->clave($b, $donde) : null,
         ], fn ($v) => $v !== null);
+    }
+
+    /**
+     * Un VÍDEO de la lección — hoy, SOLO como hueco declarado (PR 11). No hay
+     * almacén de vídeo todavía (el de audio es de audio, con su vocabulario
+     * cerrado), así que un bloque `video` exige `pendiente => true` y su
+     * transcripción, y se pinta como «vídeo pendiente» con el texto delante.
+     * El día que exista el almacén, aquí se admite `src`; el banco no cambia.
+     */
+    private function video(array $b, string $donde): array
+    {
+        if (! $this->pendiente($b, $donde)) {
+            throw new InvalidArgumentException(
+                "{$donde}: un bloque «video» todavía no tiene almacén: entra solo como hueco, con pendiente => true.",
+            );
+        }
+        if (isset($b['src'])) {
+            throw new InvalidArgumentException("{$donde}: un vídeo «pendiente» no puede traer «src».");
+        }
+
+        return array_filter([
+            'tipo' => 'video',
+            'texto' => $this->transcripcion($b, $donde, 'vídeo'),
+            'pendiente' => true,
+            'clip' => $this->clave($b, $donde),
+        ], fn ($v) => $v !== null);
+    }
+
+    /** `pendiente` solo puede ser `true` o no estar: un «pendiente: 'sí'» es una errata, no un hueco. */
+    private function pendiente(array $b, string $donde): bool
+    {
+        if (! array_key_exists('pendiente', $b)) {
+            return false;
+        }
+        if ($b['pendiente'] !== true) {
+            throw new InvalidArgumentException("{$donde}: «pendiente» solo puede ser true (o no estar).");
+        }
+
+        return true;
+    }
+
+    /** La clave del clip que un hueco declara (opcional): la MISMA forma que en el banco. */
+    private function clave(array $b, string $donde): ?string
+    {
+        $clip = $b['clip'] ?? null;
+        if ($clip === null) {
+            return null;
+        }
+        if (! is_string($clip) || ! preg_match('~^[a-z]{2}/u[0-9]+/[a-z0-9_/-]+$~', $clip)) {
+            throw new InvalidArgumentException("{$donde}: la clave de clip «".var_export($clip, true).'» tiene una forma rara.');
+        }
+
+        return $clip;
+    }
+
+    /**
+     * La transcripción, obligatoria con o sin fichero: va en el idioma del
+     * clip (fr, it, de, zh…), así que no se exige `es` — se exige AL MENOS una
+     * entrada con texto de verdad. Es requisito de accesibilidad y además es
+     * pedagogía: un alumno de A1 necesita leer lo que oye. Y en un hueco es
+     * TODO lo que hay.
+     *
+     * @return array<string, string>
+     */
+    private function transcripcion(array $b, string $donde, string $que): array
+    {
+        $texto = $b['texto'] ?? null;
+        $conTexto = is_array($texto)
+            ? array_filter($texto, fn ($v) => is_string($v) && trim($v) !== '')
+            : [];
+        if ($conTexto === []) {
+            throw new InvalidArgumentException(
+                "{$donde}: un {$que} sin transcripción no existe para quien no puede ".
+                'oírlo, y un alumno de A1 necesita leer lo que oye.',
+            );
+        }
+
+        return array_map(fn ($v) => (string) $v, $conTexto);
     }
 
     private function imagen(array $b, string $donde): array

@@ -5,7 +5,7 @@ namespace App\Console\Commands;
 use App\Models\Dialogo;
 use App\Models\LearningObjective;
 use App\Services\Audio\AlmacenDeAudio;
-use App\Services\Audio\ClipCurricular;
+use App\Services\Audio\ClipsDeclarados;
 use App\Services\Dialogo\Nodos;
 use App\Services\Lesson\DestinosDeBloque;
 use App\Services\Practice\Lenguas;
@@ -36,20 +36,19 @@ class SeedDialogos extends Command
 
     protected $description = 'Siembra los diálogos guionizados del interlocutor (nacen sin firmar)';
 
-    /** Claves de clip declaradas en el banco cuyo fichero todavía no existe. */
-    private array $pendientes = [];
-
     public function handle(): int
     {
         $banco = require ($this->option('banco') ?: database_path('data/dialogos-lenguas.php'));
-        $almacen = new AlmacenDeAudio;
+        // El trato del clip (clave siempre, ruta si el fichero está, pendientes
+        // al final) vive en `ClipsDeclarados`: lo comparte con `vocabulario:sembrar`.
+        $clips = new ClipsDeclarados(new AlmacenDeAudio, $this->option('audio') ?: database_path('data/audio-lenguas'));
         $seco = (bool) $this->option('dry-run');
 
         $creados = 0;
         $actualizados = 0;
 
         try {
-            DB::transaction(function () use ($banco, $almacen, $seco, &$creados, &$actualizados) {
+            DB::transaction(function () use ($banco, $clips, $seco, &$creados, &$actualizados) {
                 foreach ($banco as $entrada) {
                     $quien = $entrada['slug'] ?? '¿?';
 
@@ -71,7 +70,7 @@ class SeedDialogos extends Command
                     }
 
                     Nodos::validar($entrada['nodos'], $quien);
-                    $nodos = $this->resolverClips($entrada['nodos'], $almacen, $quien);
+                    $nodos = $this->resolverClips($entrada['nodos'], $clips);
 
                     if ($seco) {
                         continue;
@@ -110,7 +109,7 @@ class SeedDialogos extends Command
         $this->info("Diálogos: {$creados} nuevo(s), {$actualizados} actualizado(s). Nacen SIN firmar: dialogos:firmar.");
 
         // Los clips que faltan se DICEN, no se esconden: el guion ya los pide.
-        $faltan = array_values(array_unique($this->pendientes));
+        $faltan = $clips->pendientes();
         if ($faltan !== []) {
             $this->warn(count($faltan).' clip(s) declarados sin fichero todavía (el guion se juega leyendo):');
             foreach ($faltan as $clip) {
@@ -123,54 +122,32 @@ class SeedDialogos extends Command
 
     /**
      * Cambia cada `clip` (clave) por un `audio` (ruta pública), publicando el
-     * fichero. Un clip que falta revienta ANTES de escribir. Sin clips, no toca
-     * nada.
+     * fichero si está. Sin clips, no toca nada.
+     *
+     * UN CLIP QUE FALTA NO REVIENTA AQUÍ, y es la única excepción a la regla
+     * del banco de lenguas —donde un clip ausente sí aborta la siembra entera—.
+     * La diferencia es qué pasa sin el fichero: en un ítem de ESCUCHA sin audio
+     * no hay ejercicio (tiene que reventar); en un DIÁLOGO el audio es un añadido
+     * sobre un guion que se juega entero leyendo, y reventar obligaría a grabar
+     * antes de poder escribir. Así que la CLAVE se conserva siempre y la RUTA se
+     * rellena solo si el fichero está (`ClipsDeclarados`). Re-sembrar después de
+     * grabar la completa sin tocar el banco.
      */
-    private function resolverClips(array $nodos, AlmacenDeAudio $almacen, string $quien): array
+    private function resolverClips(array $nodos, ClipsDeclarados $clips): array
     {
-        $dir = $this->option('audio') ?: database_path('data/audio-lenguas');
-
-        return array_map(function (array $nodo) use ($almacen, $dir, $quien) {
+        return array_map(function (array $nodo) use ($clips) {
             $clip = $nodo['clip'] ?? null;
             if ($clip === null) {
                 return $nodo;
             }
 
-            $ruta = null;
-            foreach (array_keys(AlmacenDeAudio::TIPOS) as $ext) {
-                $candidato = "{$dir}/{$clip}.{$ext}";
-                if (is_file($candidato)) {
-                    $ruta = $candidato;
-                    break;
-                }
-            }
-
-            // UN CLIP QUE FALTA NO REVIENTA AQUÍ, y es la única excepción a la
-            // regla del banco de lenguas —donde un clip ausente sí aborta la
-            // siembra entera—. La diferencia es qué pasa sin el fichero:
-            //
-            //  - En un ítem de ESCUCHA, sin audio no hay ejercicio: lo que
-            //    llega al alumno es una pregunta imposible. Tiene que reventar.
-            //  - En un DIÁLOGO, el audio es un añadido sobre un guion que se
-            //    juega entero leyendo. Reventar obligaría a grabar antes de
-            //    poder escribir, que es justo al revés de como se trabaja.
-            //
-            // Así que la CLAVE se conserva siempre (el guion queda listo para el
-            // audio del día que llegue) y la RUTA se rellena solo si el fichero
-            // está. Re-sembrar después de grabar la completa sin tocar el banco.
             $nodo['clip'] = $clip;
-            if ($ruta === null) {
-                $this->pendientes[] = $clip;
-
-                return $nodo;
+            $audio = $clips->publicar($clip);
+            if ($audio !== null) {
+                $nodo['audio'] = $audio;
             }
-
-            $nodo['audio'] = $almacen->publicar(new ClipCurricular($ruta));
 
             return $nodo;
         }, $nodos);
     }
 }
-
-/** Señal interna para deshacer la transacción de un --dry-run sin marcar error. */
-class DryRunOk extends RuntimeException {}

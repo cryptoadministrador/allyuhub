@@ -325,11 +325,18 @@ export function Ejercicio({ item, valor, onChange, faltaElegir = false, inputRef
                             spellCheck="false"
                             required
                             value={valor.respuesta}
-                            aria-describedby={faltaElegir ? idAviso : undefined}
+                            aria-describedby={[faltaElegir ? idAviso : null, item.lengua === 'zh' ? `${nombre}-pinyin` : null].filter(Boolean).join(' ') || undefined}
                             onChange={(e) => cambiar({ respuesta: e.target.value })}
                             className="w-full max-w-md rounded border border-slate-300 px-3 py-2 focus:outline-2 focus:outline-marca-600"
                         />
                     </label>
+                    {item.lengua === 'zh' && (
+                        // El tono es parte de la palabra. Sin teclado de tonos,
+                        // el número vale: el motor acepta las dos formas.
+                        <p id={`${nombre}-pinyin`} className="mt-1 text-sm text-slate-600">
+                            Escribe el pinyin con tonos (nǐ hǎo) o con el número del tono (ni3 hao3).
+                        </p>
+                    )}
                 </div>
             ) : (
                 <div className="mb-4 flex items-end gap-2">
@@ -397,7 +404,7 @@ export function Veredicto({ item, resultado }) {
                     {resultado.is_correct
                         ? 'Bien escrito.'
                         : resultado.detalle === 'acento'
-                          ? `Casi: revisa el acento. Escribiste «${resultado.texto}» y era «${resultado.esperado}».`
+                          ? `Casi: ${item.lengua === 'zh' ? 'te falta el tono' : 'revisa el acento'}. Escribiste «${resultado.texto}» y era «${resultado.esperado}».`
                           : `La respuesta era: «${resultado.esperado}».`}
                 </p>
             ) : esOrden ? (

@@ -49,12 +49,17 @@ Route::get('/corso/{lengua}/u{n}', [\App\Http\Controllers\App\CursoController::c
 // La tarea de producción de la unidad: se VE sin sesión (enviarla, no).
 Route::get('/corso/{lengua}/u{n}/producir', [\App\Http\Controllers\App\CursoController::class, 'producir'])
     ->where('n', '[0-9]+')->name('corso.producir');
+// «Tu repaso de hoy»: abierto, el invitado juega el repaso genérico.
+Route::get('/corso/{lengua}/repaso', [\App\Http\Controllers\App\CursoController::class, 'repaso'])
+    ->name('corso.repaso');
 // La prueba de la unidad: abierta, el invitado la hace entera y ve su nota.
 Route::get('/corso/{lengua}/u{n}/prueba', [\App\Http\Controllers\App\CursoController::class, 'prueba'])
     ->where('n', '[0-9]+')->name('corso.prueba');
 // El interlocutor guionizado de la unidad: abierto, se juega sin sesión.
 Route::get('/corso/{lengua}/u{n}/hablar', [\App\Http\Controllers\App\CursoController::class, 'hablar'])
     ->where('n', '[0-9]+')->name('corso.hablar');
+Route::get('/corso/{lengua}/u{n}/vocabulario', [\App\Http\Controllers\App\CursoController::class, 'vocabulario'])
+    ->where('n', '[0-9]+')->name('corso.vocabulario');
 Route::get('/buscar', [PageController::class, 'buscar'])->name('buscar');
 Route::get('/practicar/{objective}', [PageController::class, 'practicar'])->name('practicar');
 Route::get('/recurso/{resource}', [PageController::class, 'recurso'])->name('recurso');
@@ -116,19 +121,21 @@ Route::middleware('auth')->group(function () {
 | controlador, que es también quien conoce el 403.
 |
 | Las rutas literales van ANTES de /docente/{context} (que solo casa uuids).
+| El tipo de pieza sale de `Pieza::TIPOS` (vocabulario cerrado, UN sitio):
+| estuvo escrito aquí como ['item', 'leccion'] y la tercera pieza dio 404.
 |--------------------------------------------------------------------------
 */
 Route::get('/docente/revisar', [RevisionController::class, 'index'])->name('docente.revisar');
 Route::get('/docente/revisar/{tipo}/{id}', [RevisionController::class, 'pieza'])
-    ->whereIn('tipo', ['item', 'leccion'])->whereUuid('id')->name('docente.revisar.pieza');
+    ->whereIn('tipo', \App\Services\Revision\Pieza::TIPOS)->whereUuid('id')->name('docente.revisar.pieza');
 Route::post('/docente/revisar/unidad', [RevisionController::class, 'firmarUnidad'])
     ->name('docente.revisar.unidad');
 Route::post('/docente/revisar/{tipo}/{id}/firmar', [RevisionController::class, 'firmar'])
-    ->whereIn('tipo', ['item', 'leccion'])->whereUuid('id')->name('docente.revisar.firmar');
+    ->whereIn('tipo', \App\Services\Revision\Pieza::TIPOS)->whereUuid('id')->name('docente.revisar.firmar');
 Route::post('/docente/revisar/{tipo}/{id}/devolver', [RevisionController::class, 'devolver'])
-    ->whereIn('tipo', ['item', 'leccion'])->whereUuid('id')->name('docente.revisar.devolver');
+    ->whereIn('tipo', \App\Services\Revision\Pieza::TIPOS)->whereUuid('id')->name('docente.revisar.devolver');
 Route::post('/docente/revisar/{tipo}/{id}/desfirmar', [RevisionController::class, 'desfirmar'])
-    ->whereIn('tipo', ['item', 'leccion'])->whereUuid('id')->name('docente.revisar.desfirmar');
+    ->whereIn('tipo', \App\Services\Revision\Pieza::TIPOS)->whereUuid('id')->name('docente.revisar.desfirmar');
 
 // Ver un ítem SIN FIRMAR tal como lo verá el alumno: `Practicar.jsx` pide su
 // ejercicio a la API, y la de práctica solo sirve lo firmado. Mismo payload,
@@ -174,6 +181,8 @@ Route::prefix('api/v1')->middleware('throttle:practica')->group(function () {
     Route::get('practice/mastery', [PracticeController::class, 'mastery']);
     Route::get('practice/progress', [PracticeController::class, 'progress']);
     Route::get('practice/repasos', [PracticeController::class, 'repasos']);
+    Route::get('practice/repaso-diario', [PracticeController::class, 'repasoDiario']);
+    Route::get('practice/racha', [PracticeController::class, 'racha']);
     // Completar el interlocutor: abierto (el invitado lo hace y no escribe nada).
     Route::post('dialogos/{dialogo}/completado', [DialogoController::class, 'completado'])
         ->whereUuid('dialogo');
@@ -183,6 +192,9 @@ Route::prefix('api/v1')->middleware('throttle:practica')->group(function () {
         ->where('n', '[0-9]+')->name('prueba.servir');
     Route::post('pruebas/{lengua}/u{n}', [PruebaController::class, 'entregar'])
         ->where('n', '[0-9]+')->name('prueba.entregar');
+    // «La sé» / «todavía no» de una tarjeta: abierto (el invitado no escribe).
+    Route::post('vocabulario/{tarjeta}/estado', [\App\Http\Controllers\Api\VocabularioController::class, 'estado'])
+        ->whereUuid('tarjeta')->name('vocabulario.estado');
 });
 
 // Una URL que no casa con NINGUNA ruta la rechaza el router antes del grupo

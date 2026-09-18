@@ -129,6 +129,7 @@ class SeedLanguageBank extends Command
         });
 
         $this->informar($creados, $actualizados, $huecos);
+        $this->informarPendientes();
 
         return self::SUCCESS;
     }
@@ -167,10 +168,17 @@ class SeedLanguageBank extends Command
         }
 
         // Los clips, TODOS, antes de escribir nada: el del ítem y los de los
-        // bloques de audio de una lección.
+        // bloques de audio de una lección. EXCEPTO los que una lección declara
+        // `pendiente => true` (PR 11): ese bloque entra como hueco honesto
+        // —transcripción y «audio pendiente»— y se engancha al re-sembrar
+        // cuando el fichero esté. El clip de un ÍTEM nunca es pendiente: sin
+        // audio no hay ejercicio de escucha, y `pendiente` en un ítem se ignora.
         $clips = array_filter([
             $entrada['clip'] ?? null,
-            ...array_map(fn (array $b) => $b['clip'] ?? null, $entrada['bloques'] ?? []),
+            ...array_map(
+                fn (array $b) => ($b['pendiente'] ?? false) === true ? null : ($b['clip'] ?? null),
+                $entrada['bloques'] ?? [],
+            ),
         ]);
         foreach ($clips as $clip) {
             if ($this->rutaDeClip($clip) === null) {
@@ -230,11 +238,21 @@ class SeedLanguageBank extends Command
         $bloque = DestinosDeBloque::area($entrada['descriptor']).'.'.$entrada['lengua'];
 
         // La indirección del clip DENTRO de los bloques de audio, resuelta
-        // antes de validar: `Bloques` exige la ruta final del almacén.
-        $bloques = array_map(function (array $b) {
+        // antes de validar: `Bloques` exige la ruta final del almacén. Un
+        // bloque `pendiente` cuyo fichero YA está deja de ser pendiente aquí
+        // —sin tocar el banco—; uno cuyo fichero falta conserva clave y
+        // pendiente, y se apunta para decirlo al final.
+        $bloques = array_map(function (array $b) use ($entrada) {
             if (($b['tipo'] ?? null) === 'audio' && isset($b['clip'])) {
-                $b['src'] = $this->publicarClip($b['clip']);
-                unset($b['clip']);
+                if ($this->rutaDeClip($b['clip']) !== null) {
+                    $b['src'] = $this->publicarClip($b['clip']);
+                    unset($b['clip'], $b['pendiente']);
+                } else {
+                    $this->pendientes[] = "{$b['clip']} ({$entrada['slug']})";
+                }
+            }
+            if (($b['tipo'] ?? null) === 'video' && isset($b['clip'])) {
+                $this->pendientes[] = "{$b['clip']} ({$entrada['slug']}, vídeo)";
             }
 
             return $b;
@@ -285,6 +303,22 @@ class SeedLanguageBank extends Command
     }
 
     // ================= clips =================
+
+    /** Huecos declarados (`pendiente => true`) cuyo fichero todavía no está. */
+    private array $pendientes = [];
+
+    /** Los huecos se DICEN al terminar, no se esconden: la lección ya los pide. */
+    private function informarPendientes(): void
+    {
+        $faltan = array_values(array_unique($this->pendientes));
+        if ($faltan === []) {
+            return;
+        }
+        $this->warn(count($faltan).' hueco(s) declarados sin fichero todavía (la lección se lee entera):');
+        foreach ($faltan as $clip) {
+            $this->line("  - {$clip}");
+        }
+    }
 
     private function dirAudio(): string
     {

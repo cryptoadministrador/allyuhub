@@ -317,7 +317,8 @@ bloque, no cotejados uno a uno con el enunciado oficial de cada destreza.
 La plataforma dicta cuatro idiomas de cero (FR/IT/DE/ZH, 1.º BGU, A1) y para eso
 el motor aprendió a OÍR:
 
-- **Bloque `audio` en las lecciones** (`Bloques`): `{src, texto, duracion_s?}`.
+- **Bloque `audio` en las lecciones** (`Bloques`): `{src, texto, duracion_s?}`
+  —o `{pendiente: true, clip?, texto}` si aún no está grabado (PR 11)—.
   La transcripción es OBLIGATORIA (accesibilidad + pedagogía A1) y el `src` solo
   puede ser del almacén propio. Sin red, el bloque degrada a su transcripción
   con aviso — la lección de texto sigue entera.
@@ -380,9 +381,11 @@ props — React solo pinta, y así el cascarón cuesta ~6 KB de JS, no ~40.
   para las cuatro lenguas (el MCER así lo escribe), con los descriptores de
   cada unidad. Una unidad sin ítems/lecciones FIRMADOS de esa lengua se pinta
   «próximamente», nunca vacía.
-- **La racha** (`RachaDeAlumno`) se rompe con TRES días naturales sin
-  actividad, no con uno: un fin de semana no castiga. Ojo con `diffInDays` de
-  Carbon nuevo — devuelve con signo y float, hay que `abs`+`int`.
+- **La racha** (`RachaDeAlumno`): días naturales SEGUIDOS con actividad, en
+  hora de ECUADOR. **Se rompe con UN día sin repaso ni práctica** (regla del
+  PR 9, que SUSTITUYE a la de la misión 1 —tres días de gracia—: ver «El
+  repaso diario» abajo). Ojo con `diffInDays` de Carbon nuevo — devuelve con
+  signo y float, hay que `abs`+`int`.
 - **La lengua es cerrada**: `/corso/klingon` es 404. Y el cabo suelto de #28
   quedó cerrado — `/destreza?lengua=` filtra RECURSOS por lengua en las dos
   direcciones (pedir italiano sirve solo lecciones italianas; sin lengua, solo
@@ -702,6 +705,120 @@ devuelve SOLO las claves con regla. Los campos de respuesta (`answer`,
 la primera pasada los borraba y llegaban vacíos. Se lee `$request->input()` para
 la pasada por ítem.
 
+## El repaso diario y la racha (PR 9)
+
+Khan le da al alumno un sitio al que volver cada día. Aquí es
+`/corso/{lengua}/repaso` («tu repaso de hoy»): **hasta diez ítems que elige el
+servidor por prioridad** (`App\Services\Practice\RepasoDiario`) y se juegan
+COMO LA PRÁCTICA —cada respuesta va a `POST practice/items/{item}/attempts` con
+el billete que vino con el ítem; no hay ruta nueva de corrección—. Al final,
+«Repaso hecho: N/10» y la racha, número y nada más: **sin fuego, sin confeti**
+(también en la portada del curso).
+
+- **Tres prioridades, en este orden**: (1) descriptores VENCIDOS del repaso
+  espaciado —los que `RepasoService::vencidos()` ya calcula por `repaso_en`,
+  el más atrasado primero; se sirve OTRO ítem del descriptor, el que el alumno
+  tocó hace más tiempo o nunca—; (2) descriptores cuyo ÚLTIMO intento fue un
+  fallo —se sirve el ítem fallado, un fallo antiguo ya corregido NO es
+  reciente—; (3) relleno con ítems NO vistos de las unidades del curso. Las
+  dos primeras van con `repaso: true` FIRMADO en el billete (dominio sí, AGS
+  no —regla del PR 2—); la tercera son ítems nuevos y cuentan. `vencidos()`
+  salió de `cola()` para que las dos colas —la del PR 2 y la de hoy— sean UNA
+  consulta, no dos que divergen.
+- **Es el repaso de HOY**: semilla (lengua, quién, fecha de Ecuador). Volver a
+  abrirlo el mismo día trae el mismo; mañana, otro. Otro alumno, otro orden.
+- **El billete lleva el intento REAL** del alumno para ese ítem (el mismo que
+  daría `next`): un vencido servido con un ítem ya tocado es el intento 2, no
+  un 409 por «intento 1 repetido». Esto lo cazó una mutación.
+- **La racha** (`RachaDeAlumno`, arriba) sale de `practice_attempts` —repaso,
+  práctica y prueba por igual, porque las tres son intentos— y se cuenta en
+  `America/Guayaquil` (decidido: un alumno que repasa a las diez de la noche de
+  Quito repasa HOY aunque en UTC ya sea mañana; `created_at` viaja en UTC y se
+  convierte al contar; `activo_hoy` también). **REGLA NUEVA: se rompe con UN día
+  natural sin actividad**, como Khan. Contradice la del PR 1 (tres días de
+  gracia) a propósito: aquella se escribió cuando no había nada que hacer cada
+  día en diez minutos; ahora lo hay, y la racha estricta deja de castigar y
+  empieza a empujar. `GET /api/v1/practice/racha` la devuelve con `activo_hoy`.
+- **Regla de oro**: el invitado juega el repaso GENÉRICO (solo prioridad 3: sin
+  historia no hay vencidos ni fallos), ve la corrección, no tiene racha y no
+  escribe nada. `GET /api/v1/practice/repaso-diario?lengua=` es abierta; la
+  lengua es de lista cerrada (422 fuera).
+- **Lo que no entra**, mutación mediante: ítems de otra lengua, ítems sin
+  firmar, ítems ya vistos como relleno, descriptores con cita futura.
+
+## El vocabulario por unidad (PR 10) — tarjetas, no un tipo de ítem
+
+Cada unidad tiene sus palabras (`database/data/vocabulario-lenguas.php`, escrito
+por Carlos: 624 tarjetas, ~17 por unidad y lengua) y `/corso/{lengua}/u{n}/vocabulario`
+las pinta como TARJETAS: anverso la palabra (en chino el carácter grande y el
+pinyin debajo; en alemán con su artículo, que ya viene dentro de `palabra`),
+reverso el significado y una frase de la lección. «La sé» la saca del mazo
+hasta MAÑANA (día de Ecuador); «Todavía no» la manda al final del mazo de hoy.
+La unidad dice «Vocabulario: 12 / 17 palabras».
+
+- **NO es un tipo de ítem y NO da dominio, a propósito.** Es material de apoyo:
+  ni `Tipos\Registro`, ni billete, ni `practice_attempts`, ni racha. Tabla
+  `vocabulario` (`App\Models\Tarjeta`, idempotente por (lengua, unidad,
+  clave)) y `vocab_estado` (una fila por (alumno, tarjeta), `conocida_at` nulo
+  = «todavía no»). Hacerlo ítem habría metido el vocabulario en la prueba y en
+  el repaso, que es justo lo que no se quiere: la prueba mide descriptores.
+- **Nace SIN firmar** y se firma **por lengua** con `vocabulario:firmar
+  --lengua=it [--unidad=3]` **o desde `/docente/revisar`**: `Revision\Pieza`
+  tiene un tercer tipo (`vocabulario`), `Firma` escribe la tercera columna del
+  rastro (`revisiones.tarjeta_id`) y las rutas de revisión leen los tipos de
+  `Pieza::TIPOS` — estaban escritos a mano (`['item', 'leccion']`) y la tercera
+  pieza daba 404. La tarjeta se abre en la pantalla TAL COMO LA VE EL ALUMNO
+  (`vocabulario.jsx` con un mazo de una y `revision` — no llama a la API).
+- **El clip se DECLARA sin fichero**, como en los diálogos: `ClipsDeclarados`
+  (extraído de `dialogos:sembrar`, que ahora lo usa también) conserva la CLAVE,
+  rellena la RUTA solo si el fichero está y lista las que faltan. Sin fichero
+  no hay reproductor —la tarjeta se usa leyendo—; nunca un `<audio>` a un clip
+  que no existe.
+- **El banco entra entero o no entra** (transacción): lengua fuera de lista,
+  unidad que el curso no tiene, clave repetida, chino sin pinyin, pinyin fuera
+  del chino o ejemplo sin traducción revientan nombrando la entrada.
+- **«Hoy» es el de Ecuador** (`MazoDeVocabulario`, misma zona que la racha).
+  Lo cazó una mutación: con el día de UTC, «la sé» a las ocho de la tarde de
+  Quito no volvía al mazo a la una de la madrugada siguiente.
+- **Regla de oro**: el invitado ve el mazo entero, lo que marque vive en la
+  memoria de la página, y `POST api/v1/vocabulario/{id}/estado` le responde
+  200 sin escribir (201 con sesión). Una tarjeta sin firmar es 404 ahí también.
+- **Oráculo del banco entero** (`BancoEnteroTest`): `lenguas:sembrar` +
+  `dialogos:sembrar` + `vocabulario:sembrar` con la cuenta EXACTA escrita
+  (60 lecciones, 484 ítems, 36 guiones, 624 tarjetas) — un cable trampa a
+  propósito: si Carlos añade contenido, se actualiza el número; si un
+  sembrador se salta una entrada con un aviso, nadie lo actualiza y cae.
+
+## Huecos declarados y «tono» (PR 11) — lo que falta se dice, no se esconde
+
+Los audios y vídeos del curso se generan al final (decisión de Carlos), así que
+las lecciones tienen que poder NACER sin ellos sin mentir.
+
+- **Un bloque `audio` con `pendiente => true`** entra SIN `src` (y con su
+  `clip`, la clave que lo enganchará) y `Recurso.jsx` lo pinta como lo que es:
+  «Audio pendiente: todavía no está grabado» + la transcripción, que es la
+  lección entera hasta que llegue el fichero. **Nunca un `<audio>` a un fichero
+  que no existe.** `pendiente` + `src` a la vez es contradicción y revienta.
+  **Re-sembrar con el fichero lo engancha** (`src` con hash, fuera `pendiente`)
+  sin tocar el banco. Sin `pendiente`, la regla de siempre: un clip que falta
+  revienta la siembra entera. Los huecos se listan al final de `lenguas:sembrar`.
+- **`video` existe SOLO como hueco** (`pendiente => true` obligatorio, sin
+  `src`): no hay almacén de vídeo, y el de audio es de audio con su vocabulario
+  cerrado — no se ensancha para meter mp4. El día que exista, aquí se admite
+  `src` y el banco no cambia.
+- **Los ítems `escucha`/`dictado` NO admiten huecos**: sin clip no hay
+  ejercicio, y `pendiente` en un ítem se ignora (mutación M14). La diferencia
+  es la misma que con los diálogos: la lección se lee entera sin el audio; la
+  pregunta de escucha no existe sin él.
+- **«Te falta el tono»**: en chino el `detalle: 'acento'` del motor (pinyin
+  con tonos, `nǐ` ≠ `ni`) se dice con su nombre. Vive en UN sitio
+  (`Veredicto` de `Ejercicio.jsx`, `item.lengua === 'zh'`), así que práctica,
+  prueba y repaso lo dicen igual. Para eso `TipoHueco::payload` (y `dictado`,
+  que hereda) lleva `lengua` — es pública, no es la solución, y el oráculo de
+  fuga por kind la declara a propósito. La caja del hueco en chino avisa:
+  «pinyin con tonos (nǐ hǎo) o con el número del tono (ni3 hao3)» — el
+  motor acepta las dos, el banco las lista.
+
 ## La frontera del contenido abierto (modelo Khan)
 
 Se **navega** y se **practica** sin sesión; se **guarda** y se **califica** solo con
@@ -709,9 +826,10 @@ sesión LTI. Abiertas: `/catalogo`, `/catalogo/{node}`, `/destreza/{objective}`,
 `/buscar`, `/practicar/{objective}`, `/recurso/{resource}`, el cascarón del curso
 (`/corso/{lengua}` para las CINCO lenguas —`fr it de zh en`—, `/corso/{lengua}/u{n}`,
 `/corso/{lengua}/u{n}/producir` — se
-VE la tarea, no se envía —, `/corso/{lengua}/u{n}/hablar`, `/corso/{lengua}/u{n}/prueba`
-y `GET/POST /api/v1/pruebas/{lengua}/u{n}`), los cinco endpoints de
-`/api/v1/practice/*` y `POST /api/v1/dialogos/{id}/completado` (el invitado juega
+VE la tarea, no se envía —, `/corso/{lengua}/u{n}/hablar`, `/corso/{lengua}/u{n}/prueba`,
+`/corso/{lengua}/repaso`, `/corso/{lengua}/u{n}/vocabulario`,
+`GET/POST /api/v1/pruebas/{lengua}/u{n}` y `POST /api/v1/vocabulario/{id}/estado`), los endpoints de
+`/api/v1/practice/*` (`repaso-diario` y `racha` incluidos) y `POST /api/v1/dialogos/{id}/completado` (el invitado juega
 y no escribe). Cerradas: `/inicio`, `/progreso`, `/docente/*` y **toda producción**
 (crear, borrar y servir la voz: `/api/v1/producciones*` — contenido de un menor).
 `/docente/revisar*` y `/api/v1/revision/*` son cerradas con **403** (no

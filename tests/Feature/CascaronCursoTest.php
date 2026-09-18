@@ -239,25 +239,62 @@ class CascaronCursoTest extends TestCase
                 ->where('unidades.0.estado', 'disponible'));
     }
 
-    // ================= la racha (regla: 3 días naturales) =================
+    // ================= la racha (regla: días SEGUIDOS, hora de Ecuador) =================
 
-    public function test_la_racha_se_rompe_a_los_tres_dias_no_al_primero(): void
+    /**
+     * REGLA NUEVA (misión 3, sustituye a la de 3 días de gracia de la misión
+     * 1): la racha se rompe si pasa UN día natural sin repaso ni práctica.
+     * Viene con el repaso diario, que es lo que la hace justa.
+     */
+    public function test_la_racha_cuenta_dias_seguidos_y_un_dia_sin_nada_la_rompe(): void
+    {
+        $racha = new RachaDeAlumno;
+        $hoy = now(RachaDeAlumno::ZONA)->setTime(12, 0);
+
+        // Hoy, ayer y anteayer: tres seguidos.
+        foreach ([0, 1, 2] as $atras) {
+            $this->attemptEn($this->ana, $hoy->copy()->subDays($atras)->setTimezone('UTC'));
+        }
+        $tres = $racha->calcular($this->ana->id);
+        $this->assertTrue($tres['viva']);
+        $this->assertSame(3, $tres['dias']);
+
+        // Hoy y anteayer (un hueco): la racha es de UN día, no de dos.
+        $conHueco = User::factory()->create();
+        $this->attemptEn($conHueco, $hoy->copy()->setTimezone('UTC'));
+        $this->attemptEn($conHueco, $hoy->copy()->subDays(2)->setTimezone('UTC'));
+        $r = $racha->calcular($conHueco->id);
+        $this->assertTrue($r['viva']);
+        $this->assertSame(1, $r['dias'], 'Un hueco de un día no rompió la cuenta.');
+
+        // Solo ayer: sigue VIVA (hoy no ha terminado), con 1.
+        $ayer = User::factory()->create();
+        $this->attemptEn($ayer, $hoy->copy()->subDay()->setTimezone('UTC'));
+        $this->assertSame(['dias' => 1, 'viva' => true], $racha->calcular($ayer->id));
+
+        // Último hace dos días: ROTA.
+        $rota = User::factory()->create();
+        $this->attemptEn($rota, $hoy->copy()->subDays(2)->setTimezone('UTC'));
+        $this->assertSame(['dias' => 0, 'viva' => false], $racha->calcular($rota->id));
+    }
+
+    /**
+     * Los días son los de ECUADOR. Un intento a las 22:00 de Quito es de HOY
+     * aunque en UTC (03:00) ya sea mañana; con la fecha UTC, «hoy» y «ayer»
+     * se partían por la mitad de la tarde.
+     */
+    public function test_la_racha_cuenta_en_hora_de_ecuador(): void
     {
         $racha = new RachaDeAlumno;
 
-        // Un fin de semana (hoy y anteayer, hueco de 1 día) NO rompe la racha.
-        $this->attemptEn($this->ana, now());
-        $this->attemptEn($this->ana, now()->copy()->subDays(2));
-        $conHueco = $racha->calcular($this->ana->id);
-        $this->assertTrue($conHueco['viva'], 'Un hueco de un día rompió la racha.');
-        $this->assertSame(2, $conHueco['dias']);
+        // Ayer a las 22:30 de Quito = hoy 03:30 UTC. Y hoy a las 08:00 de Quito.
+        $hoyQuito = now(RachaDeAlumno::ZONA)->startOfDay();
+        $this->attemptEn($this->ana, $hoyQuito->copy()->subDay()->setTime(22, 30)->setTimezone('UTC'));
+        $this->attemptEn($this->ana, $hoyQuito->copy()->setTime(8, 0)->setTimezone('UTC'));
 
-        // Tres días naturales sin actividad SÍ la rompen: el último fue hace 3.
-        $otro = User::factory()->create();
-        $this->attemptEn($otro, now()->copy()->subDays(3));
-        $rota = $racha->calcular($otro->id);
-        $this->assertFalse($rota['viva'], 'La racha sobrevivió a tres días de silencio.');
-        $this->assertSame(0, $rota['dias']);
+        // Dos días seguidos de Quito. Contado en UTC, el de las 22:30 caería
+        // en «hoy» y la racha sería de 1.
+        $this->assertSame(2, $racha->calcular($this->ana->id)['dias']);
     }
 
     /** El invitado no tiene racha: cero, sin consultar filas de nadie. */

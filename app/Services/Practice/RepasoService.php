@@ -60,6 +60,42 @@ class RepasoService
     }
 
     /**
+     * Los descriptores VENCIDOS de un alumno en una lengua, el más atrasado
+     * primero, con techo de 12. Es la lista del repaso espaciado — y la fuente
+     * ÚNICA: `cola()` (la tarjeta de la portada) y `RepasoDiario` (la prioridad
+     * 1 del repaso de hoy) la leen de aquí, para que la tarjeta no diga «te
+     * tocan 3» y el repaso traiga otros tres.
+     *
+     * Solo descriptores con ≥2 ítems FIRMADOS de esta lengua: repasar es
+     * practicar OTRO ítem del mismo descriptor.
+     *
+     * @return \Illuminate\Support\Collection<int, string> objective_id
+     */
+    public function vencidos(int $userId, string $lengua): \Illuminate\Support\Collection
+    {
+        $repasables = PracticeItem::query()
+            ->where('lengua', $lengua)
+            ->whereNotNull('reviewed_at')
+            ->selectRaw('objective_id, count(*) as total')
+            ->groupBy('objective_id')
+            ->havingRaw('count(*) >= 2')
+            ->pluck('objective_id');
+
+        if ($repasables->isEmpty()) {
+            return collect();
+        }
+
+        return ObjectiveMastery::query()
+            ->where('user_id', $userId)
+            ->whereIn('objective_id', $repasables)
+            ->whereNotNull('repaso_en')
+            ->where('repaso_en', '<=', now())
+            ->orderBy('repaso_en')
+            ->limit(self::TECHO_SESION)
+            ->pluck('objective_id');
+    }
+
+    /**
      * La cola de repaso del alumno para UNA lengua, con techo de 12.
      *
      * @return array{pendientes: int, siguiente: array{descriptor_id: string, code: string, url: string}|null}
@@ -70,30 +106,7 @@ class RepasoService
             return ['pendientes' => 0, 'siguiente' => null];
         }
 
-        // Descriptores con ≥2 ítems FIRMADOS de esta lengua: los únicos
-        // repasables (hay «otro» ítem que servir). La lengua es cerrada.
-        $repasables = PracticeItem::query()
-            ->where('lengua', $lengua)
-            ->whereNotNull('reviewed_at')
-            ->selectRaw('objective_id, count(*) as total')
-            ->groupBy('objective_id')
-            ->havingRaw('count(*) >= 2')
-            ->pluck('objective_id');
-
-        if ($repasables->isEmpty()) {
-            return ['pendientes' => 0, 'siguiente' => null];
-        }
-
-        // Vencidos (repaso_en <= now), el más atrasado primero, con techo.
-        $vencidos = ObjectiveMastery::query()
-            ->where('user_id', $userId)
-            ->whereIn('objective_id', $repasables)
-            ->whereNotNull('repaso_en')
-            ->where('repaso_en', '<=', now())
-            ->orderBy('repaso_en')
-            ->limit(self::TECHO_SESION)
-            ->pluck('objective_id');
-
+        $vencidos = $this->vencidos($userId, $lengua);
         if ($vencidos->isEmpty()) {
             return ['pendientes' => 0, 'siguiente' => null];
         }

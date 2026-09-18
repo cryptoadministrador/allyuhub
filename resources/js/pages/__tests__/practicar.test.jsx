@@ -893,8 +893,40 @@ describe('Practicar — hueco y dictado (escribir la forma)', () => {
 
         // «Te falta un acento» no es «esa palabra no es»: dos errores, dos
         // mensajes. El alumno tiene que saber cuál cometió.
-        expect(screen.getByText(/acento/i)).toBeInTheDocument();
+        expect(screen.getByText(/revisa el acento/i)).toBeInTheDocument();
         expect(screen.getByText(/où/)).toBeInTheDocument();
+        // Y en francés no se habla de tonos, ni hay pista de pinyin.
+        expect(screen.queryByText(/tono/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/pinyin/i)).not.toBeInTheDocument();
+    });
+
+    /**
+     * En CHINO el «acento» del motor es el TONO (`detalle: 'acento'` sobre
+     * `nǐ` vs `ni`): la interfaz lo dice con su nombre, en UN sitio, y antes de
+     * responder explica que el pinyin va con tonos o con el número del tono.
+     */
+    it('hueco en chino: «te falta el tono», no «acento», y la pista del pinyin', async () => {
+        const user = userEvent.setup();
+        encolarFetch(
+            respuestaJson(200, { ...ITEM_HUECO, lengua: 'zh', statement: { es: 'Completa en pinyin: « ___ hǎo »' } }),
+            respuestaJson(201, {
+                id: 'a1', attempt_no: 1, is_correct: false, detalle: 'acento',
+                esperado: 'nǐ', texto: 'ni', se_guarda: true,
+            }),
+            respuestaJson(200, []),
+        );
+        render(<Practicar objective={OBJETIVO_ALEMAN} mastery={null} />);
+        await screen.findByText(/completa en pinyin/i);
+
+        const caja = screen.getByRole('textbox', { name: /tu respuesta/i });
+        expect(caja).toHaveAccessibleDescription(/pinyin con tonos .* o con el número del tono/i);
+
+        await user.type(caja, 'ni');
+        await user.click(screen.getByRole('button', { name: /comprobar/i }));
+        await screen.findByText('Incorrecto.');
+
+        expect(screen.getByText(/te falta el tono/i)).toBeInTheDocument();
+        expect(screen.queryByText(/acento/i)).not.toBeInTheDocument();
     });
 
     it('dictado: reproduce el clip, se escribe, y el veredicto trae lo que decía', async () => {

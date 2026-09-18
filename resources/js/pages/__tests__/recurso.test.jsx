@@ -242,6 +242,63 @@ describe('Recurso — el lector de la lección', () => {
         expect(screen.getByText('Bonjour !')).toBeInTheDocument();
     });
 
+    /**
+     * UN HUECO DECLARADO (PR 11): el audio no está grabado. Se DICE, la
+     * transcripción se lee, y no hay ningún <audio> apuntando a nada.
+     */
+    it('un audio pendiente se pinta como hueco honesto: sin reproductor y con el texto', () => {
+        const { container } = render(
+            <Recurso
+                recurso={{
+                    ...LECCION,
+                    bloques: [{
+                        tipo: 'audio', pendiente: true, clip: 'fr/u1/bonjour',
+                        texto: { fr: 'Bonjour, ça va ?', es: 'Buenos días, ¿qué tal?' },
+                    }],
+                }}
+                destrezas={[]}
+            />,
+        );
+
+        expect(container.querySelector('audio')).toBeNull();
+        expect(screen.getByRole('status')).toHaveTextContent(/audio pendiente/i);
+        expect(screen.getByText('Bonjour, ça va ?')).toBeInTheDocument();
+        expect(screen.getByText('Buenos días, ¿qué tal?')).toBeInTheDocument();
+    });
+
+    it('un vídeo pendiente se pinta igual, y no hay <video>', () => {
+        const { container } = render(
+            <Recurso
+                recurso={{
+                    ...LECCION,
+                    bloques: [{ tipo: 'video', pendiente: true, texto: { fr: 'Je m’appelle Sofía.' } }],
+                }}
+                destrezas={[]}
+            />,
+        );
+
+        expect(container.querySelector('video')).toBeNull();
+        expect(container.querySelector('audio')).toBeNull();
+        expect(screen.getByRole('status')).toHaveTextContent(/vídeo pendiente/i);
+        expect(screen.getByText('Je m’appelle Sofía.')).toBeInTheDocument();
+    });
+
+    it('una lección con huecos no tiene violaciones serias de accesibilidad', async () => {
+        const { container } = render(
+            <Recurso
+                recurso={{
+                    ...LECCION,
+                    bloques: [
+                        { tipo: 'audio', pendiente: true, texto: { fr: 'Bonjour !' } },
+                        { tipo: 'video', pendiente: true, texto: { fr: 'Salut !', es: 'Hola.' } },
+                    ],
+                }}
+                destrezas={[]}
+            />,
+        );
+        expect(violacionesGraves(await axe(container))).toEqual([]);
+    });
+
     it('una lección con audio no tiene violaciones serias de accesibilidad', async () => {
         const { container } = render(
             <Recurso

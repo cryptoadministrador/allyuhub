@@ -344,7 +344,9 @@ class TiposDeLenguaTest extends TestCase
                     'statement' => ['es' => 'Completa el saludo.'],
                     'solucion' => ['lengua' => 'fr', 'textos' => ['CENTINELA-HUECO-SOL']],
                 ]),
-                [],
+                // `lengua` viaja a propósito (PR 11): la interfaz dice «tono»
+                // en chino y «acento» en el resto. Es pública, no es la solución.
+                ['lengua'],
                 ['CENTINELA-HUECO-SOL', 'solucion'],
             ],
             PracticeItem::ORDEN => [
@@ -382,7 +384,7 @@ class TiposDeLenguaTest extends TestCase
                     'transcripcion' => 'CENTINELA-DICTADO-TRANS',
                     'solucion' => ['lengua' => 'it', 'textos' => ['CENTINELA-DICTADO-SOL']],
                 ]),
-                ['audio_src'],
+                ['lengua', 'audio_src'],
                 ['CENTINELA-DICTADO-SOL', 'CENTINELA-DICTADO-TRANS', 'transcripcion', 'solucion'],
             ],
             default => $this->fail(
