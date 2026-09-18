@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { TableroDeOrden, TableroDePares, partirHueco, primerTexto } from './Tablero';
 
 /**
  * EL EJERCICIO, separado del bucle de práctica.
@@ -20,8 +21,9 @@ import { useState } from 'react';
  *  - `<Ejercicio>`: el enunciado, el audio si lo hay y la interfaz de responder.
  *  - `<Veredicto>`: cómo se cuenta el resultado, por tipo.
  *
- * Tocar, no arrastrar (orden y pares): teléfono, teclado y lector de pantalla
- * piden lo mismo que el presupuesto de bundle (0 KB de librerías).
+ * Los TABLEROS de `orden` y `pares` y el hueco dentro de la frase viven en
+ * `Tablero.jsx` (misión 4): tocar sigue siendo el camino accesible y arrastrar
+ * se añade encima con eventos de puntero — 0 KB de librerías, como siempre.
  */
 
 // Etiqueta visual de cada opción. Decorativa: el nombre accesible del radio es
@@ -33,10 +35,6 @@ const LETRAS = ['A', 'B', 'C', 'D', 'E', 'F'];
 /** El texto de la opción con esa clave, entre las que sirvió el servidor. */
 export function textoDeOpcion(item, clave) {
     return (item?.options ?? []).find((o) => o.key === clave)?.text?.es ?? '';
-}
-
-function primerTexto(opciones, clave) {
-    return Object.values(opciones.find((o) => o.key === clave)?.text ?? {})[0];
 }
 
 /**
@@ -138,10 +136,34 @@ function ReproductorDeEscucha({ src }) {
  */
 export function Ejercicio({ item, valor, onChange, faltaElegir = false, inputRef, nombre = 'opcion' }) {
     const { porClave, porTexto, esOrden, esPares, conAudio, opciones, columnasDePares } = forma(item);
-    const usadasEnParejas = new Set(valor.parejas.flat());
     const idAviso = `falta-elegir-${nombre}`;
+    const idPinyin = `${nombre}-pinyin`;
+    // El hueco vive DENTRO de la frase: la consigna se parte por su «___» y
+    // el campo ocupa ese sitio. Sin «___» (o en dictado) el campo va debajo.
+    const partes = item.kind === 'hueco' ? partirHueco(item.statement?.es) : null;
 
     const cambiar = (parcial) => onChange({ ...valor, ...parcial });
+
+    const campoDeTexto = (dentro) => (
+        /* type=text con autocorrección fuera: el alumno escribe en la lengua
+           que aprende y el móvil «corrigiéndole» al español es el enemigo. */
+        <input
+            ref={inputRef}
+            type="text"
+            autoComplete="off"
+            autoCapitalize="off"
+            autoCorrect="off"
+            spellCheck="false"
+            required
+            aria-label={dentro ? 'Tu respuesta' : undefined}
+            value={valor.respuesta}
+            aria-describedby={[faltaElegir ? idAviso : null, item.lengua === 'zh' ? idPinyin : null].filter(Boolean).join(' ') || undefined}
+            onChange={(e) => cambiar({ respuesta: e.target.value })}
+            className={dentro
+                ? 'mx-1 inline-block w-40 max-w-full rounded border border-slate-400 bg-marca-50 px-2 py-0.5 text-center align-baseline text-xl focus:outline-2 focus:outline-marca-600'
+                : 'w-full max-w-md rounded border border-slate-300 px-3 py-2 focus:outline-2 focus:outline-marca-600'}
+        />
+    );
 
     return (
         <>
@@ -149,7 +171,7 @@ export function Ejercicio({ item, valor, onChange, faltaElegir = false, inputRef
                 competir con nada. React escapa por defecto; el texto
                 viene de PDFs importados. */}
             <p className="mb-5 rounded-lg border border-slate-200 bg-white p-4 text-xl leading-relaxed text-slate-900">
-                {item.statement.es}
+                {partes ? <>{partes[0]}{campoDeTexto(true)}{partes[1]}</> : item.statement.es}
             </p>
 
             {conAudio && <ReproductorDeEscucha src={item.audio_src} />}
@@ -201,139 +223,34 @@ export function Ejercicio({ item, valor, onChange, faltaElegir = false, inputRef
                     </div>
                 </fieldset>
             ) : esOrden ? (
-                /* TOCAR, no arrastrar: en un teléfono arrastrar es
-                   incómodo, y tocar es lo que funciona con teclado y
-                   lector de pantalla. El presupuesto (0 KB de
-                   librerías) y la accesibilidad piden lo mismo. */
-                <div className="mb-4">
-                    <div
-                        role="group"
-                        aria-label="Tu frase"
-                        className="mb-3 flex min-h-14 flex-wrap items-center gap-2 rounded-lg border border-slate-300 bg-white p-3"
-                    >
-                        {valor.secuencia.length === 0 && (
-                            <span className="text-sm text-slate-600">
-                                Toca las palabras en orden.
-                            </span>
-                        )}
-                        {valor.secuencia.map((clave) => (
-                            <button
-                                key={clave}
-                                type="button"
-                                onClick={() => cambiar({ secuencia: valor.secuencia.filter((k) => k !== clave) })}
-                                className="rounded border border-marca-600 bg-marca-50 px-3 py-1.5 text-base text-marca-900 hover:bg-marca-100 focus:outline-2 focus:outline-offset-2 focus:outline-marca-600"
-                            >
-                                {primerTexto(opciones, clave)}
-                            </button>
-                        ))}
-                    </div>
-                    <div
-                        role="group"
-                        aria-label="Palabras disponibles"
-                        className="flex flex-wrap gap-2"
-                    >
-                        {opciones
-                            .filter((o) => !valor.secuencia.includes(o.key))
-                            .map((o) => (
-                                <button
-                                    key={o.key}
-                                    type="button"
-                                    onClick={() => cambiar({ secuencia: [...valor.secuencia, o.key] })}
-                                    className="rounded border border-slate-300 bg-white px-3 py-1.5 text-base text-slate-900 hover:bg-slate-50 focus:outline-2 focus:outline-offset-2 focus:outline-marca-600"
-                                >
-                                    {Object.values(o.text ?? {})[0]}
-                                </button>
-                            ))}
-                    </div>
-                </div>
+                <TableroDeOrden
+                    opciones={opciones}
+                    secuencia={valor.secuencia}
+                    onSecuencia={(secuencia) => cambiar({ secuencia })}
+                    nombre={nombre}
+                    inputRef={inputRef}
+                />
             ) : esPares ? (
-                <div className="mb-4">
-                    <div className="mb-3 grid gap-3" style={{ gridTemplateColumns: `repeat(${columnasDePares.length}, minmax(0, 1fr))` }}>
-                        {columnasDePares.map((col, i) => (
-                            <div key={col} role="group" aria-label={`Columna ${i + 1}`} className="space-y-2">
-                                {opciones
-                                    .filter((o) => o.col === col)
-                                    .map((o) => (
-                                        <button
-                                            key={o.key}
-                                            type="button"
-                                            disabled={usadasEnParejas.has(o.key)}
-                                            aria-pressed={valor.pendiente[col] === o.key}
-                                            onClick={() => {
-                                                const sel = {
-                                                    ...valor.pendiente,
-                                                    [col]: valor.pendiente[col] === o.key ? undefined : o.key,
-                                                };
-                                                // Una clave por columna: al completarse,
-                                                // la pareja se forma sola (en el orden de
-                                                // las columnas, que es el de la tupla).
-                                                if (columnasDePares.every((c) => sel[c])) {
-                                                    cambiar({
-                                                        parejas: [...valor.parejas, columnasDePares.map((c) => sel[c])],
-                                                        pendiente: {},
-                                                    });
-                                                } else {
-                                                    cambiar({ pendiente: sel });
-                                                }
-                                            }}
-                                            className={`block w-full rounded border px-3 py-2 text-left text-base focus:outline-2 focus:outline-offset-2 focus:outline-marca-600 disabled:opacity-40 ${
-                                                valor.pendiente[col] === o.key
-                                                    ? 'border-marca-600 bg-marca-50 text-marca-900'
-                                                    : 'border-slate-300 bg-white text-slate-900 hover:bg-slate-50'
-                                            }`}
-                                        >
-                                            {Object.values(o.text ?? {})[0]}
-                                        </button>
-                                    ))}
-                            </div>
-                        ))}
-                    </div>
-                    {valor.parejas.length > 0 && (
-                        <ul aria-label="Tus parejas" className="space-y-1">
-                            {valor.parejas.map((tupla, i) => {
-                                const textos = tupla.map((k) => primerTexto(opciones, k)).join(' — ');
-
-                                return (
-                                    <li key={i} className="flex items-center gap-2 text-sm text-slate-800">
-                                        <span>{textos}</span>
-                                        <button
-                                            type="button"
-                                            onClick={() => cambiar({ parejas: valor.parejas.filter((_, j) => j !== i) })}
-                                            className="rounded border border-slate-300 px-2 py-0.5 text-xs text-slate-700 hover:bg-slate-50 focus:outline-2 focus:outline-offset-2 focus:outline-marca-600"
-                                        >
-                                            Quitar pareja {textos}
-                                        </button>
-                                    </li>
-                                );
-                            })}
-                        </ul>
-                    )}
-                </div>
+                <TableroDePares
+                    opciones={opciones}
+                    columnas={columnasDePares}
+                    parejas={valor.parejas}
+                    pendiente={valor.pendiente}
+                    onCambio={cambiar}
+                    inputRef={inputRef}
+                />
             ) : porTexto ? (
                 <div className="mb-4">
-                    <label className="block">
-                        <span className="mb-1 block text-sm font-medium">Tu respuesta</span>
-                        {/* type=text con autocorrección fuera: el alumno
-                            escribe en la lengua que aprende y el móvil
-                            «corrigiéndole» al español es el enemigo. */}
-                        <input
-                            ref={inputRef}
-                            type="text"
-                            autoComplete="off"
-                            autoCapitalize="off"
-                            autoCorrect="off"
-                            spellCheck="false"
-                            required
-                            value={valor.respuesta}
-                            aria-describedby={[faltaElegir ? idAviso : null, item.lengua === 'zh' ? `${nombre}-pinyin` : null].filter(Boolean).join(' ') || undefined}
-                            onChange={(e) => cambiar({ respuesta: e.target.value })}
-                            className="w-full max-w-md rounded border border-slate-300 px-3 py-2 focus:outline-2 focus:outline-marca-600"
-                        />
-                    </label>
+                    {!partes && (
+                        <label className="block">
+                            <span className="mb-1 block text-sm font-medium">Tu respuesta</span>
+                            {campoDeTexto(false)}
+                        </label>
+                    )}
                     {item.lengua === 'zh' && (
                         // El tono es parte de la palabra. Sin teclado de tonos,
                         // el número vale: el motor acepta las dos formas.
-                        <p id={`${nombre}-pinyin`} className="mt-1 text-sm text-slate-600">
+                        <p id={idPinyin} className="mt-1 text-sm text-slate-600">
                             Escribe el pinyin con tonos (nǐ hǎo) o con el número del tono (ni3 hao3).
                         </p>
                     )}
@@ -381,6 +298,18 @@ export function Ejercicio({ item, valor, onChange, faltaElegir = false, inputRef
             )}
         </>
     );
+}
+
+/**
+ * El MARCO del veredicto (color + microanimación), escrito una vez para los
+ * bucles que lo pintan (práctica, repaso). Acierto: un pulso corto; fallo: una
+ * sacudida breve. Siempre tras `motion-safe:` — con `prefers-reduced-motion`
+ * quedan los mismos colores, el mismo icono y el mismo texto, sin movimiento.
+ */
+export function claseDeVeredicto(esCorrecto) {
+    return esCorrecto
+        ? 'border-emerald-200 border-l-emerald-600 bg-emerald-50 motion-safe:animate-pulso'
+        : 'border-rose-200 border-l-rose-600 bg-rose-50 motion-safe:animate-sacudida';
 }
 
 /**

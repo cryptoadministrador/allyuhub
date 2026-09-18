@@ -15,4 +15,23 @@
     --color-marca-600: #4f46e5;
     --color-marca-700: #4338ca;
     --color-marca-900: #312e81;
+
+    /* Microanimación del veredicto (misión 4): un pulso corto al acertar, una
+       sacudida breve al fallar. Se usan SIEMPRE tras `motion-safe:` — quien
+       tiene `prefers-reduced-motion` ve los mismos estados sin movimiento. */
+    --animate-pulso: pulso 600ms ease-out 1;
+    --animate-sacudida: sacudida 400ms ease-in-out 1;
+
+    @keyframes pulso {
+        0% { transform: scale(1); }
+        35% { transform: scale(1.02); }
+        100% { transform: scale(1); }
+    }
+    @keyframes sacudida {
+        0%, 100% { transform: translateX(0); }
+        20% { transform: translateX(-6px); }
+        40% { transform: translateX(5px); }
+        60% { transform: translateX(-3px); }
+        80% { transform: translateX(2px); }
+    }
 }

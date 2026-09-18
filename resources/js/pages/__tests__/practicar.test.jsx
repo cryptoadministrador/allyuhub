@@ -1110,12 +1110,14 @@ describe('Practicar — pares (tres columnas, tocando)', () => {
         await user.click(screen.getByRole('button', { name: 'ni3' }));
         await user.click(screen.getByRole('button', { name: 'tu / usted' }));
 
-        const quitar = screen.getByRole('button', { name: /quitar pareja/i });
-        await user.click(quitar);
+        // La unión SE VE en el tablero: los tres llevan «Pareja 1», y tocarla la deshace.
+        const unidas = screen.getAllByRole('button', { name: /pareja 1: 你 — ni3 — tu \/ usted\. deshacer/i });
+        expect(unidas).toHaveLength(3);
+        await user.click(unidas[0]);
 
         // Los tres vuelven a poder tocarse.
-        expect(screen.getByRole('button', { name: '你' })).toBeEnabled();
-        expect(screen.queryByRole('button', { name: /quitar pareja/i })).toBeNull();
+        expect(screen.getByRole('button', { name: '你' })).toHaveAttribute('aria-pressed', 'false');
+        expect(screen.queryByRole('button', { name: /deshacer/i })).toBeNull();
     });
 });
 

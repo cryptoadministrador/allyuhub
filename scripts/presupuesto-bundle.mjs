@@ -7,10 +7,14 @@
 // Dos techos, los dos leídos del manifest de Vite (la verdad de lo que baja un
 // navegador), no de un informe:
 //
-//   TOTAL  ≤ 450 KB — la suma de TODO el JS que sirve la app.
-//   PÁGINA ≤  40 KB — ninguna página sola pesa más. Con esto el «app-*.js es
+//   TOTAL  ≤ 550 KB — la suma de TODO el JS que sirve la app.
+//   PÁGINA ≤  60 KB — ninguna página sola pesa más. Con esto el «app-*.js es
 //                     el archivo más gordo» deja de ser un supuesto: si una
 //                     página engorda por encima del marco, salta aquí.
+//
+// Los techos subieron de 450/40 a 550/60 en la misión 4 («que se pueda
+// tocar»: tableros, bucle de reintento, ritmo y juegos, todo sin librerías).
+// Subir el techo no es quitarlo: el guardián sigue, con los números nuevos.
 //
 // Sin dependencias: lee public/build/manifest.json y suma los .js.
 import { readFileSync, readdirSync, statSync } from 'node:fs';
@@ -18,8 +22,8 @@ import { join } from 'node:path';
 
 const BUILD = 'public/build';
 const ASSETS = join(BUILD, 'assets');
-const TECHO_TOTAL = 450 * 1024;
-const TECHO_PAGINA = 40 * 1024;
+const TECHO_TOTAL = 550 * 1024;
+const TECHO_PAGINA = 60 * 1024;
 
 const kb = (b) => (b / 1024).toFixed(2);
 
@@ -50,8 +54,8 @@ for (const p of paginas.filter((p) => p.bytes > TECHO_PAGINA)) {
 
 const masGorda = paginas.sort((a, b) => b.bytes - a.bytes)[0];
 console.log(
-    `bundle: total ${kb(total)} KB / 450 · ${jsAssets.length} chunks · ` +
-    `página más gorda ${masGorda ? `${masGorda.nombre} ${kb(masGorda.bytes)} KB` : '—'} / 40`,
+    `bundle: total ${kb(total)} KB / ${TECHO_TOTAL / 1024} · ${jsAssets.length} chunks · ` +
+    `página más gorda ${masGorda ? `${masGorda.nombre} ${kb(masGorda.bytes)} KB` : '—'} / ${TECHO_PAGINA / 1024}`,
 );
 
 if (fallos.length > 0) {
