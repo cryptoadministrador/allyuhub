@@ -18,6 +18,12 @@ class TipoDictado extends TipoHueco
         return [...parent::payload($item, $engine, $seed), 'audio_src' => $item->audio_src];
     }
 
+    /** La transcripción ES la respuesta: mientras quede reintento no viaja. */
+    public function revelan(): array
+    {
+        return [...parent::revelan(), 'transcripcion'];
+    }
+
     public function corregir(PracticeItem $item, array $data, PracticeEngine $engine, string $seed): array
     {
         return [...parent::corregir($item, $data, $engine, $seed),

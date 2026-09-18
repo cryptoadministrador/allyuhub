@@ -25,6 +25,12 @@ class TipoEscucha extends TipoPorClave
             'transcripcion' => $item->transcripcion];
     }
 
+    /** La transcripción REVELA la escucha: mientras quede reintento no viaja. */
+    public function revelan(): array
+    {
+        return [...parent::revelan(), 'transcripcion'];
+    }
+
     public function desdeBanco(array $entrada): array
     {
         return [...parent::desdeBanco($entrada),

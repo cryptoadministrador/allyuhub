@@ -148,7 +148,7 @@ class PracticaOpcionMultipleTest extends TestCase
         // lo caza: se descodifica y se busca la respuesta buena.
         $dentro = base64_decode(strtr(explode('.', $json['billete'])[0], '-_', '+/'));
         $this->assertSame(
-            ['itemId', 'quien', 'attemptNo', 'seed', 'repaso'],
+            ['itemId', 'quien', 'attemptNo', 'seed', 'repaso', 'reintento'],
             array_keys(json_decode($dentro, true)),
         );
         $this->assertStringNotContainsString('Distractor dos', $dentro);
@@ -197,8 +197,10 @@ class PracticaOpcionMultipleTest extends TestCase
             'answer_key' => 'a', 'billete' => $this->billete(self::ITEM_ID),
         ])->assertOk()->json();
 
+        // Falló y le queda reintento (PR 13): la explicación NO viaja todavía;
+        // viaja `otra_vez` (el billete firmado del siguiente intento).
         $this->assertSame(
-            ['attempt_no', 'is_correct', 'expected_key', 'answer_key', 'se_guarda'],
+            ['attempt_no', 'is_correct', 'answer_key', 'reintento', 'otra_vez', 'se_guarda'],
             array_keys($invitado),
         );
 
@@ -210,7 +212,7 @@ class PracticaOpcionMultipleTest extends TestCase
             ->assertCreated()->json();
 
         $this->assertSame(
-            ['id', 'attempt_no', 'is_correct', 'expected_key', 'answer_key', 'se_guarda'],
+            ['id', 'attempt_no', 'is_correct', 'answer_key', 'reintento', 'otra_vez', 'se_guarda'],
             array_keys($delAlumno),
         );
     }
@@ -287,15 +289,29 @@ class PracticaOpcionMultipleTest extends TestCase
             ->assertJsonPath('is_correct', true)
             ->assertJsonPath('expected_key', 'b');
 
-        foreach (['a', 'c', 'd'] as $mala) {
-            $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [
-                'answer_key' => $mala, 'billete' => $this->billete(self::ITEM_ID),
+        // Al fallar, la explicación llega al TERCER fallo (PR 13): antes viaja
+        // la pista y el billete de «otra vez», y el cliente vuelve a intentarlo
+        // con ESE billete — mismo endpoint, misma corrección.
+        $billete = $this->billete(self::ITEM_ID);
+        foreach ([['a', 1], ['c', 2]] as [$mala, $reintento]) {
+            $v = $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [
+                'answer_key' => $mala, 'billete' => $billete,
             ])
                 ->assertOk()
                 ->assertJsonPath('is_correct', false)
-                // La explicación llega DESPUÉS de responder, como en numérico.
-                ->assertJsonPath('expected_key', 'b');
+                ->assertJsonMissingPath('expected_key')
+                ->assertJsonPath('otra_vez.reintento', $reintento)
+                ->json();
+            $billete = $v['otra_vez']['billete'];
         }
+        $this->postJson('/api/v1/practice/items/'.self::ITEM_ID.'/attempts', [
+            'answer_key' => 'd', 'billete' => $billete,
+        ])
+            ->assertOk()
+            ->assertJsonPath('is_correct', false)
+            ->assertJsonPath('reintento', 2)
+            ->assertJsonMissingPath('otra_vez')
+            ->assertJsonPath('expected_key', 'b');
     }
 
     /**
@@ -411,10 +427,16 @@ class PracticaOpcionMultipleTest extends TestCase
         $correctas = array_values(array_filter($veredictos, fn ($v) => $v['is_correct']));
         $this->assertCount(1, $correctas, 'Ninguna o más de una opción servida es correcta.');
 
-        // …y es la que el servidor señala, igual en las cuatro respuestas.
+        // …y es la que el servidor señala al acertar. Las falladas no la
+        // señalan todavía (PR 13: con reintento por delante no se revela), y
+        // ninguna dice ser correcta sin serlo.
+        $this->assertSame($correctas[0]['key'], $correctas[0]['expected_key']);
         foreach ($veredictos as $v) {
-            $this->assertSame($correctas[0]['key'], $v['expected_key']);
-            $this->assertSame($v['key'] === $v['expected_key'], $v['is_correct']);
+            $this->assertSame($v['key'] === $correctas[0]['key'], $v['is_correct']);
+            if (! $v['is_correct']) {
+                $this->assertArrayNotHasKey('expected_key', $v);
+                $this->assertArrayHasKey('otra_vez', $v);
+            }
         }
 
         // Y la que resultó correcta es, de verdad, la opción buena del ítem.

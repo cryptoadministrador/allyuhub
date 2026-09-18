@@ -84,6 +84,42 @@ describe('repaso — tu repaso de hoy', () => {
         expect(screen.queryByText(/Racha: 2 días/)).not.toBeInTheDocument();
     });
 
+    /** El bucle de «otra vez» (PR 13) también aquí — y el acierto a la segunda no suma en «Repaso hecho». */
+    it('otra vez en el repaso: el mismo ítem con su billete, y solo el primer intento suma', async () => {
+        const mock = vi.fn((url, opciones = {}) => {
+            if (opciones.method === 'POST') {
+                const cuerpo = JSON.parse(opciones.body);
+                return Promise.resolve(cuerpo.billete === 'b-1'
+                    ? respuestaJson(201, { is_correct: false, detalle: 'palabra', texto: 'x', reintento: 0, se_guarda: true, otra_vez: { billete: 'b-1-bis', attempt_no: 2, reintento: 1 } })
+                    : respuestaJson(201, { is_correct: true, esperado: 'chiamo', reintento: cuerpo.billete === 'b-1-bis' ? 1 : 0, se_guarda: true }));
+            }
+            if (url.includes('/racha')) return Promise.resolve(respuestaJson(200, { dias: 3, viva: true, activo_hoy: true }));
+
+            return Promise.resolve(respuestaJson(200, DIARIO));
+        });
+        vi.stubGlobal('fetch', mock);
+        const user = userEvent.setup();
+        render(<Repaso {...PROPS} />);
+        await screen.findByText(/Completa: Mi/);
+
+        await user.type(screen.getByLabelText(/tu respuesta/i), 'x');
+        await user.click(screen.getByRole('button', { name: /comprobar/i }));
+        expect(await screen.findByText('Todavía no.')).toBeInTheDocument();
+        await user.click(screen.getByRole('button', { name: /otra vez/i }));
+        expect(screen.getByText(/1 de 2/)).toBeInTheDocument();   // el MISMO ítem
+        await user.type(screen.getByLabelText(/tu respuesta/i), 'chiamo');
+        await user.click(screen.getByRole('button', { name: /comprobar/i }));
+        expect(await screen.findByText(/Correcto\./)).toBeInTheDocument();
+        expect(JSON.parse(mock.mock.calls.filter(([, o]) => o?.method === 'POST')[1][1].body).billete).toBe('b-1-bis');
+
+        await user.click(screen.getByRole('button', { name: /siguiente/i }));
+        await user.click(await screen.findByRole('radio', { name: 'le tre' }));
+        await user.click(screen.getByRole('button', { name: /comprobar/i }));
+        await user.click(await screen.findByRole('button', { name: /terminar el repaso/i }));
+        // El primero se acertó a la segunda: no suma. El segundo, a la primera: suma.
+        expect(await screen.findByText(/Repaso hecho: 1\/2/)).toBeInTheDocument();
+    });
+
     it('el visitante repasa sin racha y ve que no se guarda', async () => {
         auth = { user: null };
         fetchDeRepaso();

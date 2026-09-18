@@ -341,11 +341,12 @@ class CaminoDeLenguasTest extends TestCase
             }
         }
 
-        // Control positivo: el veredicto SÍ revela.
+        // Control positivo: el veredicto SÍ revela — al acertar (con un fallo
+        // y reintento por delante, PR 13, lo esperado se guarda hasta el tercero).
         $hueco = PracticeItem::where('kind', 'hueco')->firstOrFail();
         $this->postJson("/api/v1/practice/items/{$hueco->id}/attempts", [
-            'respuesta' => ['texto' => 'no'], 'billete' => $this->billete($hueco->id),
-        ])->assertOk()->assertJsonPath('esperado', 'sono');
+            'respuesta' => ['texto' => 'sono'], 'billete' => $this->billete($hueco->id),
+        ])->assertOk()->assertJsonPath('is_correct', true)->assertJsonPath('esperado', 'sono');
     }
 
     // ========== ORÁCULO 8 — lo sembrado nace sin firmar, en las dos vías ==========

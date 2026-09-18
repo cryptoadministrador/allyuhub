@@ -8,6 +8,7 @@ use App\Services\Docente\Docencia;
 use App\Services\Practice\AdaptiveSelector;
 use App\Services\Practice\AttemptTicket;
 use App\Services\Practice\PracticeEngine;
+use App\Services\Practice\RegistroDeIntento;
 use App\Services\Practice\Tipos\Registro;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -36,7 +37,10 @@ use InvalidArgumentException;
  */
 class RevisionPracticaController extends Controller
 {
-    public function __construct(private readonly PracticeEngine $engine) {}
+    public function __construct(
+        private readonly PracticeEngine $engine,
+        private readonly RegistroDeIntento $registro,
+    ) {}
 
     /** GET /api/v1/revision/items/{item}/next */
     public function next(Request $request, PracticeItem $item)
@@ -89,6 +93,7 @@ class RevisionPracticaController extends Controller
             ...$reglas,
             'time_ms' => 'nullable|integer|min:0',
             'intento' => 'prohibited',
+            'reintento' => 'prohibited',
             'billete' => 'required|string',
         ]);
 
@@ -98,8 +103,10 @@ class RevisionPracticaController extends Controller
             throw ValidationException::withMessages(['billete' => $e->getMessage()]);
         }
 
-        // MISMA corrección que la del alumno: la resuelve el tipo.
+        // MISMA corrección que la del alumno: la resuelve el tipo. Y el MISMO
+        // bucle de «otra vez»: el docente revisa lo que el alumno va a vivir.
         $veredicto = $tipo->corregir($item, $data, $this->engine, $ticket['seed']);
+        $veredicto = $this->registro->bucle($item, $veredicto, $ticket, $quien);
 
         // Y aquí se acaba: ni intento, ni dominio, ni AGS.
         return response()->json([

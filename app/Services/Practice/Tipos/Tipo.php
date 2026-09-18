@@ -56,6 +56,32 @@ abstract class Tipo
     public function alGuardar(PracticeItem $item): void {}
 
     /**
+     * QUÉ CLAVES DEL VEREDICTO REVELAN LA SOLUCIÓN (PR 13). Mientras al alumno
+     * le quede un reintento, el bucle de «otra vez» las RETIRA del veredicto:
+     * la pista (`detalle`, `parejas_correctas`) se queda, la respuesta no.
+     * Al tercer fallo, o al acertar, viaja todo. La prueba de unidad no
+     * reintenta y las recibe siempre.
+     *
+     * @return list<string>
+     */
+    public function revelan(): array
+    {
+        return [];
+    }
+
+    /**
+     * EL ANDAMIAJE DEL SEGUNDO FALLO (PR 13): los «botones acotados». Se
+     * calcula EN EL SERVIDOR y viaja solo entonces — nunca en `next`, nunca al
+     * primer fallo. Null si el tipo no tiene andamiaje (se reintenta a secas).
+     *
+     * @return array<string, mixed>|null
+     */
+    public function andamiaje(PracticeItem $item, array $veredicto, PracticeEngine $engine, string $seed): ?array
+    {
+        return null;
+    }
+
+    /**
      * CÓMO SE LEE LA ENTRADA DE BANCO de este tipo — la sexta pregunta.
      *
      * El sembrador de MINEDEC leía tuplas posicionales con un `if` por kind:

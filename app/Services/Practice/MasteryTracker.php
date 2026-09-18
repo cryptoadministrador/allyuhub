@@ -117,6 +117,9 @@ class MasteryTracker
         return PracticeAttempt::query()
             ->where('user_id', $userId)
             ->where('is_correct', true)
+            // Un acierto en un REINTENTO (PR 13) no es un ítem acertado: si
+            // contara, el bucle de «otra vez» sellaría destrezas que nadie tiene.
+            ->whereNull('reintento')
             ->whereIn('item_id', PracticeItem::where('objective_id', $objectiveId)->select('id'))
             ->distinct()
             ->count('item_id');

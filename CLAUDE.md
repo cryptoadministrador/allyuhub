@@ -852,6 +852,47 @@ Tablero.jsx` (que `Ejercicio.jsx` EXTIENDE, no copia):
 - **Presupuesto**: el techo subió a **550 KB totales y 60 por página** (misión
   4); el guardián sigue con los números nuevos. PR 12: +3,4 KB.
 
+## El bucle de «otra vez» (misión 4, PR 13) — fallas, pista, y lo intentas otra vez
+
+Hoy: fallas, te decimos que fallaste, siguiente. Eso es un examen, no practicar.
+Ahora (práctica, repaso y revisión docente; **NUNCA en la prueba de unidad**):
+
+1. **Primer fallo** → la PISTA que el veredicto ya calcula («te falta el
+   acento», «te falta el tono», «esa palabra no es», «tienes 1 de 2 parejas»)
+   y se reintenta el MISMO ítem. **La solución NO viaja**: cada tipo declara en
+   `revelan()` qué claves del veredicto la delatan (`esperado`,
+   `secuencia_correcta`, `parejas_esperadas`, `expected_key`, `expected`,
+   `transcripcion`) y `RegistroDeIntento::bucle()` las retira mientras quede
+   vuelta.
+2. **Segundo fallo** → **andamiaje** («botones acotados»), calculado EN EL
+   SERVIDOR (`Tipo::andamiaje()`) y viaja solo entonces: el `hueco` se vuelve
+   tres opciones —la correcta y dos soluciones de otros huecos/dictados
+   FIRMADOS de la lengua, nunca una forma aceptada del propio ítem—; `orden`
+   marca cuál va PRIMERO (ficha fija, nada pasa por delante); `pares` deja en
+   el tablero solo las que están mal (las clavadas quedan fijas); `choice`
+   descarta una opción que no es la buena ni la elegida.
+3. **Tercer fallo** → el veredicto entero de siempre y «Siguiente».
+
+**LA REGLA DE CRÉDITO — solo el PRIMER intento alimenta el dominio y la nota.**
+El billete lleva `reintento` (0, 1, 2) FIRMADO como lleva `repaso`; el
+veredicto trae `otra_vez` con el billete del siguiente intento del mismo ítem
+(misma semilla, `attempt_no` +1). Cada reintento **se guarda** como su fila
+(`practice_attempts.reintento`, verdad histórica para el docente) y **no
+cuenta**: ni `MasteryTracker::apply`, ni AGS, ni `programar()` del repaso.
+`itemsAcertados()` ignora reintentos —si contara, el bucle sellaría destrezas
+que nadie tiene— y `RepasoDiario` mira solo primeros intentos: un fallo salvado
+a la tercera sigue siendo fallo reciente. `reintento` en el cuerpo del POST es
+422. Hay un test por kind (`OtraVezTest`, con el fixture compartido
+`Tests\Support\UnoDeCadaKind`).
+
+- **En el cliente**, `reintentoDe(item, resultado)` (Ejercicio.jsx) devuelve el
+  ítem de la vuelta y el valor con el que arranca (el error de acento conserva
+  el texto). `Veredicto` con `otra_vez` dice la pista y nunca «era: undefined».
+- **La prueba de unidad** no llama a `bucle()`: sus billetes van con
+  `reintento: 0` y sus veredictos revelan al final, como siempre (test).
+- **Contrato que cambió**: antes un fallo revelaba la solución al momento; los
+  tests de «control positivo» de no-filtración aciertan o fallan tres veces.
+
 ## La frontera del contenido abierto (modelo Khan)
 
 Se **navega** y se **practica** sin sesión; se **guarda** y se **califica** solo con

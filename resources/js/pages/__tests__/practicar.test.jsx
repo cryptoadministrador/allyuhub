@@ -199,7 +199,9 @@ describe('Practicar — el bucle completo como lo vive un alumno', () => {
         await screen.findByText(/μs = 0\.5/);
 
         // El foco ya está en el campo (gestión de foco); escribe y Enter envía.
-        expect(screen.getByLabelText(/tu respuesta/i)).toHaveFocus();
+        // `waitFor`: el foco lo pone un efecto tras el render, y bajo carga el
+        // `findByText` de arriba puede resolver un tick antes (una vez pasó).
+        await waitFor(() => expect(screen.getByLabelText(/tu respuesta/i)).toHaveFocus());
         await user.keyboard('5{Enter}');
 
         expect(await screen.findByText('Incorrecto.')).toBeInTheDocument();

@@ -1,6 +1,6 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Ejercicio, Veredicto, claseDeVeredicto, cuerpoDeRespuesta, estaIncompleta, valorInicial } from '../components/Ejercicio';
+import { Ejercicio, Veredicto, claseDeVeredicto, cuerpoDeRespuesta, estaIncompleta, reintentoDe, valorInicial } from '../components/Ejercicio';
 import AppLayout from '../layouts/AppLayout';
 
 /**
@@ -68,6 +68,16 @@ export default function Repaso({ lengua, nombre, racha: rachaInicial, se_guarda:
 
     const item = items[k];
 
+    // «OTRA VEZ» (PR 13): el mismo ítem con el billete firmado del veredicto.
+    function otraVez() {
+        const r = reintentoDe(item, resultado);
+        if (!r) return;
+        setItems((lista) => lista.map((it, i) => (i === k ? r.item : it)));
+        setValor(r.valor);
+        setResultado(null);
+        setEstado('listo');
+    }
+
     async function comprobar(e) {
         e.preventDefault();
         if (estado !== 'listo') return;
@@ -83,7 +93,9 @@ export default function Repaso({ lengua, nombre, racha: rachaInicial, se_guarda:
             if (r.status === 409) return siguiente();   // ya registrado en otra pestaña: se pasa
             if (!r.ok) return setEstado('error');
             const v = await r.json();
-            if (v.is_correct) setAciertos((a) => a + 1);
+            // Cuenta como acierto del repaso solo a la primera: un acierto al
+            // tercer intento es un acierto para el alumno, no para la cuenta.
+            if (v.is_correct && !v.reintento) setAciertos((a) => a + 1);
             setResultado(v);
             setEstado('respondido');
         } catch {
@@ -169,10 +181,17 @@ export default function Repaso({ lengua, nombre, racha: rachaInicial, se_guarda:
                             </span>
                             <div>
                                 <Veredicto item={item} resultado={resultado} />
-                                <button type="button" onClick={siguiente}
-                                    className="mt-3 rounded bg-marca-600 px-4 py-2 font-medium text-white hover:bg-marca-700 focus:outline-2 focus:outline-offset-2 focus:outline-marca-600">
-                                    {k + 1 < items.length ? 'Siguiente' : 'Terminar el repaso'}
-                                </button>
+                                {resultado.otra_vez ? (
+                                    <button type="button" onClick={otraVez}
+                                        className="mt-3 rounded bg-marca-600 px-4 py-2 font-medium text-white hover:bg-marca-700 focus:outline-2 focus:outline-offset-2 focus:outline-marca-600">
+                                        Otra vez ({resultado.otra_vez.reintento + 1}.º intento de 3)
+                                    </button>
+                                ) : (
+                                    <button type="button" onClick={siguiente}
+                                        className="mt-3 rounded bg-marca-600 px-4 py-2 font-medium text-white hover:bg-marca-700 focus:outline-2 focus:outline-offset-2 focus:outline-marca-600">
+                                        {k + 1 < items.length ? 'Siguiente' : 'Terminar el repaso'}
+                                    </button>
+                                )}
                             </div>
                         </div>
                     )}
