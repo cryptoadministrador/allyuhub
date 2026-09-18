@@ -2,6 +2,8 @@ import { Head, usePage } from '@inertiajs/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import AppLayout from '../layouts/AppLayout';
 import { Ejercicio, Veredicto, claseDeVeredicto, cuerpoDeRespuesta, estaIncompleta, forma, reintentoDe, valorInicial } from '../components/Ejercicio';
+import { CierreDeTanda, Cronometro, InterruptorContrarreloj, Progreso, useContrarreloj } from '../components/Ritmo';
+import { SEGUNDOS_POR_ITEM, TANDA, registrar, ritmoInicial, romper } from '../lib/ritmo';
 import { RAZONES_DESVIO } from '../lib/razones';
 
 /**
@@ -96,7 +98,9 @@ export default function Practicar({ objective, mastery: masteryInicial, lengua =
     const [valor, setValor] = useState(valorInicial());
     const [resultado, setResultado] = useState(null);
     const [mastery, setMastery] = useState(masteryInicial);
-    const [tanteo, setTanteo] = useState({ aciertos: 0, respondidos: 0 });
+    // EL RITMO DE LA SESIÓN (PR 14): dónde vas en la tanda, cuántos seguidos,
+    // y cómo fue. Vive aquí y muere con la página: es ritmo, no historial.
+    const [ritmo, setRitmo] = useState(ritmoInicial);
     const [faltaElegir, setFaltaElegir] = useState(false);
     const inicioItem = useRef(null);
     const inputRef = useRef(null);
@@ -110,6 +114,8 @@ export default function Practicar({ objective, mastery: masteryInicial, lengua =
     const invitado = !compartidas.auth?.user;
     const invitadoRef = useRef(invitado);
     invitadoRef.current = invitado;
+    // Contrarreloj OPCIONAL: apagado por defecto y recordado por alumno.
+    const [contrarreloj, setContrarreloj] = useContrarreloj(compartidas.auth?.user?.id);
 
     // El invitado no tiene historial en el servidor del que deducir por qué
     // intento va, así que lo lleva él. En un ref y no en estado: `cargarSiguiente`
@@ -227,27 +233,46 @@ export default function Practicar({ objective, mastery: masteryInicial, lengua =
             setResultado(veredicto);
             setEstado('respondido');
 
+            // El ritmo: un fallo rompe la racha en el acto; el ejercicio se
+            // CIERRA al acertar o al tercer fallo, y suma solo si se acertó a
+            // la primera (el bucle de «otra vez» no infla nada, tampoco aquí).
+            if (!veredicto.is_correct) setRitmo(romper);
+            if (veredicto.is_correct || !veredicto.otra_vez) {
+                setRitmo((r) => registrar(r, veredicto.is_correct && !veredicto.reintento));
+            }
+
             if (invitado || revision) {
                 // Ni el invitado ni la revisión tienen dominio que actualizar:
-                // los dos llevan su tanteo aquí y solo aquí. El tanteo del
-                // invitado vive AQUÍ y solo aquí: al recargar
-                // desaparece, que es exactamente lo que dice el aviso. Y el
-                // siguiente ejercicio necesita otro número de intento para no
-                // repetir los mismos números.
-                // El servidor acepta como mucho intento=500; al llegar se
-                // vuelve a empezar en vez de pedir un 501 que dejaba la página
-                // muerta con un mensaje falso (auditoría).
+                // el invitado ve su ritmo, que vive AQUÍ y solo aquí — al
+                // recargar desaparece, que es exactamente lo que dice el aviso.
+                // Y el siguiente ejercicio necesita otro número de intento para
+                // no repetir los mismos números. El servidor acepta como mucho
+                // intento=500; al llegar se vuelve a empezar en vez de pedir un
+                // 501 que dejaba la página muerta con un mensaje falso.
                 intento.current = ((item.attempt_no ?? 1) % 500) + 1;
-                setTanteo((t) => ({
-                    aciertos: t.aciertos + (veredicto.is_correct ? 1 : 0),
-                    respondidos: t.respondidos + 1,
-                }));
             } else {
                 await actualizarMastery();
             }
         } catch {
             setEstado('error');
         }
+    }
+
+    /** La tanda terminó: se enseña cómo fue. «Otra tanda» vuelve a cero y sigue. */
+    function siguienteOCierre() {
+        if (ritmo.respondidos >= TANDA) return setEstado('tanda');
+        cargarSiguiente();
+    }
+
+    function otraTanda() {
+        setRitmo(ritmoInicial());
+        cargarSiguiente();
+    }
+
+    /** Se acabó el tiempo (contrarreloj): cuenta como fallo del ritmo, y no se manda nada. */
+    function tiempoAgotado() {
+        setRitmo((r) => registrar(r, false));
+        setEstado('tiempo');
     }
 
     /**
@@ -286,7 +311,7 @@ export default function Practicar({ objective, mastery: masteryInicial, lengua =
     // invitado obligaría además a duplicar la fórmula del MasteryTracker en el
     // cliente, y esa es exactamente la clase de copia que acaba divergiendo.
     const porcentaje = (invitado || revision)
-        ? (tanteo.respondidos === 0 ? 0 : Math.round((tanteo.aciertos / tanteo.respondidos) * 100))
+        ? (ritmo.respondidos === 0 ? 0 : Math.round((ritmo.aciertos / ritmo.respondidos) * 100))
         : (mastery === null || mastery === undefined ? 0 : Math.round(mastery * 100));
 
     // El selector adaptativo puede DESVIAR a otra destreza (refuerzo de un
@@ -320,7 +345,7 @@ export default function Practicar({ objective, mastery: masteryInicial, lengua =
                     </span>
                     <span aria-hidden="true">
                         {invitado
-                            ? `${tanteo.aciertos} de ${tanteo.respondidos}`
+                            ? `${ritmo.aciertos} de ${ritmo.respondidos}`
                             : `${porcentaje} %`}
                     </span>
                 </div>
@@ -331,7 +356,7 @@ export default function Practicar({ objective, mastery: masteryInicial, lengua =
                     aria-valuemin={0}
                     aria-valuemax={100}
                     aria-valuetext={invitado
-                        ? `${tanteo.aciertos} de ${tanteo.respondidos} correctos`
+                        ? `${ritmo.aciertos} de ${ritmo.respondidos} correctos`
                         : `${porcentaje} por ciento`}
                     className="h-3 overflow-hidden rounded-full bg-slate-200"
                 >
@@ -401,6 +426,32 @@ export default function Practicar({ objective, mastery: masteryInicial, lengua =
                 </div>
             )}
 
+            {estado === 'tiempo' && (
+                <div role="alert" className="rounded-lg border border-l-4 border-amber-200 border-l-amber-500 bg-amber-50 p-4">
+                    <p className="font-semibold text-amber-900">Se acabó el tiempo.</p>
+                    <p className="mt-1 text-sm text-amber-900">No pasa nada: este no cuenta, y el siguiente ya viene. Puedes apagar el contrarreloj cuando quieras.</p>
+                    <button
+                        type="button"
+                        onClick={siguienteOCierre}
+                        className="mt-3 rounded bg-marca-600 px-4 py-2 font-medium text-white hover:bg-marca-700 focus:outline-2 focus:outline-offset-2 focus:outline-marca-600"
+                    >
+                        Siguiente ejercicio
+                    </button>
+                </div>
+            )}
+
+            {estado === 'tanda' && (
+                <CierreDeTanda ritmo={ritmo} total={TANDA}>
+                    <button
+                        type="button"
+                        onClick={otraTanda}
+                        className="mt-3 rounded bg-marca-600 px-4 py-2 font-medium text-white hover:bg-marca-700 focus:outline-2 focus:outline-offset-2 focus:outline-marca-600"
+                    >
+                        Otra tanda
+                    </button>
+                </CierreDeTanda>
+            )}
+
             {estado === 'listo' && itemRoto && (
                 <div role="alert" className="rounded-lg border border-amber-200 bg-amber-50 p-4">
                     <p className="text-amber-900">
@@ -419,6 +470,13 @@ export default function Practicar({ objective, mastery: masteryInicial, lengua =
 
             {(estado === 'listo' || estado === 'enviando') && item && !itemRoto && (
                 <form onSubmit={enviar} aria-describedby={razon ? 'razon-adaptativa' : undefined}>
+                    <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                        <Progreso k={Math.min(ritmo.respondidos + 1, TANDA)} total={TANDA} seguidos={ritmo.seguidos} />
+                        <InterruptorContrarreloj activo={contrarreloj} onChange={setContrarreloj} />
+                    </div>
+                    {contrarreloj && estado === 'listo' && (
+                        <Cronometro segundos={SEGUNDOS_POR_ITEM} clave={`${item.item_id}:${item.attempt_no}`} onAgotado={tiempoAgotado} />
+                    )}
                     {/* El desvío adaptativo se explica en una TARJETA ámbar, no
                         en una línea suelta: es una decisión del motor que
                         cambia lo que el alumno tiene delante, y merece que se
@@ -490,10 +548,10 @@ export default function Practicar({ objective, mastery: masteryInicial, lengua =
                             ) : (
                                 <button
                                     type="button"
-                                    onClick={cargarSiguiente}
+                                    onClick={siguienteOCierre}
                                     className="mt-3 rounded bg-marca-600 px-4 py-2 font-medium text-white hover:bg-marca-700 focus:outline-2 focus:outline-offset-2 focus:outline-marca-600"
                                 >
-                                    Siguiente ejercicio
+                                    {ritmo.respondidos >= TANDA ? 'Ver cómo fue' : 'Siguiente ejercicio'}
                                 </button>
                             )}
                         </div>

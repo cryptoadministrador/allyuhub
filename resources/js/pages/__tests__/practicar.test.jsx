@@ -775,7 +775,8 @@ describe('Practicar — ítems de escucha', () => {
         fireEvent.error(container.querySelector('audio'));
 
         // Sin red no hay escucha, y se DICE — nada de un reproductor muerto.
-        expect(screen.getByRole('status')).toHaveTextContent(/audio no se pudo cargar/i);
+        // Hay más de un `status` (el progreso de la tanda también lo es): se busca el del aviso.
+        expect(screen.getAllByRole('status').some((e) => /audio no se pudo cargar/i.test(e.textContent))).toBe(true);
         // El formulario sigue: puede intentarlo igual o pasar al siguiente.
         expect(screen.getByRole('button', { name: /comprobar/i })).toBeInTheDocument();
     });

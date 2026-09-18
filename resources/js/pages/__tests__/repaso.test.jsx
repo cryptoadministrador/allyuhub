@@ -78,7 +78,7 @@ describe('repaso — tu repaso de hoy', () => {
         await user.click(screen.getByRole('button', { name: /comprobar/i }));
         await user.click(await screen.findByRole('button', { name: /terminar el repaso/i }));
 
-        expect(await screen.findByText(/Repaso hecho: 2\/2/)).toBeInTheDocument();
+        expect(await screen.findByText(/Repaso hecho: 2\/2 · 2 seguidos al final/)).toBeInTheDocument();
         // La racha final es la que dice el SERVIDOR (3), no la inicial (2).
         expect(screen.getAllByText(/Racha: 3 días/).length).toBeGreaterThan(0);
         expect(screen.queryByText(/Racha: 2 días/)).not.toBeInTheDocument();
@@ -117,7 +117,7 @@ describe('repaso — tu repaso de hoy', () => {
         await user.click(screen.getByRole('button', { name: /comprobar/i }));
         await user.click(await screen.findByRole('button', { name: /terminar el repaso/i }));
         // El primero se acertó a la segunda: no suma. El segundo, a la primera: suma.
-        expect(await screen.findByText(/Repaso hecho: 1\/2/)).toBeInTheDocument();
+        expect(await screen.findByText(/Repaso hecho: 1\/2 · 1 seguido al final/)).toBeInTheDocument();
     });
 
     it('el visitante repasa sin racha y ve que no se guarda', async () => {
@@ -127,6 +127,15 @@ describe('repaso — tu repaso de hoy', () => {
         await screen.findByText(/Completa: Mi/);
         expect(screen.getByText(/no se guarda/i)).toBeInTheDocument();
         expect(screen.queryByText(/Racha:/)).not.toBeInTheDocument();
+    });
+
+    it('el contrarreloj está apagado por defecto y el progreso siempre a la vista', async () => {
+        fetchDeRepaso();
+        render(<Repaso {...PROPS} />);
+        await screen.findByText(/Completa: Mi/);
+        expect(screen.getByRole('switch', { name: /contrarreloj/i })).not.toBeChecked();
+        expect(screen.queryByRole('timer')).toBeNull();
+        expect(screen.getAllByRole('status').some((e) => /1 de 2 · Repaso/.test(e.textContent))).toBe(true);
     });
 
     it('sin nada que repasar lo dice', async () => {
