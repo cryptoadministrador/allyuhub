@@ -656,7 +656,11 @@ describe('Practicar — ítems de opción múltiple', () => {
         // La página ya deja el foco en la primera opción al servir el ítem
         // (mismo gesto que con el campo numérico), así que las flechas mueven
         // la selección sin tener que buscar el grupo a tientas.
-        expect(screen.getByRole('radio', { name: /rápidamente/i })).toHaveFocus();
+        // `waitFor`, como en el numérico: el foco lo pone un efecto tras el
+        // render y bajo carga `findByText` resuelve un tick antes. Pasó en el
+        // CI de `main` tras el merge de #47 (run 103); se reprodujo 1/4 con
+        // cuatro suites en paralelo y 0/8 con esta espera.
+        await waitFor(() => expect(screen.getByRole('radio', { name: /rápidamente/i })).toHaveFocus());
 
         await user.keyboard('{ArrowDown}');
         expect(screen.getByRole('radio', { name: /montaña/i })).toBeChecked();

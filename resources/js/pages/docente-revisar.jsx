@@ -36,8 +36,9 @@ export default function DocenteRevisar({ lengua, lenguas, estado, docente, unida
         return `/docente/revisar${q ? `?${q}` : ''}`;
     }
 
-    function firmarUnidad(n) {
-        router.post('/docente/revisar/unidad', { unidad: n, lengua }, { preserveScroll: true });
+    // Un cajón de curso con molde propio (inglés) trae SU lengua: se firma esa.
+    function firmarUnidad(u) {
+        router.post('/docente/revisar/unidad', { unidad: u.n, lengua: u.lengua ?? lengua }, { preserveScroll: true });
     }
 
     return (
@@ -110,7 +111,7 @@ export default function DocenteRevisar({ lengua, lenguas, estado, docente, unida
                 ) : (
                     <ol className="mt-6 space-y-6">
                         {unidades.map((u) => (
-                            <li key={u.n} className="rounded-lg border border-slate-200 bg-white p-4">
+                            <li key={`${u.lengua ?? ''}|${u.n}`} className="rounded-lg border border-slate-200 bg-white p-4">
                                 <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
                                     <h2 className="text-lg font-semibold tracking-tight text-slate-900">
                                         {u.n === 0 ? 'Sin unidad' : `Unidad ${u.n} · ${u.titulo}`}
@@ -160,7 +161,7 @@ export default function DocenteRevisar({ lengua, lenguas, estado, docente, unida
                                     <div className="mt-3 border-t border-slate-200 pt-3">
                                         <button
                                             type="button"
-                                            onClick={() => firmarUnidad(u.n)}
+                                            onClick={() => firmarUnidad(u)}
                                             disabled={!u.todo_visto}
                                             className="rounded-lg bg-marca-600 px-4 py-2 text-sm font-semibold text-white hover:bg-marca-700 focus:outline-2 focus:outline-offset-2 focus:outline-marca-600 disabled:opacity-50"
                                         >

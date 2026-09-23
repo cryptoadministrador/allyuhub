@@ -86,28 +86,30 @@ $unidades = [
  * IGCSE— porque es la banda que este colegio enseña, la misma que ya declara
  * `CAIE-LSEC` en el grafo (`equivalencia_ec`: 8.º-10.º EGB).
  *
- * `descriptores` va VACÍO a propósito, y no es un olvido: el framework completo
- * de Cambridge (el que trae el código de cada objetivo) es de descarga
- * protegida, así que en el grafo entraron sus strands y sub-strands como NODOS
- * y CERO objetivos con código. Sin descriptores no hay «Puedo…» que pintar, y
- * las tres unidades salen «próximamente» — que es exactamente lo que tiene que
- * pasar mientras no haya contenido de inglés, que lo escribe Carlos.
+ * Los DESCRIPTORES son PROPIOS de AllyuHub (marco `AH-EN0861`, PR 16), no de
+ * Cambridge: el framework completo de 0861 —el que trae el código de cada
+ * objetivo— es de descarga protegida y aquí no se inventa un código. Cada
+ * descriptor `EN<stage>.<strand>.<n>` cuelga del strand o sub-strand PÚBLICO
+ * de 0861 que desarrolla (`database/data/ingles-0861-interno.php`), así que el
+ * contenido se puede escribir ya y reanclarse el día que llegue el marco
+ * oficial. Mientras no haya ítems ni lecciones firmados, las tres unidades
+ * siguen saliendo «próximamente», pero ya con sus «Puedo…».
  */
 $stagesIngles = [
     7 => [
         'titulo' => 'Stage 7',
         'puede' => 'Leer, escribir y hablar en inglés con los objetivos del Stage 7 de Cambridge Lower Secondary.',
-        'descriptores' => [],
+        'descriptores' => ['EN7.R.1', 'EN7.R.2', 'EN7.R.3', 'EN7.R.4', 'EN7.W.1', 'EN7.W.2', 'EN7.W.3', 'EN7.W.4', 'EN7.SL.1', 'EN7.SL.2', 'EN7.SL.3'],
     ],
     8 => [
         'titulo' => 'Stage 8',
         'puede' => 'Ampliar lectura, escritura y expresión oral con los objetivos del Stage 8.',
-        'descriptores' => [],
+        'descriptores' => ['EN8.R.1', 'EN8.R.2', 'EN8.R.3', 'EN8.R.4', 'EN8.W.1', 'EN8.W.2', 'EN8.W.3', 'EN8.W.4', 'EN8.SL.1', 'EN8.SL.2', 'EN8.SL.3'],
     ],
     9 => [
         'titulo' => 'Stage 9',
         'puede' => 'Cerrar Lower Secondary y quedar listo para IGCSE con los objetivos del Stage 9.',
-        'descriptores' => [],
+        'descriptores' => ['EN9.R.1', 'EN9.R.2', 'EN9.R.3', 'EN9.R.4', 'EN9.W.1', 'EN9.W.2', 'EN9.W.3', 'EN9.W.4', 'EN9.SL.1', 'EN9.SL.2', 'EN9.SL.3'],
     ],
 ];
 
@@ -135,6 +137,6 @@ return [
         'it' => ['marco' => 'CEFR', 'unidades' => $unidades, 'productivas' => $productivasMcer],
         'de' => ['marco' => 'CEFR', 'unidades' => $unidades, 'productivas' => $productivasMcer],
         'zh' => ['marco' => 'CEFR', 'unidades' => $unidades, 'productivas' => $productivasMcer],
-        'en' => ['marco' => 'CAIE-LSEC', 'unidades' => $stagesIngles, 'productivas' => []],
+        'en' => ['marco' => 'AH-EN0861', 'unidades' => $stagesIngles, 'productivas' => []],
     ],
 ];

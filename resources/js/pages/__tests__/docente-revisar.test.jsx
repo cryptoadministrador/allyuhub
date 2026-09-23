@@ -79,6 +79,29 @@ describe('docente-revisar — la cola de revisión', () => {
             { unidad: 1, lengua: 'it' }, expect.anything());
     });
 
+    it('sin filtro, el cajón de un curso con molde propio (inglés) se firma con SU lengua', async () => {
+        const user = userEvent.setup();
+        postMock.mockClear();
+        const unidad = (lengua, titulo, code, id) => ({
+            n: 9, lengua, titulo, total: 1, todo_visto: true,
+            descriptores: [{ code, statement: '…', piezas: [PIEZA({ id, lengua: lengua ?? 'it', vista: true })] }],
+        });
+        render(<DocenteRevisar {...PROPS} lengua={null} unidades={[
+            unidad(null, 'Repaso y proyecto', 'A1.IO.1', 'i-it'),
+            unidad('en', 'Stage 9', 'EN9.R.1', 'i-en'),
+        ]} />);
+
+        // Dos cajones con el MISMO número: no pueden chocar ni confundirse.
+        expect(screen.getByRole('heading', { name: /Unidad 9 · Repaso y proyecto/ })).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: /Unidad 9 · Stage 9/ })).toBeInTheDocument();
+
+        const [mcer, ingles] = screen.getAllByRole('button', { name: /firmar la unidad entera/i });
+        await user.click(ingles);
+        expect(postMock).toHaveBeenLastCalledWith('/docente/revisar/unidad', { unidad: 9, lengua: 'en' }, expect.anything());
+        await user.click(mcer);
+        expect(postMock).toHaveBeenLastCalledWith('/docente/revisar/unidad', { unidad: 9, lengua: null }, expect.anything());
+    });
+
     it('una pieza devuelta enseña su nota a quien la corrija', () => {
         const props = {
             ...PROPS,

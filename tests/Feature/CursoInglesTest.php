@@ -351,6 +351,6 @@ class CursoInglesTest extends TestCase
 
         $this->assertSame('CEFR', $curso->marco('it'));
         $this->assertSame('CEFR', $curso->marco('fr'));
-        $this->assertSame('CAIE-LSEC', $curso->marco('en'));
+        $this->assertSame('AH-EN0861', $curso->marco('en'));   // PR 16: descriptores propios
     }
 }

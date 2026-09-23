@@ -8,6 +8,7 @@ use App\Models\Resource;
 use App\Models\ResourceVersion;
 use App\Services\Audio\AlmacenDeAudio;
 use App\Services\Audio\ClipCurricular;
+use App\Services\Curso\CursoDeLenguas;
 use App\Services\Lesson\Bloques;
 use App\Services\Lesson\DestinosDeBloque;
 use App\Services\Practice\Lenguas;
@@ -19,7 +20,7 @@ use InvalidArgumentException;
 /**
  * Siembra el banco de LENGUAS: lecciones e ítems anclados a descriptores MCER.
  *
- *   php artisan lenguas:sembrar [--marco=CEFR] [--banco=…] [--audio=…] [--dry-run]
+ *   php artisan lenguas:sembrar [--marco=<forzar>] [--banco=…] [--audio=…] [--dry-run]
  *
  * Tres decisiones que este comando materializa:
  *
@@ -46,14 +47,23 @@ use InvalidArgumentException;
 class SeedLanguageBank extends Command
 {
     protected $signature = 'lenguas:sembrar
-        {--marco=CEFR : Código del marco de anclaje}
+        {--marco= : Fuerza un marco de anclaje para TODO el banco (por defecto, el que declara el curso de cada lengua)}
         {--banco= : Ruta de otro fichero de banco (por defecto database/data/banco-lenguas.php)}
         {--audio= : Directorio de clips fuente (por defecto database/data/audio-lenguas)}
         {--dry-run : Cuenta lo que haría sin escribir}';
 
-    protected $description = 'Siembra lecciones e ítems de lenguas sobre los descriptores del MCER';
+    protected $description = 'Siembra lecciones e ítems de lenguas sobre los descriptores del marco de cada curso';
 
-    private ?Collection $versiones = null;
+    /**
+     * Versiones de anclaje POR MARCO. Era una sola (`--marco=CEFR` para todo el
+     * banco) y era cierto solo mientras las cuatro lenguas fueran del MCER: una
+     * entrada de inglés (marco `AH-EN0861`) se buscaba en el CEFR y reventaba
+     * como errata. Ahora cada entrada se ancla en el marco que declara SU curso
+     * (`CursoDeLenguas::marco`), la misma fuente que usa la portada del curso.
+     *
+     * @var array<string, Collection|null>
+     */
+    private array $versionesPorMarco = [];
 
     /** @var array<string, LearningObjective|null> */
     private array $descriptores = [];
@@ -72,9 +82,9 @@ class SeedLanguageBank extends Command
         $lecciones = $banco['lecciones'] ?? [];
         $items = array_is_list($banco) ? $banco : ($banco['items'] ?? []);
 
-        $this->versiones = DestinosDeBloque::versionesDe((string) $this->option('marco'));
-        if ($this->versiones === null) {
-            $this->error('No existe el marco '.$this->option('marco').' o no tiene versiones. ¿Corrió CefrSeeder?');
+        // Un --marco explícito que no existe se dice ANTES del pre-pase.
+        if ($this->option('marco') && DestinosDeBloque::versionesDe((string) $this->option('marco')) === null) {
+            $this->error('No existe el marco '.$this->option('marco').' o no tiene versiones.');
 
             return self::FAILURE;
         }
@@ -102,7 +112,7 @@ class SeedLanguageBank extends Command
 
         \Illuminate\Support\Facades\DB::transaction(function () use ($lecciones, $items, &$creados, &$actualizados) {
         foreach ($lecciones as $entrada) {
-            if ($this->descriptorDe($entrada['descriptor']) === null) {
+            if ($this->descriptorDe($entrada['descriptor'], $entrada['lengua']) === null) {
                 continue;   // hueco ya avisado
             }
             if ($this->option('dry-run')) {
@@ -115,7 +125,7 @@ class SeedLanguageBank extends Command
         }
 
         foreach ($items as $entrada) {
-            if ($this->descriptorDe($entrada['descriptor']) === null) {
+            if ($this->descriptorDe($entrada['descriptor'], $entrada['lengua']) === null) {
                 continue;
             }
             if ($this->option('dry-run')) {
@@ -151,9 +161,19 @@ class SeedLanguageBank extends Command
             return false;
         }
 
+        $versiones = $this->versionesPara($lengua);
+        if ($versiones === null) {
+            $this->error(
+                "La entrada «{$quien}» es de «{$lengua}», cuyo curso se ancla en el marco ".
+                "«{$this->marcoDe($lengua)}», que no está sembrado. ¿Corrió su seeder?",
+            );
+
+            return false;
+        }
+
         // La MISMA distinción que cazó CS.FL por CS.F: área inexistente =
         // errata que revienta; descriptor hueco en área real = aviso.
-        if (! DestinosDeBloque::areaExiste($descriptor, $this->versiones)) {
+        if (! DestinosDeBloque::areaExiste($descriptor, $versiones)) {
             $area = DestinosDeBloque::area($descriptor);
             $this->error(
                 "La entrada «{$quien}» pide el descriptor {$descriptor} y NINGÚN descriptor del ".
@@ -163,7 +183,7 @@ class SeedLanguageBank extends Command
             return false;
         }
 
-        if ($this->descriptorDe($descriptor) === null) {
+        if ($this->descriptorDe($descriptor, $lengua) === null) {
             $huecos[] = "{$descriptor} ({$quien})";
         }
 
@@ -199,7 +219,7 @@ class SeedLanguageBank extends Command
     /** Crea o actualiza un ítem. Devuelve true si es nuevo. */
     private function sembrarItem(array $entrada): bool
     {
-        $descriptor = $this->descriptorDe($entrada['descriptor']);
+        $descriptor = $this->descriptorDe($entrada['descriptor'], $entrada['lengua']);
         $entrada = $this->resolverClip($entrada);
 
         $columnas = Registro::de($entrada['tipo'])->desdeBanco($entrada);
@@ -234,7 +254,7 @@ class SeedLanguageBank extends Command
     /** Crea o actualiza una lección. Devuelve true si es nueva. */
     private function sembrarLeccion(array $entrada): bool
     {
-        $descriptor = $this->descriptorDe($entrada['descriptor']);
+        $descriptor = $this->descriptorDe($entrada['descriptor'], $entrada['lengua']);
         $bloque = DestinosDeBloque::area($entrada['descriptor']).'.'.$entrada['lengua'];
 
         // La indirección del clip DENTRO de los bloques de audio, resuelta
@@ -359,10 +379,31 @@ class SeedLanguageBank extends Command
 
     // ================= anclaje e informe =================
 
-    private function descriptorDe(string $code): ?LearningObjective
+    private function marcoDe(string $lengua): string
     {
-        return $this->descriptores[$code] ??= LearningObjective::query()
-            ->whereIn('version_id', $this->versiones)
+        return (string) ($this->option('marco') ?: app(CursoDeLenguas::class)->marco($lengua));
+    }
+
+    private function versionesPara(string $lengua): ?Collection
+    {
+        $marco = $this->marcoDe($lengua);
+        if (! array_key_exists($marco, $this->versionesPorMarco)) {
+            $this->versionesPorMarco[$marco] = DestinosDeBloque::versionesDe($marco);
+        }
+
+        return $this->versionesPorMarco[$marco];
+    }
+
+    /** La caché va por (marco, código): el mismo código en dos marcos son dos destrezas. */
+    private function descriptorDe(string $code, string $lengua): ?LearningObjective
+    {
+        $versiones = $this->versionesPara($lengua);
+        if ($versiones === null) {
+            return null;
+        }
+
+        return $this->descriptores[$this->marcoDe($lengua).'|'.$code] ??= LearningObjective::query()
+            ->whereIn('version_id', $versiones)
             ->where('native_code', $code)
             ->first();
     }
@@ -395,8 +436,9 @@ class SeedLanguageBank extends Command
             $this->newLine();
             $this->warn("{$pendientes} pieza(s) de lenguas pendiente(s) de firma: NO llegan a ningún alumno.");
             $this->line('  La revisión es POR LENGUA — quien sabe italiano firma el italiano:');
-            $this->line('    php artisan practica:firmar --bloque=A1.IO.it');
-            $this->line('    php artisan lecciones:firmar --bloque=A1.CO.it');
+            // Área del descriptor + lengua: A1.IO.it, EN7.R.en…
+            $this->line('    php artisan practica:firmar --bloque=<área>.<lengua>   (p. ej. A1.IO.it, EN7.R.en)');
+            $this->line('    php artisan lecciones:firmar --bloque=<área>.<lengua>  (o desde /docente/revisar)');
         }
     }
 }
