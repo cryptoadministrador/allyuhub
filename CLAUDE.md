@@ -627,7 +627,8 @@ cuántas hay ni cómo se llaman sus códigos. Lo que se sacó de dentro:
 
 `/corso/en` = **Cambridge Lower Secondary English 0861, Stages 7-9** — la banda
 que este colegio enseña, la misma que ya declara `CAIE-LSEC`. Nace con las tres
-unidades en «próximamente»: el contenido de inglés lo escribe Carlos.
+unidades en «próximamente»: el contenido de inglés lo escribe Carlos (desde el
+PR 16 ya tiene descriptores donde anclarse — ver abajo).
 
 **Lo que entró al grafo, y lo que NO** (`database/data/marcos-ingles-cambridge.json`,
 `CambridgeEnglishSeeder`):
@@ -944,6 +945,49 @@ repaso (la prueba ya decía «Ejercicio 4 de 10» y no lleva racha: es una prueb
 - Una trampa que enseñó un test: `Cronometro` guardaba `onAgotado` del primer
   render y al acabar el reloj veía «0 parejas». Ahora llama siempre al
   callback vigente (ref).
+
+## El inglés tiene dónde aterrizar (PR 16) — descriptores propios, no inventados
+
+`/corso/en` (Cambridge 0861, **primera lengua**, Stages 7-9 — decisión de
+Carlos, 2026-09-23) no podía tener contenido NUNCA: 0861 entró sin objetivos
+(su marco es de descarga protegida) y todo ítem o lección se ancla a un
+descriptor. Ahora hay **33 descriptores PROPIOS** en un marco PROPIO:
+
+- **`AH-EN0861`** (`kind = internal`, `database/data/ingles-0861-interno.php`,
+  `InglesInternoSeeder`, en la cadena justo detrás de `CambridgeEnglishSeeder`):
+  stage (`s7|s8|s9`) → strand (`r|w|sl`) → `EN<stage>.<strand>.<n>`
+  (4 R + 4 W + 3 SL por stage). El curso `en` declara ese marco.
+- **Honradez por construcción**: el código tiene EXACTAMENTE esa forma (regex
+  entera: ni `EN7.R.`, ni `EN7.R.1.2`, ni nada con pinta de Cambridge como
+  `7Rv.01`); nada entra `is_verified` ni `oficial`; cada descriptor declara en
+  `cambridge_ref` el strand/sub-strand PÚBLICO de 0861 que desarrolla, y el
+  seeder REVIENTA si esa ruta no existe en el grafo. Esa referencia es el
+  puente para reanclar el día que llegue el marco oficial.
+- **Etiqueta de versión ESTABLE (`propio`)**: `versionesDe` elige la más nueva
+  y el contenido cuelga de UNA versión, así que una etiqueta con fecha, al
+  cambiarla, dejaba todo el inglés huérfano en silencio (lo cazó la auditoría).
+  Los enunciados se corrigen EN SITIO: el seeder hace `updateOrCreate` (marco,
+  versión con su sha256, descriptores).
+- **Un descriptor que sale del fichero**: sin contenido se BORRA; con
+  contenido (ítems, recursos, dominio, diálogos, producciones, fases, LTI,
+  alineaciones) REVIENTA y deshace la siembra — las FK borran en cascada, y
+  renombrar con contenido es una migración de datos, no una edición.
+- Los enunciados son un BORRADOR de la IA pendiente de que Carlos los revise.
+
+**El marco lo declara el CURSO también al sembrar.** `lenguas:sembrar` tenía
+`--marco=CEFR` para todo el banco y `dialogos:sembrar` el CEFR escrito a mano:
+una entrada de inglés se buscaba en el MCER y reventaba como errata. Los dos
+anclan ahora cada entrada en `CursoDeLenguas::marco($lengua)` (`--marco` queda
+para forzar). La caché de descriptores va por (marco, código).
+
+**La cola de revisión sin filtro de lengua** agrupaba por número de unidad a
+secas: el Stage 9 inglés caía en la «unidad 9» del MCER con su título, y
+«firmar la unidad 9» firmaba los dos cursos. Ahora un curso con marco propio
+(que no comparte con ningún otro) va en su cajón (`unidades.*.lengua`), y
+firmar sin lengua solo toca el cajón compartido del MCER.
+
+Cómo escribir el contenido: `docs/ingles-0861/COMO-ESCRIBIR.md`. Firma:
+`practica:firmar --bloque=EN7.R.en`, o desde `/docente/revisar?lengua=en`.
 
 ## La frontera del contenido abierto (modelo Khan)
 
