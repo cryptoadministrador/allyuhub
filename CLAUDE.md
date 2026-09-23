@@ -893,6 +893,30 @@ a la tercera sigue siendo fallo reciente. `reintento` en el cuerpo del POST es
 - **Contrato que cambió**: antes un fallo revelaba la solución al momento; los
   tests de «control positivo» de no-filtración aciertan o fallan tres veces.
 
+## El ritmo de la sesión (misión 4, PR 14) — dónde vas, sin ranking
+
+Diez ejercicios seguidos sin saber por dónde vas es una lista de deberes.
+`resources/js/lib/ritmo.js` (puro) + `components/Ritmo.jsx`, en práctica y
+repaso (la prueba ya decía «Ejercicio 4 de 10» y no lleva racha: es una prueba):
+
+- **Progreso de la tanda** («Ejercicio 4 de 10») siempre a la vista; la
+  práctica es ahora una TANDA de diez (`TANDA`) que se cierra con «Tanda hecha:
+  8 de 10 · 2 seguidos al final · mejor racha: 5» y «Otra tanda».
+- **Racha DENTRO de la sesión** («3 seguidos», desde dos): sube con cada
+  acierto **a la primera**, **se rompe al fallar en el acto** (`romper`) aunque
+  quede «otra vez», y un acierto en la vuelta cierra el ejercicio sin sumar.
+  **No se guarda en base**: vive en la tanda y muere con ella (test de esquema).
+- **Contrarreloj OPCIONAL**: un `switch` que empieza APAGADO y se recuerda por
+  alumno en `localStorage` (`contrarreloj:<userId|invitado>`). Encendido, 20 s
+  por ejercicio (`Cronometro`, `role="timer"`, sin `aria-live`); al agotarse
+  cuenta como fallo del ritmo, NO se manda ningún intento, y se pasa al
+  siguiente. Nunca en la prueba de unidad (no tiene tiempo límite, PR 8).
+- **PROHIBIDO, decisión de colegio**: ningún ranking, ninguna clasificación,
+  ningún «vas por detrás de». `RitmoSinRankingTest` es el cable trampa: las
+  pantallas y la API de ritmo no llevan nombre, id ni cuenta de otro alumno, y
+  no existe tabla ni columna de puntos. La racha de días sigue siendo un
+  número, sin fuego y sin confeti.
+
 ## La frontera del contenido abierto (modelo Khan)
 
 Se **navega** y se **practica** sin sesión; se **guarda** y se **califica** solo con

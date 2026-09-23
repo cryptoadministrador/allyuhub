@@ -2,6 +2,8 @@ import { Head, Link, usePage } from '@inertiajs/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Ejercicio, Veredicto, claseDeVeredicto, cuerpoDeRespuesta, estaIncompleta, reintentoDe, valorInicial } from '../components/Ejercicio';
 import AppLayout from '../layouts/AppLayout';
+import { Cronometro, InterruptorContrarreloj, Progreso, useContrarreloj } from '../components/Ritmo';
+import { SEGUNDOS_POR_ITEM, registrar, resumen, ritmoInicial, romper } from '../lib/ritmo';
 
 /**
  * «TU REPASO DE HOY»: hasta diez ítems que el servidor elige por prioridad
@@ -38,7 +40,9 @@ export default function Repaso({ lengua, nombre, racha: rachaInicial, se_guarda:
     const [valor, setValor] = useState(valorInicial());
     const [faltaElegir, setFaltaElegir] = useState(false);
     const [resultado, setResultado] = useState(null);
-    const [aciertos, setAciertos] = useState(0);
+    // El ritmo de la tanda (PR 14): aciertos a la primera, seguidos, y cómo fue.
+    const [ritmo, setRitmo] = useState(ritmoInicial);
+    const [contrarreloj, setContrarreloj] = useContrarreloj(compartidas.auth?.user?.id);
     const [racha, setRacha] = useState(rachaInicial);
     const inputRef = useRef(null);
     const feedbackRef = useRef(null);
@@ -52,7 +56,7 @@ export default function Repaso({ lengua, nombre, racha: rachaInicial, se_guarda:
             setItems(d.items);
             setRacha(d.racha);
             setK(0);
-            setAciertos(0);
+            setRitmo(ritmoInicial());
             setValor(valorInicial());
             setEstado(d.total === 0 ? 'vacio' : 'listo');
         } catch {
@@ -95,12 +99,20 @@ export default function Repaso({ lengua, nombre, racha: rachaInicial, se_guarda:
             const v = await r.json();
             // Cuenta como acierto del repaso solo a la primera: un acierto al
             // tercer intento es un acierto para el alumno, no para la cuenta.
-            if (v.is_correct && !v.reintento) setAciertos((a) => a + 1);
+            // Un fallo rompe la racha de la tanda en el acto.
+            if (!v.is_correct) setRitmo(romper);
+            if (v.is_correct || !v.otra_vez) setRitmo((rt) => registrar(rt, v.is_correct && !v.reintento));
             setResultado(v);
             setEstado('respondido');
         } catch {
             setEstado('error');
         }
+    }
+
+    /** Se acabó el tiempo (contrarreloj): cuenta como fallo y se pasa al siguiente. */
+    function tiempoAgotado() {
+        setRitmo((rt) => registrar(rt, false));
+        setEstado('tiempo');
     }
 
     async function siguiente() {
@@ -151,12 +163,31 @@ export default function Repaso({ lengua, nombre, racha: rachaInicial, se_guarda:
                     </div>
                 )}
 
+                {estado === 'tiempo' && (
+                    <div role="alert" className="mt-6 rounded-lg border border-l-4 border-amber-200 border-l-amber-500 bg-amber-50 p-4">
+                        <p className="font-semibold text-amber-900">Se acabó el tiempo.</p>
+                        <p className="mt-1 text-sm text-amber-900">Este no cuenta. Puedes apagar el contrarreloj cuando quieras.</p>
+                        <button type="button" onClick={siguiente} className="mt-3 rounded bg-marca-600 px-4 py-2 font-medium text-white hover:bg-marca-700 focus:outline-2 focus:outline-offset-2 focus:outline-marca-600">
+                            {k + 1 < items.length ? 'Siguiente' : 'Terminar el repaso'}
+                        </button>
+                    </div>
+                )}
+
                 {(estado === 'listo' || estado === 'enviando') && item && (
                     <form className="mt-6" onSubmit={comprobar}>
-                        <p className="mb-2 text-sm font-medium text-slate-600" role="status">
-                            {k + 1} de {items.length} · {PRIORIDAD[item.prioridad]}
-                            {item.objective_statement ? ` · ${item.objective_statement}` : ''}
-                        </p>
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                            <Progreso
+                                k={k + 1}
+                                total={items.length}
+                                seguidos={ritmo.seguidos}
+                                etiqueta=""
+                                extra={` · ${PRIORIDAD[item.prioridad]}${item.objective_statement ? ` · ${item.objective_statement}` : ''}`}
+                            />
+                            <InterruptorContrarreloj activo={contrarreloj} onChange={setContrarreloj} />
+                        </div>
+                        {contrarreloj && estado === 'listo' && (
+                            <Cronometro segundos={SEGUNDOS_POR_ITEM} clave={`${item.item_id}:${item.attempt_no}`} onAgotado={tiempoAgotado} />
+                        )}
                         <Ejercicio
                             item={item}
                             valor={valor}
@@ -198,7 +229,7 @@ export default function Repaso({ lengua, nombre, racha: rachaInicial, se_guarda:
 
                     {estado === 'hecho' && (
                         <div className="mt-6 rounded-lg border border-l-4 border-emerald-200 border-l-emerald-600 bg-emerald-50 p-4">
-                            <p className="text-xl font-semibold text-slate-900">Repaso hecho: {aciertos}/{items.length}</p>
+                            <p className="text-xl font-semibold text-slate-900">Repaso hecho: {ritmo.aciertos}/{items.length} · {resumen(ritmo, items.length).split(' · ').slice(1).join(' · ')}</p>
                             {!invitado && racha.viva && (
                                 <p className="mt-1 text-sm text-slate-800">Racha: {racha.dias} {racha.dias === 1 ? 'día' : 'días'}.</p>
                             )}
