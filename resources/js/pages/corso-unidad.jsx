@@ -112,6 +112,13 @@ export default function CorsoUnidad({ lengua, nombre, unidad, estado, dominio, p
                             <p className="font-medium text-slate-900">Repasa las tarjetas de la unidad</p>
                             <p className="mt-1 text-sm text-slate-700">Palabra por un lado, significado y ejemplo por el otro.</p>
                         </Link>
+                        <Link
+                            href={`/corso/${lengua}/u${unidad.n}/jugar`}
+                            className="mt-3 block rounded-lg border border-marca-200 bg-marca-50 p-4 transition-shadow hover:shadow-md focus:outline-2 focus:outline-offset-2 focus:outline-marca-600"
+                        >
+                            <p className="font-medium text-slate-900">Juega con las palabras</p>
+                            <p className="mt-1 text-sm text-slate-700">Memoria, emparejar contra el reloj y ¿cuál sobra?</p>
+                        </Link>
                     </section>
                 )}
 
