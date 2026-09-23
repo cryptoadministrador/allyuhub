@@ -82,14 +82,21 @@ class RevisionController extends Controller
             // (contenido MINEDEC, o un descriptor nuevo) NO se esconde: cae en
             // el cajón 0, «Sin unidad». Esconderla sería perderla.
             $n = $pieza->unidad() ?? ($porDescriptor[$code] ?? 0);
+            // Sin filtro de lengua, un curso con molde PROPIO (el inglés, tres
+            // Stages) va en su cajón: su «unidad 7» no es la «unidad 7» del
+            // MCER, ni de título ni de contenido. Las lenguas del MCER comparten
+            // molde y siguen juntas, como siempre.
+            $grupo = $lengua ?? $this->grupoDe($pieza->lengua());
+            $k = ($grupo ?? '').'|'.$n;
 
-            $unidades[$n]['n'] = $n;
-            $unidades[$n]['titulo'] = $n === 0 ? 'Sin unidad' : ($this->curso->tituloDeUnidad($lengua, $n) ?? "Unidad {$n}");
-            $unidades[$n]['descriptores'][$code]['code'] = $code;
-            $unidades[$n]['descriptores'][$code]['statement'] = $pieza->tipo === Pieza::VOCABULARIO
+            $unidades[$k]['n'] = $n;
+            $unidades[$k]['lengua'] = $grupo;
+            $unidades[$k]['titulo'] = $n === 0 ? 'Sin unidad' : ($this->curso->tituloDeUnidad($grupo, $n) ?? "Unidad {$n}");
+            $unidades[$k]['descriptores'][$code]['code'] = $code;
+            $unidades[$k]['descriptores'][$code]['statement'] = $pieza->tipo === Pieza::VOCABULARIO
                 ? 'Las palabras de la unidad'
                 : ($descriptor?->statement['es'] ?? '');
-            $unidades[$n]['descriptores'][$code]['piezas'][] = [
+            $unidades[$k]['descriptores'][$code]['piezas'][] = [
                 'tipo' => $pieza->tipo,
                 'id' => $pieza->id(),
                 'titulo' => \Illuminate\Support\Str::limit($pieza->titulo(), 120),
@@ -107,7 +114,9 @@ class RevisionController extends Controller
 
         // Orden explícito por número de unidad: las claves son enteros y el
         // «Sin unidad» (0) va primero para que no se pierda de vista.
-        ksort($unidades);
+        uksort($unidades, function ($a, $b) use ($unidades) {
+            return [$unidades[$a]['n'], $unidades[$a]['lengua'] ?? ''] <=> [$unidades[$b]['n'], $unidades[$b]['lengua'] ?? ''];
+        });
         $lista = [];
         foreach ($unidades as $n => $u) {
             ksort($u['descriptores']);
@@ -274,7 +283,10 @@ class RevisionController extends Controller
             ->filter(function (Pieza $p) use ($porDescriptor, $data) {
                 $code = $p->descriptor()?->native_code ?? '—';
 
-                return ($p->unidad() ?? ($porDescriptor[$code] ?? 0)) === (int) $data['unidad'];
+                return ($p->unidad() ?? ($porDescriptor[$code] ?? 0)) === (int) $data['unidad']
+                    // Sin lengua se firma el cajón COMPARTIDO: nunca se arrastra
+                    // un curso de molde propio (su cajón manda su lengua).
+                    && (isset($data['lengua']) || $this->grupoDe($p->lengua()) === null);
             });
 
         abort_if($delaUnidad->isEmpty(), 404, 'No hay nada pendiente en esa unidad.');
@@ -290,6 +302,23 @@ class RevisionController extends Controller
         }
 
         return back();
+    }
+
+    /**
+     * El cajón de una pieza cuando no se filtra por lengua: su lengua si su
+     * curso tiene un MARCO que no comparte con ningún otro (molde propio de
+     * unidades), o null si comparte molde (las cuatro del MCER) o no tiene
+     * lengua (MINEDEC).
+     */
+    private function grupoDe(?string $lengua): ?string
+    {
+        if ($lengua === null) {
+            return null;
+        }
+        $marco = $this->curso->marco($lengua);
+        $mismoMarco = array_filter(Lenguas::LISTA, fn ($l) => $this->curso->marco($l) === $marco);
+
+        return count($mismoMarco) === 1 ? $lengua : null;
     }
 
     // ---- piezas ----
