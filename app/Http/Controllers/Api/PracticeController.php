@@ -159,6 +159,10 @@ class PracticeController extends Controller
             // fuentes para el mismo dato es la forma exacta en que empezó el
             // fallo que el billete cerró.
             'intento' => 'prohibited',
+            // Y qué vuelta del bucle de «otra vez» es, también: viene FIRMADO
+            // en el billete. Un `reintento: false` en el cuerpo es 422, no un
+            // intento que cuenta.
+            'reintento' => 'prohibited',
             'billete' => 'required|string',
         ]);
         $quien = Practitioner::fromRequest($request);
@@ -171,6 +175,10 @@ class PracticeController extends Controller
                 'message' => 'Intento duplicado: otra petición registró este intento primero. Pide el siguiente ítem y reintenta.',
             ], 409);
         }
+
+        // El bucle de «otra vez» —pista sin solución y billete del reintento
+        // mientras quede vuelta— lo decide el servidor, en un sitio.
+        $veredicto = $this->registro->bucle($item, $veredicto, $ticket, $quien->seedKey());
 
         if ($attempt === null) {
             // 200 y no 201: no se creó nada. Ni intento, ni dominio, ni AGS —

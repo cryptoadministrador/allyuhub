@@ -204,27 +204,33 @@ class TiposDeLenguaTest extends TestCase
         $this->assertStringNotContainsString('solucion', $cuerpo);
     }
 
-    /** El control positivo de los cuatro: tras responder, la solución SÍ llega. */
+    /**
+     * El control positivo de los cuatro: tras responder, la solución SÍ llega.
+     * Con el bucle de «otra vez» (PR 13) llega al ACERTAR o al tercer fallo;
+     * aquí se falla tres veces y se comprueba que antes NO viajó.
+     */
     public function test_responder_revela_lo_esperado_en_los_cuatro_tipos(): void
     {
-        $hueco = $this->hueco();
-        $v = $this->responder($hueco, ['texto' => 'no-es'], $this->billete($hueco->id))
-            ->assertOk()->json();
+        $tresFallos = function (PracticeItem $item, array $mala, string $clave) {
+            $billete = $this->billete($item->id);
+            foreach ([1, 2] as $vuelta) {
+                $v = $this->responder($item, $mala, $billete)->assertOk()->assertJsonMissingPath($clave)->json();
+                $billete = $v['otra_vez']['billete'];
+            }
+
+            return $this->responder($item, $mala, $billete)->assertOk()->assertJsonMissingPath('otra_vez')->json();
+        };
+
+        $v = $tresFallos($this->hueco(), ['texto' => 'no-es'], 'esperado');
         $this->assertSame('où', $v['esperado']);
 
-        $dictado = $this->dictado();
-        $v = $this->responder($dictado, ['texto' => 'no'], $this->billete($dictado->id))
-            ->assertOk()->json();
+        $v = $tresFallos($this->dictado(), ['texto' => 'no'], 'transcripcion');
         $this->assertSame('CENTINELA-DICTADO-TRANSCRIPCION', $v['transcripcion']);
 
-        $orden = $this->orden();
-        $v = $this->responder($orden, ['ids' => ['w4', 'w3', 'w2', 'w1']], $this->billete($orden->id))
-            ->assertOk()->json();
+        $v = $tresFallos($this->orden(), ['ids' => ['w4', 'w3', 'w2', 'w1']], 'secuencia_correcta');
         $this->assertSame(['w3', 'w2', 'w1', 'w4'], $v['secuencia_correcta']);
 
-        $pares = $this->pares();
-        $v = $this->responder($pares, ['parejas' => [['c1', 'p2', 's1'], ['c2', 'p1', 's2']]],
-            $this->billete($pares->id))->assertOk()->json();
+        $v = $tresFallos($this->pares(), ['parejas' => [['c1', 'p2', 's1'], ['c2', 'p1', 's2']]], 'parejas_esperadas');
         $this->assertSame([['c1', 'p1', 's1'], ['c2', 'p2', 's2']], $v['parejas_esperadas']);
     }
 

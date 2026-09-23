@@ -1,7 +1,7 @@
 import { Head, usePage } from '@inertiajs/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import AppLayout from '../layouts/AppLayout';
-import { Ejercicio, Veredicto, cuerpoDeRespuesta, estaIncompleta, forma, valorInicial, claseDeVeredicto } from '../components/Ejercicio';
+import { Ejercicio, Veredicto, claseDeVeredicto, cuerpoDeRespuesta, estaIncompleta, forma, reintentoDe, valorInicial } from '../components/Ejercicio';
 import { RAZONES_DESVIO } from '../lib/razones';
 
 /**
@@ -250,6 +250,22 @@ export default function Practicar({ objective, mastery: masteryInicial, lengua =
         }
     }
 
+    /**
+     * «OTRA VEZ» (PR 13): el mismo ítem, con el billete firmado que vino en el
+     * veredicto y el andamiaje si lo hubo. No hay `next`: la vuelta es del
+     * servidor, y el número de intento viene dentro del billete.
+     */
+    function otraVez() {
+        const r = reintentoDe(item, resultado);
+        if (!r) return;
+        setItem(r.item);
+        setValor(r.valor);
+        setResultado(null);
+        setFaltaElegir(false);
+        inicioItem.current = Date.now();
+        setEstado('listo');
+    }
+
     async function actualizarMastery() {
         try {
             const r = await pedirJson('/api/v1/practice/mastery');
@@ -463,13 +479,23 @@ export default function Practicar({ objective, mastery: masteryInicial, lengua =
                             <Veredicto item={item} resultado={resultado} />
                             {invitado && <AvisoDeInvitado compacto />}
 
-                            <button
-                                type="button"
-                                onClick={cargarSiguiente}
-                                className="mt-3 rounded bg-marca-600 px-4 py-2 font-medium text-white hover:bg-marca-700 focus:outline-2 focus:outline-offset-2 focus:outline-marca-600"
-                            >
-                                Siguiente ejercicio
-                            </button>
+                            {resultado.otra_vez ? (
+                                <button
+                                    type="button"
+                                    onClick={otraVez}
+                                    className="mt-3 rounded bg-marca-600 px-4 py-2 font-medium text-white hover:bg-marca-700 focus:outline-2 focus:outline-offset-2 focus:outline-marca-600"
+                                >
+                                    Otra vez ({resultado.otra_vez.reintento + 1}.º intento de 3)
+                                </button>
+                            ) : (
+                                <button
+                                    type="button"
+                                    onClick={cargarSiguiente}
+                                    className="mt-3 rounded bg-marca-600 px-4 py-2 font-medium text-white hover:bg-marca-700 focus:outline-2 focus:outline-offset-2 focus:outline-marca-600"
+                                >
+                                    Siguiente ejercicio
+                                </button>
+                            )}
                         </div>
                     </div>
                 )}

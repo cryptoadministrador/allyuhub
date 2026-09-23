@@ -60,7 +60,7 @@ function Marcador() {
  * ORDEN: la frase construyéndose arriba, el banco abajo. Se toca o se arrastra.
  * Controlado: la secuencia vive en quien lo usa.
  */
-export function TableroDeOrden({ opciones, secuencia, onSecuencia, nombre, inputRef }) {
+export function TableroDeOrden({ opciones, secuencia, onSecuencia, nombre, inputRef, fijas = [] }) {
     const lineaRef = useRef(null);
     const fichasRef = useRef({});
     const gesto = useRef(null);          // el puntero que empezó sobre una ficha
@@ -76,16 +76,22 @@ export function TableroDeOrden({ opciones, secuencia, onSecuencia, nombre, input
     });
 
     const enBanco = opciones.filter((o) => !secuencia.includes(o.key));
+    // Las fichas FIJAS (el andamiaje del segundo fallo: «esta va primero») son
+    // el prefijo de la frase: no se tocan, no se arrastran, nada pasa por delante.
+    const esFija = (clave) => fijas.includes(clave);
+    const primeraLibre = fijas.length;
 
     function mover(clave, aIndice) {
+        if (esFija(clave)) return;
         const sin = secuencia.filter((k) => k !== clave);
-        const i = Math.max(0, Math.min(aIndice, sin.length));
+        const i = Math.max(primeraLibre, Math.min(aIndice, sin.length));
         onSecuencia([...sin.slice(0, i), clave, ...sin.slice(i)]);
     }
 
     function alPulsarTecla(e, clave) {
+        if (esFija(clave)) return;
         const i = secuencia.indexOf(clave);
-        if (e.key === 'ArrowLeft' && i > 0) {
+        if (e.key === 'ArrowLeft' && i > primeraLibre) {
             e.preventDefault();
             enfocar.current = clave;
             mover(clave, i - 1);
@@ -110,6 +116,7 @@ export function TableroDeOrden({ opciones, secuencia, onSecuencia, nombre, input
     }
 
     function alBajar(e, clave, origen) {
+        if (esFija(clave)) return;
         if (e.pointerType === 'mouse' && e.button !== 0) return;
         gesto.current = { clave, origen, x0: e.clientX, y0: e.clientY, arrastrando: false };
         e.currentTarget.setPointerCapture?.(e.pointerId);
@@ -179,8 +186,21 @@ export function TableroDeOrden({ opciones, secuencia, onSecuencia, nombre, input
                 )}
                 {secuencia.map((clave) => {
                     const arrastrada = arrastre?.clave === clave;
-                    const marcador = !arrastrada && arrastre?.indice === j;
+                    const marcador = !arrastrada && arrastre?.indice === j && j >= primeraLibre;
                     if (!arrastrada) j++;
+
+                    if (esFija(clave)) {
+                        return (
+                            <span
+                                key={clave}
+                                ref={(el) => { fichasRef.current[clave] = el; }}
+                                aria-label={`${primerTexto(opciones, clave)}, va primero`}
+                                className={`${FICHA} border-emerald-600 bg-emerald-50 text-emerald-900`}
+                            >
+                                {primerTexto(opciones, clave)}
+                            </span>
+                        );
+                    }
 
                     return (
                         <Fragment key={clave}>
@@ -237,9 +257,12 @@ const COLORES_PAREJA = [
  * PARES: dos o tres columnas. Se une tocando un elemento y luego su pareja; la
  * unión se ve en el tablero (mismo color, mismo número). Deshacer es tocarla.
  */
-export function TableroDePares({ opciones, columnas, parejas, pendiente, onCambio, inputRef }) {
+export function TableroDePares({ opciones, columnas, parejas, pendiente, onCambio, inputRef, fijas = [] }) {
     const parejaDe = {};
     parejas.forEach((tupla, i) => tupla.forEach((k) => { parejaDe[k] = i; }));
+    // Las parejas FIJAS (el andamiaje: las que el alumno ya clavó) se quedan
+    // formadas y no se deshacen: en el tablero solo se juega lo que está mal.
+    const esFija = (i) => fijas.some((f) => f.length === parejas[i]?.length && f.every((k, j) => k === parejas[i][j]));
 
     function tocar(col, clave) {
         const sel = { ...pendiente, [col]: pendiente[col] === clave ? undefined : clave };
@@ -262,14 +285,16 @@ export function TableroDePares({ opciones, columnas, parejas, pendiente, onCambi
 
                         if (i !== undefined) {
                             const textos = parejas[i].map((k) => primerTexto(opciones, k)).join(' — ');
+                            const fija = esFija(i);
 
                             return (
                                 <button
                                     key={o.key}
                                     type="button"
-                                    aria-label={`Pareja ${i + 1}: ${textos}. Deshacer`}
+                                    disabled={fija}
+                                    aria-label={fija ? `Pareja ${i + 1}: ${textos}. Correcta` : `Pareja ${i + 1}: ${textos}. Deshacer`}
                                     onClick={() => onCambio({ parejas: parejas.filter((_, j) => j !== i), pendiente: {} })}
-                                    className={`flex w-full items-center gap-2 rounded border-2 px-3 py-2 text-left text-base focus:outline-2 focus:outline-offset-2 focus:outline-marca-600 ${COLORES_PAREJA[i % COLORES_PAREJA.length]}`}
+                                    className={`flex w-full items-center gap-2 rounded border-2 px-3 py-2 text-left text-base focus:outline-2 focus:outline-offset-2 focus:outline-marca-600 ${fija ? 'border-emerald-600 bg-emerald-50 text-emerald-900' : COLORES_PAREJA[i % COLORES_PAREJA.length]}`}
                                 >
                                     <span aria-hidden="true" className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/80 text-xs font-bold">
                                         {i + 1}

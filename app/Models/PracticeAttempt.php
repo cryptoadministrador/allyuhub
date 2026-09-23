@@ -23,6 +23,7 @@ class PracticeAttempt extends Model
         'answer' => 'float',
         'expected' => 'float',
         'is_correct' => 'boolean',
+        'reintento' => 'integer',
     ];
 
     public function item(): BelongsTo

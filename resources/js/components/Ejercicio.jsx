@@ -67,6 +67,32 @@ export function valorInicial() {
     return { respuesta: '', secuencia: [], parejas: [], pendiente: {} };
 }
 
+/**
+ * EL BUCLE DE «OTRA VEZ» (PR 13), del lado del cliente: si el veredicto trae
+ * `otra_vez`, el MISMO ítem se vuelve a intentar con el billete firmado que
+ * vino dentro (número de intento +1, misma semilla) y con el andamiaje que el
+ * servidor mandó —solo al segundo fallo—. Devuelve el ítem del reintento y el
+ * valor con el que arranca, o null si no hay vuelta (acertó, o era la tercera).
+ *
+ * Con `detalle: 'acento'` el texto se conserva: solo falta la tilde (o el
+ * tono), y borrarlo sería castigar lo que está bien.
+ */
+export function reintentoDe(item, resultado) {
+    const otra = resultado?.otra_vez;
+    if (!otra) return null;
+    const andamiaje = resultado.andamiaje ?? null;
+    const f = forma(item);
+    const valor = valorInicial();
+    if (f.porTexto && resultado.detalle === 'acento' && !andamiaje?.opciones) valor.respuesta = resultado.texto ?? '';
+    if (f.esOrden && andamiaje?.primero) valor.secuencia = [andamiaje.primero];
+    if (f.esPares && andamiaje?.correctas) valor.parejas = andamiaje.correctas;
+
+    return {
+        item: { ...item, billete: otra.billete, attempt_no: otra.attempt_no, reintento: otra.reintento, andamiaje },
+        valor,
+    };
+}
+
 /** ¿Está la respuesta a medias? Sin responder no se envía — pero se dice. */
 export function estaIncompleta(item, valor) {
     const f = forma(item);
@@ -138,6 +164,10 @@ export function Ejercicio({ item, valor, onChange, faltaElegir = false, inputRef
     const { porClave, porTexto, esOrden, esPares, conAudio, opciones, columnasDePares } = forma(item);
     const idAviso = `falta-elegir-${nombre}`;
     const idPinyin = `${nombre}-pinyin`;
+    // El andamiaje del segundo fallo (PR 13): «botones acotados». Lo calculó el
+    // servidor y viajó con el veredicto; aquí solo se pinta.
+    const andamiaje = item.andamiaje ?? null;
+    const descartadas = new Set(andamiaje?.descartar ?? []);
     // El hueco vive DENTRO de la frase: la consigna se parte por su «___» y
     // el campo ocupa ese sitio. Sin «___» (o en dictado) el campo va debajo.
     const partes = item.kind === 'hueco' ? partirHueco(item.statement?.es) : null;
@@ -171,7 +201,9 @@ export function Ejercicio({ item, valor, onChange, faltaElegir = false, inputRef
                 competir con nada. React escapa por defecto; el texto
                 viene de PDFs importados. */}
             <p className="mb-5 rounded-lg border border-slate-200 bg-white p-4 text-xl leading-relaxed text-slate-900">
-                {partes ? <>{partes[0]}{campoDeTexto(true)}{partes[1]}</> : item.statement.es}
+                {partes
+                    ? <>{partes[0]}{andamiaje?.opciones ? <span className="mx-1 inline-block min-w-16 border-b-2 border-slate-500 align-baseline" aria-hidden="true">&nbsp;</span> : campoDeTexto(true)}{partes[1]}</>
+                    : item.statement.es}
             </p>
 
             {conAudio && <ReproductorDeEscucha src={item.audio_src} />}
@@ -189,10 +221,12 @@ export function Ejercicio({ item, valor, onChange, faltaElegir = false, inputRef
                         {opciones.map((opcion, i) => (
                             <label
                                 key={opcion.key}
-                                className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-marca-600 ${
-                                    valor.respuesta === opcion.key
-                                        ? 'border-marca-600 bg-marca-50'
-                                        : 'border-slate-200 bg-white hover:bg-slate-50'
+                                className={`flex items-center gap-3 rounded-lg border p-3 transition-colors has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-marca-600 ${
+                                    descartadas.has(opcion.key)
+                                        ? 'cursor-not-allowed border-slate-200 bg-slate-50 text-slate-500 line-through'
+                                        : valor.respuesta === opcion.key
+                                          ? 'cursor-pointer border-marca-600 bg-marca-50'
+                                          : 'cursor-pointer border-slate-200 bg-white hover:bg-slate-50'
                                 }`}
                             >
                                 <input
@@ -201,6 +235,7 @@ export function Ejercicio({ item, valor, onChange, faltaElegir = false, inputRef
                                     name={nombre}
                                     value={opcion.key}
                                     checked={valor.respuesta === opcion.key}
+                                    disabled={descartadas.has(opcion.key)}
                                     onChange={(e) => cambiar({ respuesta: e.target.value })}
                                     aria-describedby={faltaElegir ? idAviso : undefined}
                                     className="h-4 w-4 shrink-0 accent-marca-600"
@@ -215,8 +250,9 @@ export function Ejercicio({ item, valor, onChange, faltaElegir = false, inputRef
                                 >
                                     {LETRAS[i] ?? i + 1}
                                 </span>
-                                <span className="text-base leading-relaxed text-slate-900">
+                                <span className="text-base leading-relaxed">
                                     {opcion.text.es}
+                                    {descartadas.has(opcion.key) && <span className="ml-2 text-xs font-medium no-underline">(no es esta)</span>}
                                 </span>
                             </label>
                         ))}
@@ -229,6 +265,7 @@ export function Ejercicio({ item, valor, onChange, faltaElegir = false, inputRef
                     onSecuencia={(secuencia) => cambiar({ secuencia })}
                     nombre={nombre}
                     inputRef={inputRef}
+                    fijas={andamiaje?.primero ? [andamiaje.primero] : []}
                 />
             ) : esPares ? (
                 <TableroDePares
@@ -238,7 +275,37 @@ export function Ejercicio({ item, valor, onChange, faltaElegir = false, inputRef
                     pendiente={valor.pendiente}
                     onCambio={cambiar}
                     inputRef={inputRef}
+                    fijas={andamiaje?.correctas ?? []}
                 />
+            ) : porTexto && andamiaje?.opciones ? (
+                /* El texto libre se convierte en tres opciones: la correcta y
+                   dos distractores que calculó el servidor. Viaja igual que
+                   siempre (`respuesta.texto`): mismo endpoint, misma corrección. */
+                <fieldset className="mb-4">
+                    <legend className="mb-2 text-sm font-medium">Elige la forma correcta</legend>
+                    <div className="space-y-2">
+                        {andamiaje.opciones.map((texto, i) => (
+                            <label
+                                key={texto}
+                                className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-marca-600 ${
+                                    valor.respuesta === texto ? 'border-marca-600 bg-marca-50' : 'border-slate-200 bg-white hover:bg-slate-50'
+                                }`}
+                            >
+                                <input
+                                    ref={i === 0 ? inputRef : undefined}
+                                    type="radio"
+                                    name={nombre}
+                                    value={texto}
+                                    checked={valor.respuesta === texto}
+                                    onChange={(e) => cambiar({ respuesta: e.target.value })}
+                                    aria-describedby={faltaElegir ? idAviso : undefined}
+                                    className="h-4 w-4 shrink-0 accent-marca-600"
+                                />
+                                <span lang={item.lengua} className="text-base leading-relaxed text-slate-900">{texto}</span>
+                            </label>
+                        ))}
+                    </div>
+                </fieldset>
             ) : porTexto ? (
                 <div className="mb-4">
                     {!partes && (
@@ -318,6 +385,29 @@ export function claseDeVeredicto(esCorrecto) {
  */
 export function Veredicto({ item, resultado }) {
     const { porClave, porTexto, esOrden, esPares, conAudio, opciones } = forma(item);
+
+    // Mientras quede vuelta (PR 13) el servidor manda la PISTA y no la
+    // solución: aquí se dice lo que se sabe, y nada de «era: undefined».
+    if (resultado.otra_vez) {
+        const pista = porTexto
+            ? resultado.detalle === 'acento'
+                ? `Casi: ${item.lengua === 'zh' ? 'te falta el tono' : 'revisa el acento'}. Escribiste «${resultado.texto}».`
+                : 'Esa palabra no es.'
+            : esOrden
+              ? 'No es ese orden.'
+              : esPares
+                ? `Tienes ${resultado.parejas_correctas} de ${resultado.total} parejas.`
+                : porClave
+                  ? 'Esa no es.'
+                  : 'No es ese valor.';
+
+        return (
+            <>
+                <p className="text-lg font-semibold text-rose-900">Todavía no.</p>
+                <p className="mt-1 text-sm leading-relaxed text-slate-700">{pista} Inténtalo otra vez.</p>
+            </>
+        );
+    }
 
     return (
         <>

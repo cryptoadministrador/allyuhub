@@ -139,6 +139,9 @@ final class RepasoDiario
         $intentos = PracticeAttempt::query()
             ->where('user_id', $userId)
             ->whereIn('item_id', $itemsDeLengua)
+            // Solo PRIMEROS intentos (PR 13): un fallo que se salvó a la tercera
+            // sigue siendo un fallo reciente — necesitó ayuda, vuelve mañana.
+            ->whereNull('reintento')
             ->with('item:id,objective_id')
             ->orderByDesc('created_at')->orderByDesc('id')
             ->get(['id', 'item_id', 'is_correct', 'created_at']);
