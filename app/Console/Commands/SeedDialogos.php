@@ -6,6 +6,7 @@ use App\Models\Dialogo;
 use App\Models\LearningObjective;
 use App\Services\Audio\AlmacenDeAudio;
 use App\Services\Audio\ClipsDeclarados;
+use App\Services\Curso\CursoDeLenguas;
 use App\Services\Dialogo\Nodos;
 use App\Services\Lesson\DestinosDeBloque;
 use App\Services\Practice\Lenguas;
@@ -56,9 +57,12 @@ class SeedDialogos extends Command
                         throw new RuntimeException("El diálogo «{$quien}» trae una lengua fuera de lista: «{$entrada['lengua']}».");
                     }
 
-                    $versiones = DestinosDeBloque::versionesDe('CEFR');
+                    // El marco lo declara el CURSO de la lengua (PR 16), no
+                    // este comando: el inglés se ancla en AH-EN0861, no en el CEFR.
+                    $marco = app(CursoDeLenguas::class)->marco($entrada['lengua']);
+                    $versiones = DestinosDeBloque::versionesDe($marco);
                     if ($versiones === null) {
-                        throw new RuntimeException('No hay marco CEFR sembrado: corre antes el CefrSeeder.');
+                        throw new RuntimeException("No hay marco {$marco} sembrado (curso «{$entrada['lengua']}»): corre antes su seeder.");
                     }
 
                     $objetivo = LearningObjective::query()
@@ -66,7 +70,7 @@ class SeedDialogos extends Command
                         ->where('native_code', $entrada['objective'])
                         ->first();
                     if ($objetivo === null) {
-                        throw new RuntimeException("El descriptor «{$entrada['objective']}» del diálogo «{$quien}» no existe en el grafo CEFR.");
+                        throw new RuntimeException("El descriptor «{$entrada['objective']}» del diálogo «{$quien}» no existe en el marco {$marco}.");
                     }
 
                     Nodos::validar($entrada['nodos'], $quien);
