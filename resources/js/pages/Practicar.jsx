@@ -1,7 +1,7 @@
 import { Head, usePage } from '@inertiajs/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import AppLayout from '../layouts/AppLayout';
-import { Ejercicio, Veredicto, cuerpoDeRespuesta, estaIncompleta, forma, valorInicial } from '../components/Ejercicio';
+import { Ejercicio, Veredicto, cuerpoDeRespuesta, estaIncompleta, forma, valorInicial, claseDeVeredicto } from '../components/Ejercicio';
 import { RAZONES_DESVIO } from '../lib/razones';
 
 /**
@@ -446,11 +446,7 @@ export default function Practicar({ objective, mastery: masteryInicial, lengua =
                     <div
                         ref={feedbackRef}
                         tabIndex={-1}
-                        className={`flex gap-4 rounded-lg border border-l-4 p-4 ${
-                            resultado.is_correct
-                                ? 'border-emerald-200 border-l-emerald-600 bg-emerald-50'
-                                : 'border-rose-200 border-l-rose-600 bg-rose-50'
-                        }`}
+                        className={`flex gap-4 rounded-lg border border-l-4 p-4 ${claseDeVeredicto(resultado.is_correct)}`}
                     >
                         {/* Icono GRANDE + texto: jamás solo el color, y a un
                             tamaño que se ve de reojo desde el teclado. */}

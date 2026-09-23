@@ -49,8 +49,8 @@ jobs:
       # El presupuesto lo mide un script que lee el MANIFEST (todo el JS que
       # baja un navegador), no `stat` de un solo `app-*.js` — que desde el
       # troceo de #29 es solo el marco y dejaba la cuenta ciega. Dos techos:
-      # total ≤ 450 KB y ninguna página > 40 KB.
-      - name: Presupuesto de bundle (total ≤ 450 KB, página ≤ 40 KB)
+      # total ≤ 550 KB y ninguna página > 60 KB (techo de la misión 4).
+      - name: Presupuesto de bundle (total ≤ 550 KB, página ≤ 60 KB)
         run: node scripts/presupuesto-bundle.mjs
 
   postgres:

@@ -335,7 +335,7 @@ el motor aprendió a OÍR:
   riesgo. La FORMA del nombre es cerrada y se comprueba en `resolver()` ADEMÁS
   del `where` de la ruta: dos puertas, cada una con su test (una mutación
   enseñó que la segunda estaba sin vigilar). Reproductor `<audio>` nativo:
-  cero librerías, el presupuesto de bundle (450 KB) no se toca por audio.
+  cero librerías, el presupuesto de bundle (550 KB) no se toca por audio.
 
 ## Los tipos de ítem son PIEZAS, no ramas (desde el PR de lenguas)
 
@@ -819,6 +819,39 @@ las lecciones tienen que poder NACER sin ellos sin mentir.
   «pinyin con tonos (nǐ hǎo) o con el número del tono (ni3 hao3)» — el
   motor acepta las dos, el banco las lista.
 
+## El área compartida (misión 4, PR 12) — lo que el alumno TOCA
+
+Carlos preguntó si esto ya era «dinámico y entretenido» y la respuesta honesta
+era no: siete tipos de texto, `orden` y `pares` a clic sobre una lista, cero
+animación. La referencia es Synthesis Tutor: *consigna + una cosa que tocas*.
+Y el material ya estaba sembrado; faltaba pintarlo. `resources/js/components/
+Tablero.jsx` (que `Ejercicio.jsx` EXTIENDE, no copia):
+
+- **`orden`**: la frase se construye ARRIBA con fichas de un banco, y se lee
+  entera mientras se construye. Se toca (coloca al final / devuelve al banco),
+  **las flechas ← → mueven la ficha dentro de la frase**, y arrastrar se AÑADE
+  ENCIMA con eventos de puntero (sin librería, `touch-action: none` solo en la
+  ficha). Un movimiento < 6 px es un clic; el clic que el navegador dispara
+  tras soltar se ignora una vez. Dónde cae la ficha lo decide `indiceDeCaida`
+  (pura: jsdom no mide, así que la geometría se simula en el test).
+- **`pares`**: la unión SE VE en el tablero —mismo color y MISMO NÚMERO en las
+  dos o tres columnas; el número es el que porta el significado, regla de
+  color— y deshacerla es tocarla (`aria-label="Pareja 1: … Deshacer"`). Ya no
+  hay lista aparte.
+- **`hueco`**: el campo vive DENTRO de la frase, en el sitio del «___»
+  (`partirHueco`); sin «___», o en dictado, el campo va debajo como antes.
+- **Microanimación con freno**: `claseDeVeredicto()` (un sitio) pone
+  `motion-safe:animate-pulso` al acertar y `motion-safe:animate-sacudida` al
+  fallar; los keyframes viven en `app.css`. Con `prefers-reduced-motion` quedan
+  el mismo color, icono y texto sin movimiento. El test exige que toda clase
+  `animate-*` vaya tras `motion-safe:`.
+- **LA REGLA QUE NO SE NEGOCIA**: se juega entero con teclado. El clic de
+  siempre es el camino accesible; arrastrar nunca lo sustituye. axe limpio y
+  recorrido de teclado con test en los tres tableros
+  (`components/__tests__/tablero.test.jsx`).
+- **Presupuesto**: el techo subió a **550 KB totales y 60 por página** (misión
+  4); el guardián sigue con los números nuevos. PR 12: +3,4 KB.
+
 ## La frontera del contenido abierto (modelo Khan)
 
 Se **navega** y se **practica** sin sesión; se **guarda** y se **califica** solo con
@@ -907,10 +940,10 @@ color que no cumple, el test cae.
 - No distinguir nada SOLO por color (ni estado, ni asignatura, ni acierto/error):
   siempre texto, y el icono como refuerzo. Ver «Regla de color» arriba.
 - No meter una librería de gráficas por un anillo o una barra: `resources/js/components/Anillo.jsx`
-  son 60 líneas de SVG. El guardián del CI corta el bundle en 450 KB.
+  son 60 líneas de SVG. El guardián del CI corta el bundle en 550 KB (60 por página).
 - No renderizar contenido con `dangerouslySetInnerHTML`, y no meter KaTeX ni
   MathJax: la matemática se convierte a MathML en el SERVIDOR y el navegador la
-  pinta nativa. KaTeX solo son ~280 KB sobre un presupuesto de 450.
+  pinta nativa. KaTeX solo son ~280 KB sobre un presupuesto de 550.
 - No duplicar la regla de dónde aterriza un bloque del currículo: vive en
   `App\Services\Lesson\DestinosDeBloque` y la usan los DOS sembradores
   (práctica y lecciones). Si divergen, un alumno lee el bloque en una destreza
