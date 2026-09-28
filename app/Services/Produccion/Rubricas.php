@@ -30,7 +30,7 @@ final class Rubricas
      *
      * @return array{titulo: string, criterios: list<array{clave: string, titulo: string, niveles: list<string>}>}
      */
-    public static function para(string $tipo, int $unidad): array
+    public static function para(string $tipo, int $unidad, ?string $lengua = null): array
     {
         if (! in_array($tipo, self::TIPOS, true)) {
             throw new InvalidArgumentException("Tipo de producción desconocido: «{$tipo}».");
@@ -38,12 +38,14 @@ final class Rubricas
 
         self::$cache ??= require database_path('data/rubricas-lenguas.php');
 
-        return self::$cache[$tipo];
+        // La del CURSO si la declara (PR 19: el inglés 0861 no se corrige con
+        // la rúbrica de A1); si no, la común.
+        return self::$cache['cursos'][$lengua][$tipo] ?? self::$cache[$tipo];
     }
 
     /** Las claves de criterio de un tipo, en orden. @return list<string> */
-    public static function claves(string $tipo, int $unidad): array
+    public static function claves(string $tipo, int $unidad, ?string $lengua = null): array
     {
-        return array_map(fn (array $c) => $c['clave'], self::para($tipo, $unidad)['criterios']);
+        return array_map(fn (array $c) => $c['clave'], self::para($tipo, $unidad, $lengua)['criterios']);
     }
 }
