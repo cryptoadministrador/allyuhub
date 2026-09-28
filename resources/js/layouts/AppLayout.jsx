@@ -1,4 +1,4 @@
-import { Link, usePage } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { estaEmbebido } from '../lib/entorno';
 
@@ -22,6 +22,10 @@ const DESTINOS = [
     { href: '/progreso', texto: 'Mi progreso' },
 ];
 
+// La cola de revisión: la ve TODO docente, también el de cuenta web (PR 20),
+// que no tiene ningún curso LTI y por tanto ningún «Panel del curso».
+const REVISAR = { href: '/docente/revisar', texto: 'Revisar contenido' };
+
 // Lo que puede visitar quien no ha entrado: el contenido es abierto, así que el
 // visitante navega con la misma barra, no con una versión mutilada. Su casa y
 // su progreso no están porque no existen todavía — no porque se le escondan.
@@ -39,6 +43,19 @@ export function esActivo(url, href) {
     }
 
     return ruta === href || ruta.startsWith(`${href}/`);
+}
+
+/**
+ * SALIR (PR 20). Hasta aquí nadie «salía»: la sesión nacía en el launch de
+ * Moodle y moría sola. Con la cuenta docente por web hace falta cerrarla a
+ * mano — un POST (con su CSRF, que Inertia pone), nunca un enlace GET.
+ */
+function BotonSalir({ className }) {
+    return (
+        <button type="button" onClick={() => router.post('/salir')} className={className}>
+            Salir
+        </button>
+    );
 }
 
 /** Los enlaces al panel: «Panel del curso» si hay uno; por título si hay varios. */
@@ -78,7 +95,7 @@ export default function AppLayout({ title, children }) {
     const [embebido] = useState(() => estaEmbebido(typeof window === 'undefined' ? undefined : window));
 
     const destinos = auth.user
-        ? [...DESTINOS, ...(auth.es_docente ? panelesDocente(auth.contextos ?? []) : [])]
+        ? [...DESTINOS, ...(auth.es_docente ? [...panelesDocente(auth.contextos ?? []), REVISAR] : [])]
         : DESTINOS_INVITADO;
 
     return (
@@ -125,7 +142,10 @@ export default function AppLayout({ title, children }) {
                     )}
 
                     {auth.user ? (
-                        <p className="hidden text-sm text-slate-600 sm:block">{auth.user.name}</p>
+                        <div className="hidden items-center gap-3 sm:flex">
+                            <p className="text-sm text-slate-600">{auth.user.name}</p>
+                            <BotonSalir className="rounded border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 focus:outline-2 focus:outline-offset-2 focus:outline-marca-600" />
+                        </div>
                     ) : (
                         // La puerta INVITA, no tapa: el visitante ya está dentro
                         // del contenido; esto es para que guarde lo que haga.
@@ -156,7 +176,10 @@ export default function AppLayout({ title, children }) {
                                 </li>
                             ))}
                             {auth.user ? (
-                                <li className="px-2 pt-2 text-sm text-slate-600">{auth.user.name}</li>
+                                <li className="flex items-center justify-between px-2 pt-2 text-sm text-slate-600">
+                                    {auth.user.name}
+                                    <BotonSalir className="rounded px-2 py-1 font-medium text-marca-700 underline focus:outline-2 focus:outline-offset-2 focus:outline-marca-600" />
+                                </li>
                             ) : (
                                 <li className="pt-2">
                                     <a
