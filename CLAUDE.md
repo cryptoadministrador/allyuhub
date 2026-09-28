@@ -1076,6 +1076,12 @@ color que no cumple, el test cae.
   `-deterministic`. Nunca `Math.random()` en simuladores.
 - No distinguir nada SOLO por color (ni estado, ni asignatura, ni acierto/error):
   siempre texto, y el icono como refuerzo. Ver «Regla de color» arriba.
+- No leer el texto de una OPCIÓN como `text.es` a pelo: las de un curso de
+  lenguas llegan `{it: 'ciao'}` (la palabra ES italiano). Se pinta con
+  `textoVisible()` de `Tablero.jsx`. La vía del choice lo hacía, y en
+  producción todos los ítems de opción múltiple de las lenguas salían como
+  «A B C D» sin texto; ningún test lo vio porque los fixtures traían `{es: …}`
+  (PR 17). Un fixture copia la forma de PRODUCCIÓN, no la cómoda.
 - No meter una librería de gráficas por un anillo o una barra: `resources/js/components/Anillo.jsx`
   son 60 líneas de SVG. El guardián del CI corta el bundle en 550 KB (60 por página).
 - No renderizar contenido con `dangerouslySetInnerHTML`, y no meter KaTeX ni

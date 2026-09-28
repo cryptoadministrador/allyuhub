@@ -612,6 +612,47 @@ describe('Practicar — ítems de opción múltiple', () => {
     });
 
     /**
+     * LAS OPCIONES DE UN CURSO DE LENGUAS NO LLEVAN `es`. El servidor las
+     * manda tal como vienen del banco —`{it: 'ciao'}`: la palabra ES italiano—
+     * y la vía del choice leía `text.es` a pelo: en producción los ítems de
+     * opción múltiple de las cuatro lenguas pintaban «A B C D» sin texto, y el
+     * veredicto decía «La respuesta correcta era: .». El fixture de arriba
+     * trae `{es: …}` y por eso nunca se vio. Esta forma es la de producción.
+     */
+    it('pinta las opciones de un curso de lenguas, que no traen `es`', async () => {
+        const user = userEvent.setup();
+        encolarFetch(
+            respuestaJson(200, {
+                ...ITEM_CHOICE,
+                lengua: 'it',
+                statement: { es: '¿En cuál de estas palabras la «c» suena como la «ch» del español?' },
+                options: [
+                    { key: 'b', text: { it: 'come' } },
+                    { key: 'a', text: { it: 'ciao' } },
+                    { key: 'c', text: { it: 'scusa' } },
+                ],
+            }),
+            respuestaJson(201, { attempt_no: 1, is_correct: false, expected_key: 'a', answer_key: 'c', se_guarda: true }),
+            respuestaJson(200, []),
+        );
+
+        render(<Practicar objective={OBJETIVO_LENGUA} mastery={0} />);
+        await screen.findByText(/suena como la/);
+
+        // Cada radio se llama por su TEXTO: sin él, el lector de pantalla y
+        // el alumno solo tienen «A, B, C».
+        for (const palabra of ['come', 'ciao', 'scusa']) {
+            expect(screen.getByRole('radio', { name: new RegExp(palabra) })).toBeInTheDocument();
+        }
+
+        await user.click(screen.getByRole('radio', { name: /scusa/ }));
+        await user.click(screen.getByRole('button', { name: /comprobar/i }));
+
+        const tarjeta = (await screen.findByText('Incorrecto.')).closest('[tabindex="-1"]');
+        expect(tarjeta).toHaveTextContent(/La respuesta correcta era: ciao\./);
+    });
+
+    /**
      * Antes este test solo comprobaba que NO se enviaba nada, lo que bendecía
      * el silencio: quien navega con teclado pulsaba «Comprobar» y no ocurría
      * absolutamente nada, sin explicación (auditoría).
