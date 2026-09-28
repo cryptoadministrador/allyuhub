@@ -117,4 +117,18 @@ abstract class TestCase extends BaseTestCase
 
         return $this->billete($itemId, $userId, $intento);
     }
+
+    /**
+     * Los MARCOS de todos los cursos de lenguas: el MCER (it/fr/de/zh) y el
+     * de inglés 0861 (AH-EN0861, que cuelga de Cambridge). Desde el PR 18 los
+     * bancos reales traen inglés, así que un test que siembre el banco ENTERO
+     * necesita los dos marcos, igual que producción.
+     */
+    protected function sembrarMarcosDeLenguas(): void
+    {
+        $this->seed(\Database\Seeders\CefrSeeder::class);
+        $this->seed(\Database\Seeders\InternationalFrameworksSeeder::class);
+        $this->seed(\Database\Seeders\CambridgeEnglishSeeder::class);
+        $this->seed(\Database\Seeders\InglesInternoSeeder::class);
+    }
 }

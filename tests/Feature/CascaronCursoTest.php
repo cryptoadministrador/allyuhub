@@ -332,6 +332,7 @@ class CascaronCursoTest extends TestCase
      */
     public function test_el_banco_de_carlos_siembra_todas_sus_lenguas_sin_reventar(): void
     {
+        $this->sembrarMarcosDeLenguas();   // el banco trae inglés desde el PR 18
         $this->artisan('lenguas:sembrar')->assertSuccessful();
 
         $banco = require database_path('data/banco-lenguas.php');

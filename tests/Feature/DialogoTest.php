@@ -9,7 +9,6 @@ use App\Models\LearningObjective;
 use App\Models\ObjectiveMastery;
 use App\Models\User;
 use App\Services\Dialogo\Nodos;
-use Database\Seeders\CefrSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -30,7 +29,7 @@ class DialogoTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(CefrSeeder::class);
+        $this->sembrarMarcosDeLenguas();   // los bancos reales traen inglés (PR 18)
     }
 
     private function objIO(): string

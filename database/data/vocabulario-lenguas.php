@@ -13,7 +13,7 @@
  * Escrito por Carlos; nace SIN firmar (vocabulario:firmar --lengua=).
  */
 
-return [
+$mcer = [
 
     // ============ IT · U1 ============
     ['lengua' => 'it', 'unidad' => 1, 'clave' => 'ciao',
@@ -2583,3 +2583,6 @@ return [
      'ejemplo' => ['zh' => '这个电影很有意思。', 'es' => 'Esta película es muy divertida.'],
      'clip' => 'zh/u9/vocab/youyisi'],
 ];
+
+// El vocabulario del inglés 0861 (PR 18), por Stage: ver ingles-0861/banco.php.
+return [...$mcer, ...(require __DIR__.'/ingles-0861/banco.php')['vocabulario']];

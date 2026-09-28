@@ -24,7 +24,12 @@ No son códigos de Cambridge ni lo pretenden. Cada uno apunta (`ref`) al
 sub-strand público de 0861 que desarrolla; cuando el colegio tenga el
 curriculum framework oficial, el contenido se reancla por esa referencia.
 
-## 2. El contenido (los mismos ficheros que el resto de lenguas)
+## 2. El contenido
+
+**Ya hay un banco completo** (PR 18): `database/data/ingles-0861/stage7.php`,
+`stage8.php` y `stage9.php` — por Stage, 11 lecciones, 33 ítems, 15 tarjetas y
+un guion. Para añadir o corregir, edita el fichero de SU Stage (mismo formato
+que abajo); `ingles-0861/banco.php` los suma a los bancos de siempre.
 
 Todo con `'lengua' => 'en'`. Nace **sin firmar**.
 

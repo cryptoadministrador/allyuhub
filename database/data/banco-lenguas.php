@@ -88,7 +88,7 @@
  * pero no ítems, y eso está declarado, no disimulado.
  */
 
-return [
+$mcer = [
 
     'lecciones' => [
 
@@ -7524,4 +7524,13 @@ return [
             'correcta' => 'a',
         ],
     ],
+];
+
+// El inglés 0861 (PR 18) entra por el MISMO circuito: su banco vive aparte,
+// por Stage, y aquí se suma. Cada entrada se ancla en el marco de SU curso.
+$ingles = require __DIR__.'/ingles-0861/banco.php';
+
+return [
+    'lecciones' => [...$mcer['lecciones'], ...$ingles['lecciones']],
+    'items' => [...$mcer['items'], ...$ingles['items']],
 ];
