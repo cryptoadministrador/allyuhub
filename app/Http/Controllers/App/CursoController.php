@@ -258,6 +258,7 @@ class CursoController extends Controller
             'nombre' => $this->curso->nombre($lengua),
             'unidad' => ['n' => $n, 'titulo' => $detalle['unidad']['titulo']],
             'productivos' => $productivos->all(),
+            'formato' => $this->curso->formato($lengua),
             'se_guarda' => $userId !== null,
         ]);
     }

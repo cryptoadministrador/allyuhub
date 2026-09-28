@@ -52,7 +52,7 @@ class ProduccionDocenteController extends Controller
                 // la voz va por su ruta con policy, jamás inline ni en el JSON.
                 'texto' => $p->tipo === Produccion::ESCRITURA ? $p->texto : null,
                 'audio_url' => $p->tipo === Produccion::VOZ ? route('produccion.audio', $p) : null,
-                'rubrica' => Rubricas::para($p->tipo, $p->unidad),
+                'rubrica' => Rubricas::para($p->tipo, $p->unidad, $p->lengua),
                 'creada' => $p->created_at->toDateString(),
             ]);
 
@@ -68,7 +68,7 @@ class ProduccionDocenteController extends Controller
         // Solo un docente del curso del alumno (nunca el propio alumno).
         abort_unless($request->user()->can('corregir', $produccion), 403);
 
-        $claves = Rubricas::claves($produccion->tipo, $produccion->unidad);
+        $claves = Rubricas::claves($produccion->tipo, $produccion->unidad, $produccion->lengua);
 
         $data = $request->validate([
             'rubrica' => ['required', 'array', 'size:'.count($claves)],
