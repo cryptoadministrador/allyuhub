@@ -43,9 +43,18 @@ final class Docencia
             ->get(['id', 'title']);
     }
 
-    /** ¿Es docente? Un invitado, no; un alumno, tampoco. */
+    /**
+     * ¿Es docente? Un invitado, no; un alumno, tampoco. Dos puertas (PR 20):
+     * instructor en algún contexto LTI de Platform activa, o cuenta docente
+     * WEB creada por consola (`docente:web`) — la que permite revisar y firmar
+     * sin un Moodle conectado.
+     */
     public static function es(?User $user): bool
     {
-        return self::contextos($user)->isNotEmpty();
+        if ($user === null) {
+            return false;
+        }
+
+        return (bool) $user->docente_web || self::contextos($user)->isNotEmpty();
     }
 }
