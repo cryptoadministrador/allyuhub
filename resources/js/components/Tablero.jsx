@@ -14,9 +14,23 @@ import { Fragment, useEffect, useRef, useState } from 'react';
  * ENCIMA con eventos de puntero, sin librería, y nunca sustituye al clic.
  */
 
-/** El primer texto de la opción con esa clave (las de lengua no llevan `es`). */
+/**
+ * El texto VISIBLE de un texto multilingüe: el de `es` si lo trae, y si no el
+ * único que trae. Las opciones de un curso de lenguas llegan como
+ * `{it: 'ciao'}` —la palabra ES italiano, no hay traducción que pintar— y las
+ * de MINEDEC como `{es: …}`. Una sola regla para los tableros Y el choice: la
+ * vía del choice leía `text.es` a pelo y en producción pintaba las cuatro
+ * letras sin texto en TODOS los ítems de opción múltiple de las lenguas.
+ */
+export function textoVisible(texto) {
+    if (texto == null) return '';
+    if (typeof texto === 'string') return texto;
+    return texto.es ?? Object.values(texto)[0] ?? '';
+}
+
+/** El texto de la opción con esa clave (las de lengua no llevan `es`). */
 export function primerTexto(opciones, clave) {
-    return Object.values(opciones.find((o) => o.key === clave)?.text ?? {})[0];
+    return textoVisible(opciones.find((o) => o.key === clave)?.text);
 }
 
 /**

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { TableroDeOrden, TableroDePares, partirHueco, primerTexto } from './Tablero';
+import { TableroDeOrden, TableroDePares, partirHueco, primerTexto, textoVisible } from './Tablero';
 
 /**
  * EL EJERCICIO, separado del bucle de práctica.
@@ -34,7 +34,7 @@ const LETRAS = ['A', 'B', 'C', 'D', 'E', 'F'];
 
 /** El texto de la opción con esa clave, entre las que sirvió el servidor. */
 export function textoDeOpcion(item, clave) {
-    return (item?.options ?? []).find((o) => o.key === clave)?.text?.es ?? '';
+    return primerTexto(item?.options ?? [], clave) ?? '';
 }
 
 /**
@@ -251,7 +251,7 @@ export function Ejercicio({ item, valor, onChange, faltaElegir = false, inputRef
                                     {LETRAS[i] ?? i + 1}
                                 </span>
                                 <span className="text-base leading-relaxed">
-                                    {opcion.text.es}
+                                    {textoVisible(opcion.text)}
                                     {descartadas.has(opcion.key) && <span className="ml-2 text-xs font-medium no-underline">(no es esta)</span>}
                                 </span>
                             </label>
