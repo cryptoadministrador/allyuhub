@@ -75,6 +75,30 @@ describe('producir — la tarea de producción', () => {
         expect(screen.getByText(/no permite grabar/i)).toBeInTheDocument();
     });
 
+    /**
+     * PR 19 · EL FORMATO ES DEL CURSO. «Escribe tres o cuatro frases» y los
+     * 30 s eran de A1 y estaban escritos aquí; el inglés 0861 pide un párrafo
+     * y hasta 90 s, y lo manda el servidor en `formato`.
+     */
+    it('pinta el formato que declara el curso, no el de A1', () => {
+        vi.stubGlobal('MediaRecorder', class {});
+        vi.stubGlobal('navigator', { ...navigator, mediaDevices: { getUserMedia: vi.fn() } });
+        render(<Producir {...PROPS} lengua="en" nombre="Inglés" unidad={{ n: 7, titulo: 'Stage 7' }}
+            formato={{ escritura: 'Escribe en inglés un párrafo bien organizado (unas 80-150 palabras)', voz_min_s: 45, voz_max_s: 90 }} />);
+
+        expect(screen.getByLabelText(/un párrafo bien organizado/i)).toBeInTheDocument();
+        expect(screen.queryByText(/tres o cuatro frases/i)).not.toBeInTheDocument();
+        expect(screen.getByText(/45–90 segundos/)).toBeInTheDocument();
+    });
+
+    it('sin formato declarado sigue siendo el de A1', () => {
+        vi.stubGlobal('MediaRecorder', class {});
+        vi.stubGlobal('navigator', { ...navigator, mediaDevices: { getUserMedia: vi.fn() } });
+        render(<Producir {...PROPS} />);
+        expect(screen.getByLabelText(/escribe tres o cuatro frases/i)).toBeInTheDocument();
+        expect(screen.getByText(/20–30 segundos/)).toBeInTheDocument();
+    });
+
     it.each([
         ['con sesión', { user: { id: 1, name: 'Ana' } }],
         ['sin sesión', { user: null }],
