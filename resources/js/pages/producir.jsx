@@ -39,7 +39,7 @@ function Enviado() {
     );
 }
 
-function TareaEscritura({ tarea, unidad, lengua, puedeEnviar }) {
+function TareaEscritura({ tarea, unidad, lengua, puedeEnviar, consigna }) {
     const [texto, setTexto] = useState('');
     const [estado, setEstado] = useState('idle'); // idle | enviando | enviado | error
     const corto = texto.trim().length < 20;
@@ -63,7 +63,7 @@ function TareaEscritura({ tarea, unidad, lengua, puedeEnviar }) {
     return (
         <div>
             <label htmlFor={`t-${tarea.descriptor_id}`} className="mb-2 block text-sm font-medium text-slate-700">
-                Escribe tres o cuatro frases
+                {consigna}
             </label>
             <textarea
                 id={`t-${tarea.descriptor_id}`}
@@ -94,7 +94,7 @@ function TareaEscritura({ tarea, unidad, lengua, puedeEnviar }) {
     );
 }
 
-function TareaVoz({ tarea, unidad, lengua, puedeEnviar }) {
+function TareaVoz({ tarea, unidad, lengua, puedeEnviar, minS, maxS }) {
     const puedeGrabar = typeof navigator !== 'undefined'
         && navigator.mediaDevices?.getUserMedia
         && typeof window !== 'undefined' && 'MediaRecorder' in window;
@@ -128,7 +128,7 @@ function TareaVoz({ tarea, unidad, lengua, puedeEnviar }) {
         setSegundos(0);
         setEstado('grabando');
         cron.current = setInterval(() => setSegundos((s) => {
-            if (s + 1 >= 30) detener();
+            if (s + 1 >= maxS) detener();
 
             return s + 1;
         }), 1000);
@@ -165,14 +165,15 @@ function TareaVoz({ tarea, unidad, lengua, puedeEnviar }) {
         return <Enviado />;
     }
 
-    const mmss = `${Math.floor(segundos / 60)}:${String(segundos % 60).padStart(2, '0')}`;
+    const reloj = (t) => `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
+    const mmss = reloj(segundos);
 
     return (
         <div>
             <p role="status" aria-live="polite" className="mb-3 text-sm text-slate-700">
-                {estado === 'grabando' && <>🔴 Grabando… {mmss} (máximo 0:30)</>}
+                {estado === 'grabando' && <>🔴 Grabando… {mmss} (máximo {reloj(maxS)})</>}
                 {estado === 'revisar' && 'Escucha tu grabación antes de enviarla.'}
-                {estado === 'idle' && 'Pulsa grabar y di tu respuesta (20–30 segundos).'}
+                {estado === 'idle' && `Pulsa grabar y di tu respuesta (${minS}–${maxS} segundos).`}
             </p>
 
             {estado === 'revisar' && url && (
@@ -214,7 +215,12 @@ function TareaVoz({ tarea, unidad, lengua, puedeEnviar }) {
     );
 }
 
-export default function Producir({ lengua, nombre, unidad, productivos, se_guarda: seGuarda }) {
+// El formato de la tarea lo declara el CURSO (PR 19): A1 pide tres frases y
+// medio minuto; el inglés 0861, un párrafo y hasta minuto y medio. El valor por
+// defecto es el de A1, que es lo que esta página hacía siempre.
+const FORMATO_A1 = { escritura: 'Escribe tres o cuatro frases', voz_min_s: 20, voz_max_s: 30 };
+
+export default function Producir({ lengua, nombre, unidad, productivos, formato = FORMATO_A1, se_guarda: seGuarda }) {
     const { props: compartidas } = usePage();
     const invitado = !compartidas.auth?.user && !seGuarda;
 
@@ -252,8 +258,10 @@ export default function Producir({ lengua, nombre, unidad, productivos, se_guard
                             </p>
                             <p className="mb-4 text-base font-medium text-slate-900">{tarea.statement}</p>
                             {tarea.tipo === 'voz'
-                                ? <TareaVoz tarea={tarea} unidad={unidad.n} lengua={lengua} puedeEnviar={seGuarda} />
-                                : <TareaEscritura tarea={tarea} unidad={unidad.n} lengua={lengua} puedeEnviar={seGuarda} />}
+                                ? <TareaVoz tarea={tarea} unidad={unidad.n} lengua={lengua} puedeEnviar={seGuarda}
+                                    minS={formato.voz_min_s} maxS={formato.voz_max_s} />
+                                : <TareaEscritura tarea={tarea} unidad={unidad.n} lengua={lengua} puedeEnviar={seGuarda}
+                                    consigna={formato.escritura} />}
                         </li>
                     ))}
                 </ol>

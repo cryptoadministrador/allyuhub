@@ -137,6 +137,14 @@ return [
         'it' => ['marco' => 'CEFR', 'unidades' => $unidades, 'productivas' => $productivasMcer],
         'de' => ['marco' => 'CEFR', 'unidades' => $unidades, 'productivas' => $productivasMcer],
         'zh' => ['marco' => 'CEFR', 'unidades' => $unidades, 'productivas' => $productivasMcer],
-        'en' => ['marco' => 'AH-EN0861', 'unidades' => $stagesIngles, 'productivas' => []],
+        // PR 19: el inglés produce. Escritura contra una destreza W y voz contra
+        // una SL; el formato es de 0861 (un párrafo, hasta minuto y medio), no
+        // el de A1 (tres frases, medio minuto).
+        'en' => ['marco' => 'AH-EN0861', 'unidades' => $stagesIngles,
+            'productivas' => ['escritura' => '.W.', 'voz' => '.SL.'],
+            'formato' => [
+                'escritura' => 'Escribe en inglés un párrafo bien organizado (unas 80-150 palabras)',
+                'voz_min_s' => 45, 'voz_max_s' => 90,
+            ]],
     ],
 ];

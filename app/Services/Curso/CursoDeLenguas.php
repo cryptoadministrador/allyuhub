@@ -76,6 +76,23 @@ class CursoDeLenguas
         return $this->cursos[$lengua]['productivas'] ?? [];
     }
 
+    /**
+     * EL FORMATO DE LA TAREA DE PRODUCCIÓN, por curso (PR 19). Las del MCER son
+     * de A1 —tres o cuatro frases, 20-30 s de voz— y estaban escritas en el
+     * JSX; un curso que pide otra cosa (el inglés 0861: un párrafo, hasta
+     * 90 s) lo declara en `formato`.
+     *
+     * @return array{escritura: string, voz_min_s: int, voz_max_s: int}
+     */
+    public function formato(string $lengua): array
+    {
+        return ($this->cursos[$lengua]['formato'] ?? []) + [
+            'escritura' => 'Escribe tres o cuatro frases',
+            'voz_min_s' => 20,
+            'voz_max_s' => 30,
+        ];
+    }
+
     public function existeUnidad(string $lengua, int $n): bool
     {
         return isset($this->cursos[$lengua]['unidades'][$n]);

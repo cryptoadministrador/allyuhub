@@ -1010,6 +1010,24 @@ del interlocutor. Total: 33 lecciones, 99 ítems, 45 tarjetas, 3 diálogos.
 - Los tests que siembran el banco ENTERO usan `sembrarMarcosDeLenguas()`
   (TestCase): MCER + AH-EN0861, como producción.
 
+## El inglés produce (PR 19) — la tarea de producción la declara el curso
+
+Escribir y grabar eran del MCER por TRES reglas escritas a mano: el endpoint
+solo aceptaba destrezas `.EE.`/`.PO.`, la rúbrica era la de A1 para todo, y la
+página pedía «tres o cuatro frases» y 30 s. Las tres las declara ahora el curso
+en `cursos-lenguas.php`:
+
+- `productivas`: el inglés 0861 declara `.W.` → escritura y `.SL.` → voz.
+  `ProduccionController::store` valida contra eso (y contra `existeUnidad`: el
+  inglés es u7-u9). Una marca del MCER en inglés es 422.
+- `formato` (`CursoDeLenguas::formato`): consigna de escritura y segundos de
+  voz. El MCER cae al de A1 (lo que la página hacía siempre); el inglés pide un
+  párrafo de 80-150 palabras y 45-90 s.
+- Rúbricas por curso en `rubricas-lenguas.php` (`cursos.en`): contenido,
+  organización, lengua/registro y corrección para escritura; contenido,
+  organización del discurso, fluidez y registro para voz. `Rubricas::para` cae
+  a la común si el curso no declara la suya; la forma (4 × 3) no cambia.
+
 ## La frontera del contenido abierto (modelo Khan)
 
 Se **navega** y se **practica** sin sesión; se **guarda** y se **califica** solo con
