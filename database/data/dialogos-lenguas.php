@@ -36,7 +36,7 @@
  *        SEGUNDA POSICIÓN, que es la regla de gramática de la unidad.
  */
 
-return [
+$mcer = [
     [
         'lengua' => 'it',
         'unidad' => 1,
@@ -2479,3 +2479,6 @@ return [
         ],
     ],
 ];
+
+// Un guion por Stage del inglés 0861 (PR 18): ver ingles-0861/banco.php.
+return [...$mcer, ...(require __DIR__.'/ingles-0861/banco.php')['dialogos']];
