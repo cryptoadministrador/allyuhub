@@ -138,12 +138,13 @@ class CursoInglesTest extends TestCase
     }
 
     /**
-     * El inglés no declara destrezas productivas, así que no tiene página de
-     * tarea. Antes la regla era `str_contains($code, '.EE.')` escrita en el
-     * controlador: con códigos de Cambridge no casa nunca, pero la regla vivía
-     * en el sitio equivocado. Ahora la declara el curso.
+     * Una unidad SIN destrezas productivas en el grafo no tiene página de
+     * tarea (404), nunca una página vacía. Aquí no se siembran los
+     * descriptores del inglés (AH-EN0861), así que no hay ninguna. Desde el
+     * PR 19 el inglés SÍ declara productivas (W → escritura, SL → voz): con su
+     * marco sembrado la página existe — lo fija `ProduccionInglesTest`.
      */
-    public function test_el_ingles_no_tiene_tarea_de_produccion(): void
+    public function test_sin_destrezas_productivas_sembradas_no_hay_tarea(): void
     {
         $this->get('/corso/en/u7/producir')->assertNotFound();
     }
