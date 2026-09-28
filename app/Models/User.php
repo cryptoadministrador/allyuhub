@@ -27,6 +27,8 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            // PR 20: cuenta docente creada por consola que entra por web.
+            'docente_web' => 'boolean',
         ];
     }
 }
