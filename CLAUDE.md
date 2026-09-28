@@ -989,6 +989,27 @@ firmar sin lengua solo toca el cajón compartido del MCER.
 Cómo escribir el contenido: `docs/ingles-0861/COMO-ESCRIBIR.md`. Firma:
 `practica:firmar --bloque=EN7.R.en`, o desde `/docente/revisar?lengua=en`.
 
+## El inglés 0861 tiene contenido (PR 18)
+
+Los tres Stages entran con su banco completo, escrito por la IA y **pendiente de
+firma**: por Stage, 11 lecciones (una por descriptor), 33 ítems (**3 por
+descriptor**: el dominio y el repaso piden ≥2 distintos), 15 tarjetas y 1 guion
+del interlocutor. Total: 33 lecciones, 99 ítems, 45 tarjetas, 3 diálogos.
+
+- Vive en `database/data/ingles-0861/stage{7,8,9}.php`; `ingles-0861/banco.php`
+  los junta y los TRES bancos de siempre lo suman al final. Los sembradores no
+  cambian: cada entrada se ancla en el marco de su curso (PR 16).
+- Consignas, explicaciones y pistas en **español**; material, opciones y
+  respuestas en **inglés** (británico). Tipos: choice, hueco, orden, pares.
+  **Sin audio**: nada de escucha/dictado hasta que haya clips.
+- Pasó por una **revisión adversarial por Stage** antes de entrar (~45
+  correcciones: reglas falsas en lecciones, un «However» que «va siempre al
+  principio», una opción correcta que cometía el error que enseñaba su propia
+  lección, huecos cuya consigna regalaba la palabra, pares triviales). Lo que
+  queda dudoso está en la descripción del PR: lo decide quien firma.
+- Los tests que siembran el banco ENTERO usan `sembrarMarcosDeLenguas()`
+  (TestCase): MCER + AH-EN0861, como producción.
+
 ## La frontera del contenido abierto (modelo Khan)
 
 Se **navega** y se **practica** sin sesión; se **guarda** y se **califica** solo con
