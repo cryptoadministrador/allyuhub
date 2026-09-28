@@ -38,7 +38,10 @@ class HandleInertiaRequests extends Middleware
                 // respuesta y en TODO el grupo web — incluidos los endpoints
                 // JSON de práctica, que no llevan props Inertia. Diferido, la
                 // consulta solo se paga cuando se pinta una página (auditoría).
-                'es_docente' => fn () => $this->contextosDocente($request) !== [],
+                // Docencia::es y no «tiene contextos»: una cuenta docente WEB
+                // (PR 20) no tiene ningún curso LTI y sí es docente.
+                'es_docente' => fn () => $this->contextosDocente($request) !== []
+                    || (bool) $request->user()?->docente_web,
                 'contextos' => fn () => $this->contextosDocente($request),
             ],
             'flash' => [
