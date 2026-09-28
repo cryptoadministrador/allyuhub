@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\LearningObjective;
 use App\Models\Produccion;
+use App\Services\Curso\CursoDeLenguas;
 use App\Services\Practice\Lenguas;
 use App\Services\Produccion\AlmacenDeProducciones;
 use App\Services\Produccion\AnioLectivo;
@@ -42,14 +43,26 @@ class ProduccionController extends Controller
         ]);
 
         $objetivo = LearningObjective::findOrFail($data['objective_id']);
+        $curso = app(CursoDeLenguas::class);
 
-        // La tarea productiva se corrige contra una destreza productiva:
-        // Expresión Escrita (EE) para escritura, Producción Oral (PO) para voz.
-        // Producir escritura contra una destreza de comprensión no es una tarea.
-        $esperada = $data['tipo'] === Produccion::ESCRITURA ? '.EE.' : '.PO.';
-        if (! str_contains((string) $objetivo->native_code, $esperada)) {
+        // La unidad es del CURSO: el inglés tiene u7-u9, el MCER u1-u9.
+        if (! $curso->existeUnidad($data['lengua'], (int) $data['unidad'])) {
             throw ValidationException::withMessages([
-                'objective_id' => "Una producción de {$data['tipo']} se hace contra una destreza {$esperada}.",
+                'unidad' => "El curso de «{$data['lengua']}» no tiene la unidad {$data['unidad']}.",
+            ]);
+        }
+
+        // La tarea productiva se corrige contra una destreza productiva, y QUÉ
+        // es productivo lo declara el CURSO (PR 19): EE/PO en el MCER, W/SL en
+        // el inglés 0861. Aquí estaba `'.EE.' : '.PO.'` escrito a mano, y un
+        // curso sin esas marcas no podía recibir ni una producción. Producir
+        // escritura contra una destreza de comprensión no es una tarea.
+        $esperada = $curso->productivas($data['lengua'])[$data['tipo']] ?? null;
+        if ($esperada === null || ! str_contains((string) $objetivo->native_code, $esperada)) {
+            throw ValidationException::withMessages([
+                'objective_id' => $esperada === null
+                    ? "El curso de «{$data['lengua']}» no tiene tarea de {$data['tipo']}."
+                    : "Una producción de {$data['tipo']} se hace contra una destreza {$esperada}.",
             ]);
         }
 
