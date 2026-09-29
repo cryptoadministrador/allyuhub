@@ -1028,6 +1028,32 @@ en `cursos-lenguas.php`:
   organización del discurso, fluidez y registro para voz. `Rubricas::para` cae
   a la común si el curso no declara la suya; la forma (4 × 3) no cambia.
 
+## Docente por web, sin Moodle (PR 20)
+
+Sin un Moodle conectado nadie era docente: «docente» solo existía por contexto
+LTI. La segunda puerta es una **cuenta docente web** creada A MANO:
+
+```bash
+php artisan docente:web correo@colegio.edu.ec --nombre="Nombre Apellido"   # contraseña, UNA vez
+php artisan docente:web correo@colegio.edu.ec --quitar                     # cierra la puerta y sus sesiones
+```
+
+- `users.docente_web` (bool, default false). `Docencia::es` = instructor LTI
+  **o** `docente_web`. Da acceso a `/docente/revisar` y `/api/v1/revision/*`
+  (contenido, no alumnos). **NO** da acceso a datos de alumnos: el panel del
+  curso, las producciones (voz y texto de menores) y su audio siguen decidiendo
+  por membership LTI de instructor en EL curso del alumno.
+- `POST /entrar` (formulario en la página Blade `/entrar`) y `POST /salir`, con
+  CSRF. Solo entra una fila con `docente_web` **y sin `lti_iss`**; nadie se
+  registra solo.
+- Reglas que fijó la auditoría adversarial (cada una con test y mutación):
+  el comando **se niega a tocar una cuenta LTI** (el correo de Moodle es un dato
+  del alumno, no su identidad: convertía en docente al alumno); correo en
+  minúsculas; mismo mensaje y mismo tiempo ante fallo (Timebox 500 ms, bcrypt
+  contra un hash señuelo si la cuenta no existe); 5 intentos por
+  (correo, IP) y 20 por IP; la sesión anterior se **invalida** al entrar (no
+  solo se regenera el id: se heredaban «piezas vistas» y launches ajenos).
+
 ## La frontera del contenido abierto (modelo Khan)
 
 Se **navega** y se **practica** sin sesión; se **guarda** y se **califica** solo con
@@ -1039,7 +1065,7 @@ VE la tarea, no se envía —, `/corso/{lengua}/u{n}/hablar`, `/corso/{lengua}/u
 `/corso/{lengua}/repaso`, `/corso/{lengua}/u{n}/vocabulario`, `/corso/{lengua}/u{n}/jugar`,
 `GET/POST /api/v1/pruebas/{lengua}/u{n}` y `POST /api/v1/vocabulario/{id}/estado`), los endpoints de
 `/api/v1/practice/*` (`repaso-diario` y `racha` incluidos) y `POST /api/v1/dialogos/{id}/completado` (el invitado juega
-y no escribe). Cerradas: `/inicio`, `/progreso`, `/docente/*` y **toda producción**
+y no escribe). Cerradas: `/inicio`, `/progreso`, `/docente/*` (docente LTI o cuenta docente web, PR 20) y **toda producción**
 (crear, borrar y servir la voz: `/api/v1/producciones*` — contenido de un menor).
 `/docente/revisar*` y `/api/v1/revision/*` son cerradas con **403** (no
 redirección) para alumno e invitado: ver PR 5 arriba.

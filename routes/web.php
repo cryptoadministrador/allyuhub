@@ -11,6 +11,7 @@ use App\Http\Controllers\App\InicioController;
 use App\Http\Controllers\App\PageController;
 use App\Http\Controllers\App\ProduccionDocenteController;
 use App\Http\Controllers\App\RevisionController;
+use App\Http\Controllers\Auth\AccesoWebController;
 use Illuminate\Support\Facades\Route;
 
 // La raíz lleva a la casa del alumno cuando hay sesión; el visitante sin
@@ -23,6 +24,10 @@ Route::get('/', BienvenidaController::class)->name('bienvenida');
 
 // Sesión caducada o acceso sin launch: la única puerta de entrada es Moodle.
 Route::view('/entrar', 'entrar')->name('entrar');
+// PR 20 · Entrada por web SOLO para cuentas docentes (`docente:web`). Los
+// alumnos siguen entrando desde su aula. Salir cierra cualquier sesión.
+Route::post('/entrar', [AccesoWebController::class, 'entrar'])->name('entrar.web');
+Route::post('/salir', [AccesoWebController::class, 'salir'])->name('salir');
 
 /*
 |--------------------------------------------------------------------------

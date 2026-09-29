@@ -6,10 +6,12 @@ import AppLayout from '../AppLayout';
 import { violacionesGraves } from '../../test/helpers';
 
 const paginaMock = vi.fn();
+const { postMock } = vi.hoisted(() => ({ postMock: vi.fn() }));
 
 vi.mock('@inertiajs/react', () => ({
     Head: () => null,
     usePage: () => paginaMock(),
+    router: { post: postMock },
     Link: ({ href, children, ...rest }) => (
         <a href={href} {...rest}>
             {children}
@@ -89,6 +91,32 @@ describe('AppLayout — marca y navegación', () => {
      * versión mutilada. Lo que no aparece es su casa y su progreso — porque
      * todavía no existen, no porque se le escondan.
      */
+    /**
+     * PR 20 · la cuenta docente WEB no tiene ningún curso LTI: sin «Revisar
+     * contenido» en la barra, su única pantalla quedaba sin puerta.
+     */
+    it('un docente ve «Revisar contenido» aunque no tenga ningún curso', () => {
+        montar({ esDocente: true, contextos: [] });
+        const nav = screen.getByRole('navigation', { name: /principal/i });
+        expect(within(nav).getByRole('link', { name: 'Revisar contenido' })).toHaveAttribute('href', '/docente/revisar');
+        expect(within(nav).queryByRole('link', { name: /panel/i })).not.toBeInTheDocument();
+    });
+
+    it('un alumno NO ve «Revisar contenido»', () => {
+        montar();
+        expect(screen.queryByRole('link', { name: 'Revisar contenido' })).not.toBeInTheDocument();
+    });
+
+    it('con sesión se puede SALIR, por POST y nunca por un enlace GET', async () => {
+        postMock.mockClear();
+        const user = userEvent.setup();
+        montar({ esDocente: true });
+
+        expect(screen.queryByRole('link', { name: /salir/i })).not.toBeInTheDocument();
+        await user.click(screen.getAllByRole('button', { name: 'Salir' })[0]);
+        expect(postMock).toHaveBeenCalledWith('/salir');
+    });
+
     it('sin sesión ofrece catálogo y búsqueda, y la puerta para guardar', () => {
         montar({ user: null });
 
